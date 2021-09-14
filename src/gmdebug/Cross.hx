@@ -19,6 +19,8 @@ import haxe.io.Path as HxPath;
 class Cross {
 	public static final FOLDER = "gmdebug";
 
+	public static final CLIENT_READY = HxPath.join([FOLDER,"clientready.dat"]);
+
 	public static final INPUT = HxPath.join([FOLDER, "in.dat"]);
 
 	public static final OUTPUT = HxPath.join([FOLDER, "out.dat"]);

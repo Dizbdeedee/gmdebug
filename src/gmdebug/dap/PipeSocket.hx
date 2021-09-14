@@ -10,7 +10,8 @@ using tink.CoreApi;
 typedef PipeSocketLocations = {
 	read:String, 
 	write:String,
-	ready:String
+	ready:String,
+	client_ready:String
 }
 	
 typedef ReadFunc = (buf:js.node.Buffer) -> Void;
@@ -34,7 +35,12 @@ class PipeSocket {
         this.readFunc = readFunc;
     }
 
+	public function isReady() {
+		return FileSystem.exists(locs.client_ready);
+	}
+
     @:async public function aquire() {
+		if (!isReady()) throw "Client not ready yet...";
 		makeFifosIfNotExist(locs.read, locs.write);
         readS = @:await aquireReadSocket(locs.read); 
 		writeS = @:await aquireWriteSocket(locs.write);

@@ -13,6 +13,12 @@ using gmod.helpers.WeakTools;
 using Safety;
 using Lambda;
 
+#if lua
+import gmdebug.lib.lua.Protocol;
+#elseif js
+import vscode.debugProtocol.DebugProtocol;
+#end
+
 class SourceContainer {
 	
 	final uniqueSources:Map<String, Null<Source>> = [];

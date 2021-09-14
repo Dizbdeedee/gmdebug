@@ -10,7 +10,6 @@ import lua.Lua;
 import gmod.libs.DebugLib;
 import gmod.Gmod;
 import gmdebug.lua.managers.BreakpointManager;
-import gmdebug.lua.util.PrintTimer.print_time;
 
 using gmod.helpers.WeakTools;
 using Safety;
@@ -64,8 +63,9 @@ class DebugLoop {
 
 	static var sc:Null<SourceContainer>;
 
-	static var fbm:Null<FunctionBreakpointManager>;
+	static var debugee:Debugee;
 
+	static var fbm:Null<FunctionBreakpointManager>;
 
 	public static function init(bm:BreakpointManager,sc:SourceContainer,fbm:FunctionBreakpointManager) {
 		DebugLoop.bm = bm;
@@ -334,7 +334,7 @@ class DebugLoop {
 
 	// TODO if having inline breakpoints, only use instruction count when necessary (i.e when running the line to step through) also granuality ect.
 	public static function debugloop(cur:HookState, currentLine:Int) {
-		if (!Debugee.shouldDebug || Debugee.tracing)
+		if (Debugee.pollActive || Debugee.tracebackActive)
 			return;
 		debug_checkBlownStack(cur);
 		DebugLoopProfile.profile("getinfo", true);

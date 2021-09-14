@@ -1,5 +1,10 @@
 package gmdebug;
 
+#if lua
+import gmdebug.lib.lua.Protocol;
+#elseif js
+import vscode.debugProtocol.DebugProtocol;
+#end
 typedef GmDebugMessage<T> = ProtocolMessage & {
 	// type : String,
 	msg:GmMsgType<T>,

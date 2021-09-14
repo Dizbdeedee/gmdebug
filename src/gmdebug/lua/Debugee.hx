@@ -1,5 +1,6 @@
 package gmdebug.lua;
 
+import gmod.libs.VguiLib;
 import gmdebug.lua.managers.BreakpointManager;
 import gmdebug.lua.managers.FunctionBreakpointManager;
 import gmdebug.lua.managers.VariableManager;
@@ -37,6 +38,12 @@ import gmod.libs.ChatLib;
 import gmod.libs.GuiLib;
 #end
 
+enum RecursiveGuard {
+	NONE;
+	TRACEBACK;
+	POLL;
+}
+
 @:keep
 class Debugee {
 
@@ -46,19 +53,21 @@ class Debugee {
 
 	public static var state:DebugState = WAIT; //go
 
-	public static var active:Bool = false; //keep
+	public static var socketActive:Bool = false; //keep
 
-	public static var inpauseloop = false; //keep
+	public static var pauseLoopActive = false; //keep
 
 	public static var dapMode:Null<DapModeStr>;
 
 	public static var stepHeight(get,never):Int;
-	
+
 	public static extern inline function get_stepHeight():Int {
 		return stackHeight - StackConst.STEP;
 	}
 
 	public static var baseDepth:Null<Int>;
+
+	public static var recursiveGuard:RecursiveGuard = NONE;
 
 	public static var stackHeight(get, never):Int;
 
@@ -72,7 +81,7 @@ class Debugee {
 		throw "No stack height";
 	}
 
-	public static var tracing = false;
+	public static var tracebackActive = false;
 
 	static var hooksActive = false;
 
@@ -87,7 +96,7 @@ class Debugee {
 		return socket = sock;
 	}
 
-	public static var shouldDebug = true;
+	public static var pollActive = false;
 
 	static var outputter:Null<Outputter>;
 
@@ -106,18 +115,16 @@ class Debugee {
 	static final TIMEOUT_CONFIG = 5;
 
 	public static function start() {
-		if (active)
+		if (socketActive)
 			return false;
-		try {
-			socket = new PipeSocket();
+		socket = try {
+			new PipeSocket();
 		} catch (e) {
 			socket = null;
-		}
-		if (socket == null) {
 			return false;
 		}
 		trace("Connected to server...");
-		active = true;
+		socketActive = true;
 		final initEvent = new ComposedEvent(initialized);
 		initEvent.send();
 		#if debugdump
@@ -136,7 +143,6 @@ class Debugee {
 		DebugHook.addHook(DebugLoop.debugloop, "c");
 		Exceptions.tryHooks();
 		hooksActive = true;
-
 		return true;
 	}
 
@@ -160,12 +166,16 @@ class Debugee {
 
 	#if server
 	static function hookPlayer() {
-		HookLib.Add(PlayerInitialSpawn, "gmdebug-newplayer", (ply, _) -> {
-			new ComposedGmDebugMessage(playerAdded, {
-				name: ply.Name(),
-				playerID: ply.UserID()
-			}).send();
-		});
+		var tbl = lua.Table.create();
+		for (x in tbl) {
+			trace(x);
+		}
+		// HookLib.Add(PlayerConnect, "gmdebug-newplayer", (name, ip) -> {
+		// 	new ComposedGmDebugMessage(playerAdded, {
+		// 		name : name,
+
+		// 	}).send();
+		// });
 		HookLib.Add(PlayerDisconnected, "gmdebug-byeplayer", (ply) -> {
 			new ComposedGmDebugMessage(playerRemoved, {
 				playerID: ply.UserID()
@@ -183,35 +193,29 @@ class Debugee {
 	@:expose("__gmdebugTraceback")
 	static function traceback(err:Any) {
 		final _err = err;
-		if (!shouldDebug) return err;
+		if (pollActive) return err;
 		if (checkIgnoreError(err))
 			return _err;
-		if (Debugee.inpauseloop || tracing) {
-			trace('traceback failed... ${Debugee.inpauseloop} $tracing');
+		if (Debugee.pauseLoopActive || tracebackActive) {
+			trace('traceback failed... ${Debugee.pauseLoopActive} $tracebackActive');
 			return _err;
 		}
 		#if server
-		if (!active && Jit.checkCanActivateJit()) {
+		if (!socketActive && Jit.checkCanActivateJit()) {
 			final result = Jit.jitCheck(err, _err);
 			if (!result)
 				return _err;
 		}
 		#end
-		if (!hooksActive || !active)
+		if (!hooksActive || !socketActive)
 			return _err;
-		// Lua.print("tracing is now true");
-		tracing = true;
-		#if client
-		GuiLib.EnableScreenClicker(true);
-		GuiLib.ActivateGameUI();
-		#end
+		tracebackActive = true;
 		if (err is haxe.Exception) {
 			startHaltLoop(Exception,  StackConst.EXCEPT, (err : haxe.Exception).message);
 		} else {
 			startHaltLoop(Exception, StackConst.EXCEPT, Gmod.tostring(err));
 		}
-		tracing = false;
-		// Lua.print("tracing is now false...");
+		tracebackActive = false;
 		return DebugLib.traceback(err);
 	}
 
@@ -246,7 +250,7 @@ class Debugee {
 				case ACK | TIMEOUT:
 					return;
 				case MESSAGE(msg):
-					msg;		
+					msg;
 				case ERROR(s):
 					throw s;
 			}
@@ -258,7 +262,7 @@ class Debugee {
 		} catch (e:haxe.Exception) {
 			trace(e.toString());
 		}
-		
+
 	}
 
 	public static function main() {
@@ -280,21 +284,37 @@ class Debugee {
 		Gmod.RunConsoleCommand("cl_timeout", 999999);
 		#end
 		#if client
-		Jit.init();
+		// Jit.init();
 		#end
-		TimerLib.Create("gmdebug-start", 3, 0, () -> {
-			#if server
-			Jit.jitActivate();
-			#end
+		trace("before socketactive");
+		while (!socketActive) {
 			try {
 				start();
 			} catch (ee) {
+				FileLib.Write("deth.txt",ee.details());
 				socket.run((sock) -> sock.close());
 				socket = null;
-				trace('closed socket on error ${ee.toString()}');
 				trace(ee.details());
+				socketActive = false;
+				break;
+				// trace('closed socket on error ${ee.toString()}');
+				// trace(ee.details());
 			}
-		});
+		}
+		
+		// TimerLib.Create("gmdebug-start", 3, 0, () -> {
+		// 	#if server
+		// 	Jit.jitActivate();
+		// 	#end
+		// 	try {
+		// 		start();
+		// 	} catch (ee) {
+		// 		socket.run((sock) -> sock.close());
+		// 		socket = null;
+		// 		trace('closed socket on error ${ee.toString()}');
+		// 		trace(ee.details());
+		// 	}
+		// });
 		TimerLib.Create("report-profling", 3, 0, () -> {
 			DebugLoopProfile.report();
 		});
@@ -302,9 +322,9 @@ class Debugee {
 		HookLib.Add(GMHook.Think, "gmdebug-poll", () -> {
 			if (Gmod.CurTime() > pollTime) {
 				pollTime = Gmod.CurTime() + POLL_TIME;
-				shouldDebug = false;
+				pollActive = true;
 				poll();
-				shouldDebug = true;
+				pollActive = false;
 			}
 		});
 	}
@@ -318,8 +338,8 @@ class Debugee {
 	}
 
 	public static function startHaltLoop(reason:StopReason, bd:Int, ?txt:String) {
-		if (Debugee.inpauseloop) return;
-		Debugee.inpauseloop = true;
+		if (Debugee.pauseLoopActive) return;
+		Debugee.pauseLoopActive = true;
 		baseDepth = bd;
 		final tstop:TStoppedEvent = {
 			threadId: Debugee.clientID,
@@ -351,13 +371,14 @@ class Debugee {
 		});
 		hooksActive = false;
 		socket = null;
-		active = false;
+		socketActive = false;
 		trace("Debugging aborted");
 		Exceptions.unhookGamemodeHooks();
 		Exceptions.unhookEntityHooks();
 	}
 
 	static function startLoop() {
+		#if client return true; #end
 		var success = false;
 		final timeoutTime = Gmod.SysTime() + TIMEOUT_CONFIG;
 		while (Gmod.SysTime() < timeoutTime) {
@@ -365,7 +386,7 @@ class Debugee {
 				case ACK | TIMEOUT:
 					continue;
 				case MESSAGE(msg):
-					msg;		
+					msg;
 				case ERROR(s):
 					throw s;
 			}
@@ -378,7 +399,7 @@ class Debugee {
 				case CONFIG_DONE:
 					success = true;
 					break;
-				
+
 			}
 		}
 		return success;
@@ -386,12 +407,12 @@ class Debugee {
 
 
 	static function haltLoop() {
-		while (true) {			
+		while (true) {
 			final msg = switch (recvMessage()) {
 				case ACK | TIMEOUT:
 					continue;
 				case MESSAGE(msg):
-					msg;		
+					msg;
 				case ERROR(s):
 					throw s;
 			}
@@ -402,9 +423,9 @@ class Debugee {
 				case DISCONNECT:
 					abortDebugee();
 					break;
-			}		
+			}
 		}
-		Debugee.inpauseloop = false;
+		Debugee.pauseLoopActive = false;
 	}
 
 	static function chooseHandler(incoming:{type:String}):HandlerResponse {

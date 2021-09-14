@@ -14,35 +14,31 @@ import haxe.ds.ObjectMap;
 import haxe.io.Path as HxPath;
 
 using Safety;
-
+using gmod.helpers.WeakTools;
 class Exceptions {
 	public static final exceptFuncs = getexceptFuncs();
 
 	public static final debugNames:ObjectMap<Dynamic, String> = new ObjectMap<Dynamic,String>();
 
-	static final oldFuncs = getoldFuncs();
 
-	static function getexceptFuncs():ObjectMap<Dynamic, Int> {
+	static function getexceptFuncs():ObjectMap<Dynamic, Dynamic> {
 		if (G.exceptFuncs == null) {
-			G.exceptFuncs = new ObjectMap<Dynamic, Int>();
+			G.exceptFuncs = new ObjectMap<Dynamic, Dynamic>();
 		}
+		G.exceptFuncs.setWeakKeyValuesM();
 		return G.exceptFuncs;
 	}
 
-	static function getoldFuncs():Array<Function> {
-		if (G.oldFuncs == null) {
-			G.oldFuncs = new Array<Function>();
-		}
-		return G.oldFuncs;
-	}
-
 	public static function tryHooks() {
+
 		unhookGamemodeHooks();
 		unhookEntityHooks();
-		unhookInclude();
+		unhookInclude();		
 		hookGamemodeHooks();
 		hookEntityHooks();
 		hookInclude();
+		final result = exceptFuncs.exists(null);
+		trace(result);
 	}
 
 	public static inline function isExcepted(x:Function):Bool {
@@ -50,36 +46,37 @@ class Exceptions {
 	}
 
 	static function addExcept(x:Function):Function {
-		var i = oldFuncs.push(x);
-		var func = untyped __lua__("function (...) local success,vargs = xpcall(_G.__oldFuncs[{0}],{1},...) if success then return vargs else print(\"baddy bad!\", {2}) error(vargs,99) end end",
-			i - 1,
-			G.__gmdebugTraceback,
-			debugNames.get(oldFuncs[i - 1]));
-		exceptFuncs.set(func, i - 1);
+		var func = untyped __lua__("function (...) local success,vargs = xpcall({0},{1},...) if success then return vargs else print(\"baddy bad!\") error(vargs,99) end end",
+			x,
+			G.__gmdebugTraceback); 
+		exceptFuncs.set(func, x);
 		return func;
 	}
 
 	static function getOldFunc(hook:Function) {
-		var i = exceptFuncs.get(hook).unsafe();
-		return oldFuncs[i];
+		return exceptFuncs.get(hook);
+
 	}
 
 	public static function hookGamemodeHooks() {
 		for (hookname => hook in HookLib.GetTable()) {
 			for (ident => hooks in hook) {
 				if (shouldExcept(hooks)) {
-					debugNames.set(hooks,ident);
+					// debugNames.set(hooks,ident);
 					HookLib.Add(hookname, ident, addExcept(hooks));
 				}
 			}
 		}
-		for (ind => gm in Gmod.GAMEMODE) {
-			if (shouldExcept(gm)) {
-				debugNames.set(gm,ind);
-				Gmod.GAMEMODE[cast ind] = addExcept(gm);
+		if (Gmod.GAMEMODE != null) {
+			for (ind => gm in Gmod.GAMEMODE) {
+				if (shouldExcept(gm)) {
+					// debugNames.set(gm,ind);
+					Gmod.GAMEMODE[cast ind] = addExcept(gm);
+				}
+				
 			}
-			
 		}
+		
 		G.oldGamemodeRegister = GamemodeLib.Register;
 		untyped GamemodeLib.Register = (gm, name, derived) -> {
 			for (ind => val in gm) {
@@ -101,16 +98,20 @@ class Exceptions {
 			final findPth = HxPath.join([currentDir,str]);
 			final relative = FileLib.Exists(findPth,GAME);
 			final nonrelative = FileLib.Exists(str,LUA);
+			trace('path: $str relative: $relative nonrelative: $nonrelative');
+			return G.oldInclude(str);
 			final compileFunc = switch [relative,nonrelative] {
 				case [true,_]:
+					trace("relative");
 					Gmod.CompileString(FileLib.Read(findPth,GAME), findPth, false);
 				case [_,true]:
+					trace("nonrelative");
 					Gmod.CompileString(FileLib.Read(str,LUA), str, false);
 				default:
 					trace('Could not catch exceptions for included file : $str');
 					return G.oldInclude(str);
 			}
-			if (compileFunc is String) {
+			if (Lua.type(compileFunc) == "string") {
 				// trace("Could not compile file...);
 			} else {
 				final fun = addExcept(compileFunc);
@@ -148,17 +149,30 @@ class Exceptions {
 	}
 
 	public static function hookEntityHooks() {
+		//afteraction
 		for (entName in Scripted_entsLib.GetList().keys()) {
 			final entTbl = Scripted_entsLib.GetStored(entName);
 			for (ind => val in entTbl.t) {
 				if (shouldExcept(val)) {
-					debugNames.set(val,ind);
+					// debugNames.set(val,ind);
 					// trace(entTbl);
+
 					entTbl.t[ind] = addExcept(val);
+				
 				}
 			}
-			entTbl.t = cast createWrapperTable(entTbl.t);
+			// entTbl.t = cast createWrapperTable(entTbl.t);
 		}
+		G.oldEntityRegister = Scripted_entsLib.Register;
+		untyped Scripted_entsLib.Register = (ENT,name) -> {
+			for (ind => val in ENT) {
+				if (shouldExcept(val)) {
+					ENT[ind] = addExcept(val);
+				}
+			}
+			G.oldEntityRegister(ENT,name);
+		}
+		
 	}
 
 	public static function hookPanels() {
@@ -178,12 +192,18 @@ class Exceptions {
 			for (ident => hooks in hook) {
 				if (shouldUnExcept(hooks)) {
 					HookLib.Add(hookname, ident, getOldFunc(hooks));
+					
+					exceptFuncs.remove(hooks);
 				}
 			}
 		}
-		for (ind => gm in Gmod.GAMEMODE) {
-			if (shouldUnExcept(gm)) {
-				Gmod.GAMEMODE[ind] = getOldFunc(gm);
+		if (Gmod.GAMEMODE != null) {
+			for (ind => gm in Gmod.GAMEMODE) {
+				if (shouldUnExcept(gm)) {
+					
+					Gmod.GAMEMODE[ind] = getOldFunc(gm);
+					exceptFuncs.remove(gm);
+				}
 			}
 		}
 		if (G.oldGamemodeRegister != null) {
@@ -197,8 +217,12 @@ class Exceptions {
 			for (ind => val in entTbl.t) {
 				if (shouldUnExcept(val)) {
 					entTbl.t[ind] = getOldFunc(val);
+					exceptFuncs.remove(val);
 				}
 			}
+		}
+		if (G.oldEntityRegister != null) {
+			untyped Scripted_entsLib.Register = G.oldEntityRegister;
 		}
 	}
 }
@@ -206,13 +230,16 @@ class Exceptions {
 @:native("_G")
 private extern class G {
 	@:native("__exceptFuncs")
-	static var exceptFuncs:haxe.ds.ObjectMap<Dynamic, Int>;
+	static var exceptFuncs:haxe.ds.ObjectMap<Dynamic, Dynamic>;
 
 	@:native("__oldFuncs")
 	static var oldFuncs:Array<Function>;
 
 	@:native("__oldGamemodeRegister")
 	static var oldGamemodeRegister:Any;
+
+	@:native("__oldEntityRegister")
+	static var oldEntityRegister:Any;
 
 	@:native("__oldInclude")
 	static var oldInclude:Any;

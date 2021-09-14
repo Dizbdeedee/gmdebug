@@ -38,6 +38,8 @@ typedef Programs = {
 }
 @:keep @:await class LuaDebugger extends DebugSession {
 
+	static final SERVER_TIMEOUT = 20;
+
 	public final commMethod:CommMethod;
 
 	public var clientFiles:Array<ClientFiles>;
@@ -77,16 +79,18 @@ typedef Programs = {
 		clients = new ClientStorage(readGmodBuffer);
 		requestRouter = new RequestRouter(this,clients,prevRequests);
 		Node.process.on("uncaughtException", uncaughtException);
+		Sys.setCwd(HxPath.directory(HxPath.directory(Sys.programPath())));
 		checkPrograms();
 		shouldAutoConnect = false;
 	}
 
 	function checkPrograms() {
 		try {
-			NCP.execSync("xdotool");
+			NCP.execSync("xdotool --help");
 			programs.xdotool = true;
 		} catch (e) {
 			trace("Xdotool not found");
+			trace(e.toString());
 		}
 	}
 
@@ -115,7 +119,7 @@ typedef Programs = {
 
 	@:async function playerTry(clientLoc:String, gmodID:Int, playerName:String) {
 		final cl = @:await clients.newClient(clientLoc,gmodID,playerName);
-		// clients.sendClient(cl.clID,new ComposedGmDebugMessage(clientID, {id: cl.clID}));
+		clients.sendClient(cl.clID,new ComposedGmDebugMessage(clientID, {id: cl.clID}));
 		new ComposedEvent(thread, {
 			threadId: cl.clID,
 			reason: Started
@@ -176,13 +180,26 @@ typedef Programs = {
 			case serverInfo:
 				serverInfoMessage(cast x.body);
 			case clientID | intialInfo:
+				
 				throw "dur";
+				
 		}
 	}
 
 
 	@:async function pokeServerNamedPipes(attachReq:GmDebugAttachRequest) {
-		@:await clients.newServer(attachReq.arguments.serverFolder).eager();
+		var timeout:Float = haxe.Timer.stamp() + SERVER_TIMEOUT;
+		var timedout = true;
+		trace(timeout);
+		while (haxe.Timer.stamp() < timeout) {
+			try {
+				@:await clients.newServer(attachReq.arguments.serverFolder).eager();
+				timedout = false;
+				break;
+			} catch (e) {}
+		}
+		if (timedout) throw new haxe.Exception("Timed out...");
+
 		clients.sendServer(new ComposedGmDebugMessage(clientID, {id: 0}));
 		switch (dapMode) {
 			case ATTACH:
@@ -207,7 +224,6 @@ typedef Programs = {
 		for (msg in messages) {
 			processDebugeeMessage(msg, clientNo);
 		}
-		// messages.iter(processDebugeeMessage);
 		if (bytesProcessor.fillRequested) {
 			clients.sendAnyRaw(clientNo,"\004\r\n");
 		}
@@ -264,7 +280,7 @@ typedef Programs = {
 					resp.send(this);
 				case Failure(fail):
 					trace(fail.message);
-					final resp = attachReq.composeFail('attach fail ${fail.message}', {
+					final resp = attachReq.composeFail('attach fail ${fail.data}', {
 						id: 1,
 						format: 'Failed to attach to server ${fail.message}',
 					});
@@ -282,10 +298,25 @@ typedef Programs = {
 		switch (message.type) {
 			case Request:
 				untyped trace('recieved request from client ${message.command}');
-				requestRouter.route(cast message);
+				try {
+					requestRouter.route(cast message);
+
+				} catch (e) {
+					trace('FAIL!! XD ${e.toString()}');
+					final fail = (cast message : Request<Dynamic>).composeFail(e.message,{
+						id: 15,
+						format: e.toString()
+					});
+					fail.send(this);
+
+				}
 			default:
-				trace("not a request from client");
+				trace("Not handlin that...");
+				//send fail/error event?
+				
 		}
+	
+	
 	}
 }
 

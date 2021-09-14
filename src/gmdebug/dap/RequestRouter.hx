@@ -1,5 +1,8 @@
 package gmdebug.dap;
 
+import sys.io.File;
+import sys.io.Process;
+import sys.FileSystem;
 import gmdebug.composer.RequestString;
 import js.Node;
 import js.node.Buffer;
@@ -181,6 +184,7 @@ class RequestRouter {
 			comp.send(luaDebug);
 			return;
 		}
+		generateInitFiles(serverFolder);
 		copyLuaFiles(serverFolder);
 		final clientFolders = req.arguments.clientFolders.or([]);
 		for (ind => client in clientFolders) {
@@ -203,10 +207,33 @@ class RequestRouter {
 		clients.sendAny(client, req);
 	}
 
+	function generateInitFiles(serverFolder:String) {
+		final initFile = HxPath.join([serverFolder,"lua","includes","init.lua"]);
+		final backupFile = HxPath.join(["generated","debugee","lua","includes","init_backup.lua"]);
+		final initContents = if (FileSystem.exists(initFile)) {
+			sys.io.File.getContent(initFile);
+		} else if (FileSystem.exists(backupFile)) {
+			sys.io.File.getContent(backupFile);
+		} else {
+			throw "Could not find real, or backup file >=(";
+		}
+		final appendFile = HxPath.join(["generated","debugee","lua","includes","init_attach.lua"]);
+		trace(Sys.getCwd());
+		trace(Sys.getCwd());
+		trace(appendFile);
+		final appendContents = if (FileSystem.exists(appendFile)) {
+			sys.io.File.getContent(appendFile);
+		} else {
+			throw "Could not find append file...";
+		}
+		final ourInitFile = HxPath.join(["generated","debugee","lua","includes","init.lua"]);
+		// if (FileSystem.exists(ourInitFile)) throw "Init file already exists...";
+		sys.io.File.saveContent(ourInitFile,initContents + appendContents);
+	}
+
 	function copyLuaFiles(serverFolder:String) {
 		final addonFolder = HxPath.join([serverFolder, "addons"]);
-		final debugFolder = HxPath.join([addonFolder, "debugee"]);
-		js.node.ChildProcess.execSync('cp -r ../generated/debugee $addonFolder', {cwd: HxPath.directory(Sys.programPath())}); // todo fix for windows
+		js.node.ChildProcess.execSync('cp -r generated/debugee $addonFolder'); // todo fix for windows
 	}
 
 	function h_attach(req:GmDebugAttachRequest) {

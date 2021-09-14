@@ -44,9 +44,11 @@ class ClientStorage {
 		final input = HxPath.join([data, Cross.INPUT]);
 		final output = HxPath.join([data, Cross.OUTPUT]);
 		final ready = HxPath.join([data, Cross.READY]);
-		final ps = new PipeSocket({read : output, write : input, ready : ready},
+		final client_ready = HxPath.join([data, Cross.CLIENT_READY]);
+		final ps = new PipeSocket({read : output, write : input, ready : ready,client_ready: client_ready},
 			(buf:Buffer) -> readFunc(buf,id)
 		);
+		
 		final gay = @:await ps.aquire();
 		trace("mega aquired");
 		return ps;

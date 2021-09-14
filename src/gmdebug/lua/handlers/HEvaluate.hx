@@ -1,5 +1,11 @@
 package gmdebug.lua.handlers;
 
+#if lua
+import gmdebug.lib.lua.Protocol;
+#elseif js
+import vscode.debugProtocol.DebugProtocol;
+#end
+
 import gmdebug.lua.managers.VariableManager;
 import lua.Lua;
 import lua.Table;

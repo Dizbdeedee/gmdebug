@@ -1,5 +1,11 @@
 package gmdebug.dap;
 
+#if lua
+import gmdebug.lib.lua.Protocol;
+#elseif js
+import vscode.debugProtocol.DebugProtocol;
+#end
+
 import gmdebug.composer.EventString;
 import js.node.ChildProcess;
 import vscode.debugAdapter.Protocol;
@@ -18,7 +24,14 @@ class EventIntercepter {
 				final stoppedEvent:StoppedEvent = cast ceptedEvent;
 				if (luaDebug.programs.xdotool && stoppedEvent.body.threadId > 0) {
 					trace("free my mousepointer please!!");
+					//TODO reset break actions using complicated and brittle regex... horray...
+					// final str:String = ChildProcess.execSync("setxkbmap -query");
+					// final match = ~/options:[ \t]+([a-z]+)/.match(str);
+					// if (match) { 
+					// }
+					ChildProcess.execSync("setxkbmap -option grab:break_actions"); 
 					ChildProcess.execSync("xdotool key XF86Ungrab");
+					// ChildProcess.execSync("setxkbmap -option grab:break_actions");
 				}
 			default:
 		}

@@ -1,5 +1,11 @@
 package gmdebug.composer;
 
+#if lua
+import gmdebug.lib.lua.Protocol;
+#elseif js
+import vscode.debugProtocol.DebugProtocol;
+#end
+
 class ComposeTools {
 	/**
 		Compose a response

@@ -13,7 +13,9 @@ import gmod.libs.DebugLib;
 
 class HVariables implements IHandler<VariablesRequest> {
 
-    public var variableManager:VariableManager;
+    var variableManager:VariableManager;
+
+    var addVars:Array<AddVar> = [];
 
     public function new(vm:VariableManager) {
         variableManager = vm;
@@ -244,6 +246,12 @@ class HVariables implements IHandler<VariablesRequest> {
 		resp.sendtink(js);
 		return WAIT;
 	}
+
+    public function generate(values:Array<VariableReferenceVal>) {
+        for (val in values) {
+            
+        }
+    }
 
     
 }

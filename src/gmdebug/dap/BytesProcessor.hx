@@ -5,6 +5,13 @@ import js.node.Buffer;
 import haxe.io.Bytes;
 import haxe.io.BytesInput;
 
+#if lua
+import gmdebug.lib.lua.Protocol;
+#elseif js
+import vscode.debugProtocol.DebugProtocol;
+#end
+
+
 class BytesProcessor {
 	public var fillRequested(default, null):Bool = false;
 

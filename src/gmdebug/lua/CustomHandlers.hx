@@ -1,5 +1,6 @@
 package gmdebug.lua;
 
+import gmdebug.lua.util.Util.isLan;
 import gmdebug.composer.*;
 import gmod.libs.GameLib;
 import gmdebug.GmDebugMessage;
@@ -22,9 +23,7 @@ class CustomHandlers {
 		Debugee.clientID = x.body.id;
 	}
 
-	static function isLan() {
-		return Gmod.GetConVar("sv_lan").GetBool();
-	}
+	
 
 	static function h_initalInfo(x:GmDebugMessage<GmDebugIntialInfo>) {
 		Debugee.dest = x.body.location;

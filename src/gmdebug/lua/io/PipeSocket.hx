@@ -21,10 +21,13 @@ class PipeSocket implements DebugIO {
 	}
 
 	public function new() {
+		// trace("File lib exists");
+		FileLib.Write(Cross.CLIENT_READY,"");
 		if (!FileLib.Exists(Cross.READY, DATA)) {
 			throw "Other process is not ready.";
 		}
 		FileLib.Delete(Cross.READY);
+		FileLib.Delete(Cross.CLIENT_READY);
 		input = new PipeInput();
 		output = new PipeOutput();
 	}
@@ -34,9 +37,11 @@ class PipeInput extends Input {
 	final file:File;
 
 	public function new() {
+		trace("Input exists");
 		if (!FileLib.Exists(Cross.INPUT, DATA)) {
 			throw "Input pipe does not exist";
 		}
+		trace("input open");
 		final f = FileLib.Open(Cross.INPUT, FileOpenMode.bin_read, DATA);
 		if (f == null)
 			throw "Cannot open Input pipe for reading";
@@ -56,6 +61,7 @@ class PipeOutput extends Output {
 		// if (!FileLib.Exists(Cross.OUTPUT,DATA)) { IT HANGS HERE :)
 		//     throw "Output pipe does not exist";
 		// }
+		trace("output open");
 		final f = FileLib.Open(Cross.OUTPUT, FileOpenMode.write, DATA);
 		if (f == null)
 			throw "Cannot open output pipe for reading";

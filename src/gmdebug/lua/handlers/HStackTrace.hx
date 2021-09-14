@@ -8,7 +8,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 
 	public function handle(x:StackTraceRequest):HandlerResponse {
 		final args = x.arguments.unsafe();
-		if (!Debugee.inpauseloop) {
+		if (!Debugee.pauseLoopActive) {
 			var response = x.compose(stackTrace, {
 				stackFrames: [],
 				totalFrames: 0

@@ -3,7 +3,10 @@
 	"description": "gmod debugger using dap",
 	"version": "0.0.1",
 	"publisher": "ponobodod",
-	"repository": {"type": "github","url": "https://github.com/ponobodod/gmdebug"},
+	"repository": {
+		"type": "github",
+		"url": "https://github.com/ponobodod/gmdebug"
+	},
 	"dependencies": {
 		"ip": "^1.1.5",
 		"vscode-debugadapter": "^1.41.0",
@@ -14,7 +17,7 @@
 	},
 	"main": "./bin/extension.js",
 	"activationEvents": [
-		"onDebug"	
+		"onDebug"
 	],
 	"contributes": {
 		"breakpoints": [
@@ -42,11 +45,10 @@
 							"clientFolders": {
 								"type": "array",
 								"description": "The path to the client connecting to the server you wish to debug."
-								
 							}
 						}
 					},
-					"launch" : {
+					"launch": {
 						"required": [
 							"serverFolder",
 							"programPath",
@@ -61,28 +63,28 @@
 							"clientFolders": {
 								"type": "array",
 								"description": "The path to the client connecting to the server you wish to debug."
-								
 							},
-							"programPath" : {
+							"programPath": {
 								"type": "string",
 								"description": "The path to your server executable/config, or 'auto' to find and run the default server executable (srcds_run)",
-								"default" : "auto"
+								"default": "auto"
 							},
-							"programArgs" : {
+							"programArgs": {
 								"type": "array",
 								"description": "Arguments to launch server. Fill out if using the option 'auto' for programPath",
-								"default": ["+map","gm_flatgrass","+sv_lan","1"]
-
+								"default": [
+									"+map",
+									"gm_flatgrass",
+									"+sv_lan",
+									"1"
+								]
 							},
-							"autoConnectLocalGmodClient" : {
+							"autoConnectLocalGmodClient": {
 								"type": "bool",
 								"description": "For convinence, when the server has launched you can have your steam account autoconnect to it",
 								"default": true
 							}
-							
-
 						}
-
 					}
 				},
 				"initialConfigurations": [
@@ -95,7 +97,7 @@
 							"name": "gmdebug : Launch server",
 							"serverFolder": "/path_to_server_from_root/garrysmod",
 							"programPath": "auto",
-							"autoConnectLocalGmodClient" : true
+							"autoConnectLocalGmodClient": true
 						}
 					}
 				],
@@ -109,7 +111,7 @@
 							"name": "gmdebug : Launch server",
 							"serverFolder": "/path_to_server_from_root/garrysmod",
 							"programPath": "auto",
-							"autoConnectLocalGmodClient" : true
+							"autoConnectLocalGmodClient": true
 						}
 					}
 				]
