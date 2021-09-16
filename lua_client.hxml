@@ -14,5 +14,5 @@
 -dce full
 --macro gmod.helpers.macros.InitMacro.init()
 --cmd haxe -lib gmodhaxe --run gmod.helpers.macros.PostCompileMacro
--main gmdebug.lua.Debugee
+-main gmdebug.lua.Start
 -lua out/lua/debugee_cl.lua

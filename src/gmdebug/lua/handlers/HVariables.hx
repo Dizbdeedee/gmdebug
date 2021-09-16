@@ -11,14 +11,22 @@ import gmdebug.lua.managers.VariableManager;
 import gmod.gclass.Entity;
 import gmod.libs.DebugLib;
 
+typedef InitHVariables = {
+    debugee : Debugee,
+    vm : VariableManager
+}
+
 class HVariables implements IHandler<VariablesRequest> {
 
-    var variableManager:VariableManager;
+    final variableManager:VariableManager;
+
+    final debugee:Debugee;
 
     var addVars:Array<AddVar> = [];
 
-    public function new(vm:VariableManager) {
-        variableManager = vm;
+    public function new(initHVariables:InitHVariables) {
+        debugee = initHVariables.debugee;
+        variableManager = initHVariables.vm;
     }
 
     function realChild(storedvar:Dynamic,addVars:Array<AddVar>) {
@@ -243,7 +251,7 @@ class HVariables implements IHandler<VariablesRequest> {
 		// trace("custom json start");
 		final js = tink.Json.stringify((cast resp : VariablesResponse)); // in pratical terms they're the same
 		// trace('custom json end ${Gmod.SysTime() - old}');
-		resp.sendtink(js);
+		debugee.send(js);
 		return WAIT;
 	}
 

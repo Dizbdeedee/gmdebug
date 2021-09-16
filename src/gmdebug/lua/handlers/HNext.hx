@@ -1,15 +1,24 @@
 package gmdebug.lua.handlers;
 
+
+typedef InitHNext = {
+	debugee : Debugee
+}
 class HNext implements IHandler<NextRequest> {
-	public function new() {}
+	
+	final debugee:Debugee;
+	
+	public function new(init:InitHNext) {
+		debugee = init.debugee;
+	}
 
 	public function handle(nextReq:NextRequest):HandlerResponse {
 		var resp = nextReq.compose(next);
-		var tarheight = Debugee.stepHeight;
-		trace('targeting $tarheight - (${Debugee.stackHeight} ${ StackConst.STEP})');
+		var tarheight = debugee.stepHeight;
+		trace('targeting $tarheight - (${debugee.stackHeight} ${ StackConst.STEP})');
 
-		Debugee.state = STEP(tarheight);
-		resp.send();
+		debugee.state = STEP(tarheight);
+		debugee.sendMessage(resp);
 		DebugLoop.enableLineStep();
 		return CONTINUE;
 	}

@@ -1122,6 +1122,7 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 							return;
 						}
 						let cl = __t0_result;
+						_gthis.clients.sendClient(cl.clID,new gmdebug_composer_ComposedGmDebugMessage(2,{ id : cl.clID}));
 						let _this = new gmdebug_composer_ComposedEvent("thread",{ threadId : cl.clID, reason : "started"});
 						console.log("src/gmdebug/composer/ComposedEvent.hx:32:","sending from dap " + _this.event);
 						_gthis.sendEvent(_this);
@@ -1311,18 +1312,18 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 		switch(debugeeMessage.type) {
 		case "event":
 			let cmd = debugeeMessage.event;
-			console.log("src/gmdebug/dap/LuaDebugger.hx:238:","recieved event from debugee, " + cmd);
+			console.log("src/gmdebug/dap/LuaDebugger.hx:237:","recieved event from debugee, " + cmd);
 			gmdebug_dap_EventIntercepter.event(debugeeMessage,threadId,this);
 			this.sendEvent(debugeeMessage);
 			break;
 		case "gmdebug":
 			let cmd1 = debugeeMessage.msg;
-			console.log("src/gmdebug/dap/LuaDebugger.hx:247:","recieved gmdebug from debugee, " + cmd1);
+			console.log("src/gmdebug/dap/LuaDebugger.hx:246:","recieved gmdebug from debugee, " + cmd1);
 			this.processCustomMessages(debugeeMessage);
 			break;
 		case "response":
 			let cmd2 = debugeeMessage.command;
-			console.log("src/gmdebug/dap/LuaDebugger.hx:243:","recieved response from debugee, " + cmd2);
+			console.log("src/gmdebug/dap/LuaDebugger.hx:242:","recieved response from debugee, " + cmd2);
 			this.sendResponse(debugeeMessage);
 			break;
 		default:
@@ -1348,14 +1349,14 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 		this.pokeServerNamedPipes(attachReq).handle(function(out) {
 			switch(out._hx_index) {
 			case 0:
-				console.log("src/gmdebug/dap/LuaDebugger.hx:279:","Attatch success");
+				console.log("src/gmdebug/dap/LuaDebugger.hx:278:","Attatch success");
 				let resp = gmdebug_composer_ComposeTools.compose(attachReq,"attach");
 				console.log("src/gmdebug/composer/ComposedResponse.hx:52:","sending from dap " + resp.command);
 				_gthis.sendResponse(resp);
 				break;
 			case 1:
 				let _g = out.failure;
-				console.log("src/gmdebug/dap/LuaDebugger.hx:283:",_g.message);
+				console.log("src/gmdebug/dap/LuaDebugger.hx:282:",_g.message);
 				let resp1 = gmdebug_composer_ComposeTools.composeFail(attachReq,"attach fail " + (_g.data == null ? "null" : Std.string(_g.data)),{ id : 1, format : "Failed to attach to server " + _g.message});
 				console.log("src/gmdebug/composer/ComposedResponse.hx:52:","sending from dap " + resp1.command);
 				_gthis.sendResponse(resp1);
@@ -1368,18 +1369,18 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 	}
 	handleMessage(message) {
 		if(message.type == "request") {
-			console.log("src/gmdebug/dap/LuaDebugger.hx:301:","recieved request from client " + message.command);
+			console.log("src/gmdebug/dap/LuaDebugger.hx:300:","recieved request from client " + message.command);
 			try {
 				this.requestRouter.route(message);
 			} catch( _g ) {
 				let e = haxe_Exception.caught(_g);
-				console.log("src/gmdebug/dap/LuaDebugger.hx:306:","FAIL!! XD " + e.toString());
+				console.log("src/gmdebug/dap/LuaDebugger.hx:305:","FAIL!! XD " + e.toString());
 				let fail = gmdebug_composer_ComposeTools.composeFail(message,e.get_message(),{ id : 15, format : e.toString()});
 				console.log("src/gmdebug/composer/ComposedResponse.hx:52:","sending from dap " + fail.command);
 				this.sendResponse(fail);
 			}
 		} else {
-			console.log("src/gmdebug/dap/LuaDebugger.hx:315:","Not handlin that...");
+			console.log("src/gmdebug/dap/LuaDebugger.hx:314:","Not handlin that...");
 		}
 	}
 }

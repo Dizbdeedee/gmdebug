@@ -16,13 +16,20 @@ import gmdebug.composer.ComposedProtocolMessage;
 import lua.NativeStringTools;
 import gmdebug.lua.handlers.IHandler;
 
+typedef InitHEvaluate = {
+	vm : VariableManager,
+	debugee : Debugee
+}
+
 class HEvaluate implements IHandler<EvaluateRequest> {
-    
-    public function new(vm:VariableManager) {
-        variableManager = vm;
+	final variableManager:VariableManager;
+
+    final debugee:Debugee;
+    public function new(init:InitHEvaluate) {
+        variableManager = init.vm;
+		debugee = init.debugee;
     }
 
-	var variableManager:VariableManager;
 
 	public static inline function translateEvalError(err:String) {
 		return NativeStringTools.gsub(err, '^%[string %"X%"%]%:%d+%: ', "");
@@ -116,7 +123,7 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 						});
 				}
 		}
-		resp.send();
+		debugee.sendMessage(resp);
 		return WAIT;
 	}
 }

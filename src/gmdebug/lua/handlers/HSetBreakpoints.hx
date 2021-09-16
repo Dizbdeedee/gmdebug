@@ -3,12 +3,20 @@ package gmdebug.lua.handlers;
 import gmdebug.lua.managers.BreakpointManager;
 import gmdebug.lib.lua.Protocol;
 
+typedef InitHSetBreakpoints = {
+    bm : BreakpointManager,
+    debugee : Debugee
+}
+
 class HSetBreakpoints implements IHandler<SetBreakpointsRequest> {
 
     final bm:BreakpointManager;
 
-    public function new(bm:BreakpointManager) {
-        this.bm = bm;
+    final debugee:Debugee;
+
+    public function new(init:InitHSetBreakpoints) {
+        bm = init.bm;
+        debugee = init.debugee;
 
     }
 
@@ -27,8 +35,8 @@ class HSetBreakpoints implements IHandler<SetBreakpointsRequest> {
             }
 		}
 		var resp = req.compose(setBreakpoints, {breakpoints: bpResponse});
-		final js = tink.Json.stringify((cast resp : SetBreakpointsResponse)); // in pratical terms they're the same
-		resp.sendtink(js);
+		final json = tink.Json.stringify((cast resp : SetBreakpointsResponse)); // in pratical terms they're the same
+		debugee.send(json);
 		return WAIT;
 	}
 }

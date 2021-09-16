@@ -2,8 +2,17 @@ package gmdebug.lua.handlers;
 
 import gmod.libs.DebugLib;
 
+
+typedef InitHScopes = {
+	debugee : Debugee
+}
 class HScopes implements IHandler<ScopesRequest> {
-	public function new() {}
+	
+	final debugee:Debugee;
+
+	public function new(init:InitHScopes) {
+		debugee = init.debugee;
+	}
 
 	public function handle(scopeReq:ScopesRequest):HandlerResponse {
 		var args = scopeReq.arguments.sure();
@@ -12,7 +21,7 @@ class HScopes implements IHandler<ScopesRequest> {
 		var arguments:Scope = {
 			name: "Arguments",
 			presentationHint: Arguments,
-			variablesReference: VariableReference.encode(FrameLocal(Debugee.clientID.unsafe(), frameInfo.actualFrame, Arguments)),
+			variablesReference: VariableReference.encode(FrameLocal(debugee.clientID, frameInfo.actualFrame, Arguments)),
 			expensive: false
 		}
 		var locals:Scope = switch (info) {
@@ -22,14 +31,14 @@ class HScopes implements IHandler<ScopesRequest> {
 				{
 					name: "Locals",
 					presentationHint: Locals,
-					variablesReference: VariableReference.encode(FrameLocal(Debugee.clientID.unsafe(), frameInfo.actualFrame, Locals)),
+					variablesReference: VariableReference.encode(FrameLocal(debugee.clientID, frameInfo.actualFrame, Locals)),
 					expensive: false,
 				};
 			case {linedefined : ld, lastlinedefined : lld}:
 				{
 					name: "Locals",
 					presentationHint: Locals,
-					variablesReference: VariableReference.encode(FrameLocal(Debugee.clientID.unsafe(), frameInfo.actualFrame, Locals)),
+					variablesReference: VariableReference.encode(FrameLocal(debugee.clientID, frameInfo.actualFrame, Locals)),
 					expensive: false,
 					line: ld,
 					endLine: lld,
@@ -40,33 +49,33 @@ class HScopes implements IHandler<ScopesRequest> {
 		
 		var upvalues:Scope = {
 			name: "Upvalues",
-			variablesReference: VariableReference.encode(FrameLocal(Debugee.clientID.unsafe(), frameInfo.actualFrame, Upvalues)),
+			variablesReference: VariableReference.encode(FrameLocal(debugee.clientID, frameInfo.actualFrame, Upvalues)),
 			expensive: false,
 		};
 		var globals:Scope = {
 			name: "Globals",
-			variablesReference: VariableReference.encode(Global(Debugee.clientID.unsafe(), Globals)),
+			variablesReference: VariableReference.encode(Global(debugee.clientID, Globals)),
 			expensive: true,
 		}
 		var players:Scope = {
 			name: "Players",
-			variablesReference: VariableReference.encode(Global(Debugee.clientID.unsafe(), Players)),
+			variablesReference: VariableReference.encode(Global(debugee.clientID, Players)),
 			expensive: true
 		}
 		var entities:Scope = {
 			name: "Entities",
-			variablesReference: VariableReference.encode(Global(Debugee.clientID.unsafe(), Entities)),
+			variablesReference: VariableReference.encode(Global(debugee.clientID, Entities)),
 			expensive: true,
 		}
 		var enums:Scope = {
 			name: "Enums",
-			variablesReference: VariableReference.encode(Global(Debugee.clientID.unsafe(), Enums)),
+			variablesReference: VariableReference.encode(Global(debugee.clientID, Enums)),
 			expensive: true
 		}
 
 		var env:Scope = {
 			name: "Function Environment",
-			variablesReference: VariableReference.encode(FrameLocal(Debugee.clientID.unsafe(), frameInfo.actualFrame, Fenv)),
+			variablesReference: VariableReference.encode(FrameLocal(debugee.clientID, frameInfo.actualFrame, Fenv)),
 			expensive: true
 		}
 		var hasFenv:Bool = if (info != null && info.func != null) {
@@ -96,7 +105,7 @@ class HScopes implements IHandler<ScopesRequest> {
 			}
 		});
 		final js = tink.Json.stringify((cast resp : ScopesResponse)); // in pratical terms they're the same
-		resp.sendtink(js);
+		debugee.send(js);
 		return WAIT;
 	}
 }

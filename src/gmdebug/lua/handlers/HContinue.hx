@@ -1,17 +1,25 @@
 package gmdebug.lua.handlers;
 import gmdebug.lua.managers.VariableManager;
 
-
+typedef InitHContinue = {
+	vm : VariableManager,
+	debugee : Debugee
+}
 class HContinue implements IHandler<ContinueRequest> {
-	public function new(vm:VariableManager) {
-		variableManager = vm;
+
+	final variableManager:VariableManager;
+
+	final debugee:Debugee;
+
+	public function new(init:InitHContinue) {
+		variableManager = init.vm;
+		debugee = init.debugee;
 	}
 
-	var variableManager:VariableManager;
 
 	public function handle(contReq:ContinueRequest):HandlerResponse {
 		var resp = contReq.compose(_continue, {allThreadsContinued: false});
-		resp.send();
+		debugee.sendMessage(resp);
 		variableManager.resetVariables();
 		return CONTINUE;
 	}
