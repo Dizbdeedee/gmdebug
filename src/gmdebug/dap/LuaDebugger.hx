@@ -38,7 +38,7 @@ typedef Programs = {
 }
 @:keep @:await class LuaDebugger extends DebugSession {
 
-	static final SERVER_TIMEOUT = 20;
+	static final SERVER_TIMEOUT = 15; //thanks peanut brain
 
 	public final commMethod:CommMethod;
 
@@ -85,6 +85,7 @@ typedef Programs = {
 	}
 
 	function checkPrograms() {
+		if (Sys.systemName() != "linux") return;
 		try {
 			NCP.execSync("xdotool --help");
 			programs.xdotool = true;
@@ -149,8 +150,10 @@ typedef Programs = {
 
 	function serverInfoMessage(x:GMServerInfoMessage) {
 		if (!shouldAutoConnect) {
+			
 			return;
 		}
+		
 		final sp = x.ip.split(":");
 		final ip = if (x.isLan) {
 			gmdebug.lib.js.Ip.address();
@@ -186,20 +189,16 @@ typedef Programs = {
 		}
 	}
 
+	
 
-	@:async function pokeServerNamedPipes(attachReq:GmDebugAttachRequest) {
-		var timeout:Float = haxe.Timer.stamp() + SERVER_TIMEOUT;
-		var timedout = true;
-		trace(timeout);
-		while (haxe.Timer.stamp() < timeout) {
-			try {
-				@:await clients.newServer(attachReq.arguments.serverFolder).eager();
-				timedout = false;
-				break;
-			} catch (e) {}
-		}
-		if (timedout) throw new haxe.Exception("Timed out...");
-
+	@:await function pokeServerNamedPipes(attachReq:GmDebugAttachRequest) {
+		@:await Promise.retry(clients.newServer.bind(attachReq.arguments.serverFolder),(data) -> {
+			return if (data.elapsed > SERVER_TIMEOUT * 1000) {
+				new Error(Timeout,"Poke serverNamedPipes timed out");
+			} else {
+				Noise;
+			}
+		}).eager();
 		clients.sendServer(new ComposedGmDebugMessage(clientID, {id: 0}));
 		switch (dapMode) {
 			case ATTACH:
@@ -207,7 +206,7 @@ typedef Programs = {
 			case LAUNCH(_):
 				clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: serverFolder, dapMode: Launch}));
 		}
-		return Noise;
+		
 	}
 
 	function makeFifosIfNotExist(input:String, output:String) {
@@ -271,23 +270,14 @@ typedef Programs = {
 	 * Async start server. Respond to attach request when attached.
 	**/
 	public function startServer(attachReq:Request<Dynamic>) {
-		
-		pokeServerNamedPipes(attachReq).handle((out) -> {
-			switch (out) {
-				case Success(_):
-					trace("Attatch success");
-					final resp = attachReq.compose(attach);
-					resp.send(this);
-				case Failure(fail):
-					trace(fail.message);
-					final resp = attachReq.composeFail('attach fail ${fail.data}', {
-						id: 1,
-						format: 'Failed to attach to server ${fail.message}',
-					});
-					resp.send(this);
-			}
-		});
-		
+		final resp = attachReq.compose(attach);
+		resp.send(this);
+		try {
+			pokeServerNamedPipes(attachReq);
+		} catch (e) {
+			shutdown();
+			throw e;
+		}		
 	}
 
 	public function setClientLocations(a:Array<String>) {
@@ -302,7 +292,7 @@ typedef Programs = {
 					requestRouter.route(cast message);
 
 				} catch (e) {
-					trace('FAIL!! XD ${e.toString()}');
+					trace('Failed to handle message ${e.toString()}');
 					final fail = (cast message : Request<Dynamic>).composeFail(e.message,{
 						id: 15,
 						format: e.toString()
@@ -311,9 +301,7 @@ typedef Programs = {
 
 				}
 			default:
-				trace("Not handlin that...");
-				//send fail/error event?
-				
+				trace("Not handlin that...");				
 		}
 	
 	

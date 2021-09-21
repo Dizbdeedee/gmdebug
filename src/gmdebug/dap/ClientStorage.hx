@@ -49,7 +49,7 @@ class ClientStorage {
 			(buf:Buffer) -> readFunc(buf,id)
 		);
 		
-		final gay = @:await ps.aquire();
+		@:await ps.aquire().eager();
 		trace("mega aquired");
 		return ps;
 	}

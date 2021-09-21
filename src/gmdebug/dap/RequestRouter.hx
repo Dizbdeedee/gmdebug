@@ -1,5 +1,6 @@
 package gmdebug.dap;
 
+import gmdebug.Util.recurseCopy;
 import sys.io.File;
 import sys.io.Process;
 import sys.FileSystem;
@@ -157,7 +158,7 @@ class RequestRouter {
 			return;
 		}
 		// handle windows stuff here
-		final programPath = switch (req.arguments.programPath) {
+		var programPath = switch (req.arguments.programPath) {
 			case null:
 				req.composeFail("Gmdebug requires the property \"programPath\" to be specified when launching.", {
 					id: 2,
@@ -165,9 +166,16 @@ class RequestRouter {
 				}).send(luaDebug);
 				return;
 			case "auto":
-				'$serverFolder/../srcds_run';
+				if (Sys.systemName() == "Windows") {
+					'$serverFolder/../srcds.exe';
+				} else {
+					'$serverFolder/../srcds_run';
+				}
 			case path:
 				path;
+		}
+		if (!HxPath.isAbsolute(programPath)) {
+			programPath = HxPath.join([serverFolder,programPath]);
 		}
 		final programPathResult = validateProgramPath(programPath);
 		if (programPathResult != None) {
@@ -218,9 +226,6 @@ class RequestRouter {
 			throw "Could not find real, or backup file >=(";
 		}
 		final appendFile = HxPath.join(["generated","debugee","lua","includes","init_attach.lua"]);
-		trace(Sys.getCwd());
-		trace(Sys.getCwd());
-		trace(appendFile);
 		final appendContents = if (FileSystem.exists(appendFile)) {
 			sys.io.File.getContent(appendFile);
 		} else {
@@ -233,7 +238,8 @@ class RequestRouter {
 
 	function copyLuaFiles(serverFolder:String) {
 		final addonFolder = HxPath.join([serverFolder, "addons"]);
-		js.node.ChildProcess.execSync('cp -r generated/debugee $addonFolder'); // todo fix for windows
+		recurseCopy('generated',addonFolder,(_) -> true);
+		// js.node.ChildProcess.execSync('cp -r generated/debugee $addonFolder'); // todo fix for windows
 	}
 
 	function h_attach(req:GmDebugAttachRequest) {
@@ -260,12 +266,14 @@ class RequestRouter {
 
 
 	function validateProgramPath(programPath:String):haxe.ds.Option<DapFailure> {
+
 		return if (programPath == null) {
 			Some({
 				id : 2,
 				message : "Gmdebug requires the property \"programPath\" to be specified when launching"
 			});
 		} else {
+		
 			if (!Fs.existsSync(programPath)) {
 				Some({
 					id : 4,

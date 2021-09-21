@@ -120,13 +120,16 @@ class Debugee {
 		socket = try {
 			new PipeSocket();
 		} catch (e) {
+			trace(e);
 			socket = null;
 			return false;
 		}
 		trace("Connected to server...");
 		socketActive = true;
+		trace("initEvent about to be sent...");
 		final initEvent = new ComposedEvent(initialized);
 		initEvent.send();
+		trace("initEvent sent...");
 		#if debugdump
 		FileLib.CreateDir("gmdebugdump");
 		Gmod.collectgarbage("collect");

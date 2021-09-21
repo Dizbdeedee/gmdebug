@@ -23,11 +23,8 @@ class ComposedProtocolMessage {
 
 	#if lua
 	public inline function send() {
-		// final old = Gmod.SysTime();
-		// trace("json start");
+
 		var js = Json.stringify(this);
-		// trace('json end ${Gmod.SysTime() - old}');
-		// Debugee.writeJson(this);
 		Debugee.writeJson(js);
 	}
 

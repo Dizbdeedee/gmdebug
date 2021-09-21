@@ -1,9 +1,6 @@
 --times
 -D haxeJSON
 -D macro-times
-main.hxml
-
---next
 
 extension.hxml
 
