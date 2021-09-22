@@ -68,7 +68,7 @@ class PipeSocket {
 		final serverOut = Net.createServer();
 		serverOut.listen(WIN_PIPE_NAME_OUT);
 		trace("Making links...");
-		@:await makeLinksWindows(locs.debugee_output, locs.debugee_input).eager();
+		@:await makeLinksWindows(locs.debugee_input, locs.debugee_output).eager();
 		sys.io.File.saveContent(locs.ready,"");
 		final sockets = @:await aquireWindowsSocket(serverIn,serverOut);
 		trace("Servers created");

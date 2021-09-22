@@ -1514,7 +1514,7 @@ class gmdebug_dap_PipeSocket {
 				let serverOut = js_node_Net.createServer();
 				serverOut.listen(gmdebug_dap_PipeSocket.WIN_PIPE_NAME_OUT);
 				console.log("src/gmdebug/dap/PipeSocket.hx:70:","Making links...");
-				let this1 = _gthis.makeLinksWindows(_gthis.locs.debugee_output,_gthis.locs.debugee_input);
+				let this1 = _gthis.makeLinksWindows(_gthis.locs.debugee_input,_gthis.locs.debugee_output);
 				this1.eager();
 				this1.handle(function(__t5) {
 					try {
