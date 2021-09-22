@@ -30,6 +30,7 @@ class PipeSocket implements DebugIO {
 		FileLib.Delete(Cross.CLIENT_READY);
 		input = new PipeInput();
 		output = new PipeOutput();
+		output.writeString("\004"); //mark ready for writing...
 	}
 }
 

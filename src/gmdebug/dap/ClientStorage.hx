@@ -45,7 +45,7 @@ class ClientStorage {
 		final output = HxPath.join([data, Cross.OUTPUT]);
 		final ready = HxPath.join([data, Cross.READY]);
 		final client_ready = HxPath.join([data, Cross.CLIENT_READY]);
-		final ps = new PipeSocket({read : output, write : input, ready : ready,client_ready: client_ready},
+		final ps = new PipeSocket({debugee_output : output, debugee_input : input, ready : ready,client_ready: client_ready},
 			(buf:Buffer) -> readFunc(buf,id)
 		);
 		

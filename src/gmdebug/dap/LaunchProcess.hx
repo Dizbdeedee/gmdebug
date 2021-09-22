@@ -51,6 +51,7 @@ class LaunchProcess {
 		stdin = childProcess.stdin;
 		stdout = childProcess.stdout;
 		stderr = childProcess.stderr;
+		attachOutput(luaDebug);
 		childProcess.on("error", (err) -> {
 			new ComposedEvent(output, {
 				category: Stderr,
@@ -98,7 +99,6 @@ class LaunchProcess {
 			luaDebug.shutdown();
 			return;
 		});
-		
 		stdin = cast worker.stdin;
 		stdout = cast worker.stdout;
 		stderr = cast worker.stderr;
@@ -107,7 +107,6 @@ class LaunchProcess {
 
     public function write(chunk:Dynamic) {
         stdin.write(chunk);
-
     }
 
     public function kill() {

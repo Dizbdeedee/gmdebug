@@ -50,7 +50,6 @@ class Reflect {
 		try {
 			return o[field];
 		} catch( _g ) {
-			haxe_NativeStackTrace.lastError = _g;
 			return null;
 		}
 	}
@@ -194,7 +193,6 @@ class haxe_io_Input {
 				--k;
 			}
 		} catch( _g ) {
-			haxe_NativeStackTrace.lastError = _g;
 			if(!((haxe_Exception.caught(_g).unwrap()) instanceof haxe_io_Eof)) {
 				throw _g;
 			}
@@ -228,7 +226,6 @@ class haxe_io_Input {
 				s = HxOverrides.substr(s,0,-1);
 			}
 		} catch( _g ) {
-			haxe_NativeStackTrace.lastError = _g;
 			let _g1 = haxe_Exception.caught(_g).unwrap();
 			if(((_g1) instanceof haxe_io_Eof)) {
 				let e = _g1;
@@ -505,129 +502,6 @@ Object.assign(haxe_io_Path.prototype, {
 	,ext: null
 	,backslash: null
 });
-class js_Boot {
-	static getClass(o) {
-		if(o == null) {
-			return null;
-		} else if(((o) instanceof Array)) {
-			return Array;
-		} else {
-			let cl = o.__class__;
-			if(cl != null) {
-				return cl;
-			}
-			let name = js_Boot.__nativeClassName(o);
-			if(name != null) {
-				return js_Boot.__resolveNativeClass(name);
-			}
-			return null;
-		}
-	}
-	static __string_rec(o,s) {
-		if(o == null) {
-			return "null";
-		}
-		if(s.length >= 5) {
-			return "<...>";
-		}
-		let t = typeof(o);
-		if(t == "function" && (o.__name__ || o.__ename__)) {
-			t = "object";
-		}
-		switch(t) {
-		case "function":
-			return "<function>";
-		case "object":
-			if(o.__enum__) {
-				let e = $hxEnums[o.__enum__];
-				let con = e.__constructs__[o._hx_index];
-				let n = con._hx_name;
-				if(con.__params__) {
-					s = s + "\t";
-					return n + "(" + ((function($this) {
-						var $r;
-						let _g = [];
-						{
-							let _g1 = 0;
-							let _g2 = con.__params__;
-							while(true) {
-								if(!(_g1 < _g2.length)) {
-									break;
-								}
-								let p = _g2[_g1];
-								_g1 = _g1 + 1;
-								_g.push(js_Boot.__string_rec(o[p],s));
-							}
-						}
-						$r = _g;
-						return $r;
-					}(this))).join(",") + ")";
-				} else {
-					return n;
-				}
-			}
-			if(((o) instanceof Array)) {
-				let str = "[";
-				s += "\t";
-				let _g = 0;
-				let _g1 = o.length;
-				while(_g < _g1) {
-					let i = _g++;
-					str += (i > 0 ? "," : "") + js_Boot.__string_rec(o[i],s);
-				}
-				str += "]";
-				return str;
-			}
-			let tostr;
-			try {
-				tostr = o.toString;
-			} catch( _g ) {
-				haxe_NativeStackTrace.lastError = _g;
-				return "???";
-			}
-			if(tostr != null && tostr != Object.toString && typeof(tostr) == "function") {
-				let s2 = o.toString();
-				if(s2 != "[object Object]") {
-					return s2;
-				}
-			}
-			let str = "{\n";
-			s += "\t";
-			let hasp = o.hasOwnProperty != null;
-			let k = null;
-			for( k in o ) {
-			if(hasp && !o.hasOwnProperty(k)) {
-				continue;
-			}
-			if(k == "prototype" || k == "__class__" || k == "__super__" || k == "__interfaces__" || k == "__properties__") {
-				continue;
-			}
-			if(str.length != 2) {
-				str += ", \n";
-			}
-			str += s + k + " : " + js_Boot.__string_rec(o[k],s);
-			}
-			s = s.substring(1);
-			str += "\n" + s + "}";
-			return str;
-		case "string":
-			return o;
-		default:
-			return String(o);
-		}
-	}
-	static __nativeClassName(o) {
-		let name = js_Boot.__toStr.call(o).slice(8,-1);
-		if(name == "Object" || name == "Function" || name == "Math" || name == "JSON") {
-			return null;
-		}
-		return name;
-	}
-	static __resolveNativeClass(name) {
-		return $global[name];
-	}
-}
-js_Boot.__name__ = true;
 class gmdebug_Cross {
 	static readHeader(x) {
 		let raw_content = x.readLine();
@@ -835,7 +709,6 @@ class gmdebug_dap_BytesProcessor {
 		try {
 			return this.addMessages(input,clientNo);
 		} catch( _g ) {
-			haxe_NativeStackTrace.lastError = _g;
 			let _g1 = haxe_Exception.caught(_g);
 			let _g2 = _g1.unwrap();
 			if(((_g2) instanceof haxe_io_Eof)) {
@@ -995,7 +868,7 @@ class gmdebug_dap_ClientStorage {
 				let output = haxe_io_Path.join([data,gmdebug_Cross.OUTPUT]);
 				let ready = haxe_io_Path.join([data,gmdebug_Cross.READY]);
 				let client_ready = haxe_io_Path.join([data,gmdebug_Cross.CLIENT_READY]);
-				let ps = new gmdebug_dap_PipeSocket({ read : output, write : input, ready : ready, client_ready : client_ready},function(buf) {
+				let ps = new gmdebug_dap_PipeSocket({ debugee_output : output, debugee_input : input, ready : ready, client_ready : client_ready},function(buf) {
 					_gthis.readFunc(buf,id);
 				});
 				let this1 = ps.aquire();
@@ -1237,14 +1110,15 @@ class gmdebug_dap_LaunchProcess {
 		this.stdin = this.childProcess.stdin;
 		this.stdout = this.childProcess.stdout;
 		this.stderr = this.childProcess.stderr;
+		this.attachOutput(luaDebug);
 		this.childProcess.on("error",function(err) {
 			let _this = new gmdebug_composer_ComposedEvent("output",{ category : "stderr", output : err.message + "\n" + err.stack, data : null});
 			console.log("src/gmdebug/composer/ComposedEvent.hx:32:","sending from dap " + _this.event);
 			luaDebug.sendEvent(_this);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:60:","Child process error///");
-			console.log("src/gmdebug/dap/LaunchProcess.hx:61:",err.message);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:62:",err.stack);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:63:","Child process error end///");
+			console.log("src/gmdebug/dap/LaunchProcess.hx:61:","Child process error///");
+			console.log("src/gmdebug/dap/LaunchProcess.hx:62:",err.message);
+			console.log("src/gmdebug/dap/LaunchProcess.hx:63:",err.stack);
+			console.log("src/gmdebug/dap/LaunchProcess.hx:64:","Child process error end///");
 			luaDebug.shutdown();
 		});
 	}
@@ -1266,10 +1140,10 @@ class gmdebug_dap_LaunchProcess {
 			let _this = new gmdebug_composer_ComposedEvent("output",{ category : "stderr", output : err.message + "\n" + err.stack, data : null});
 			console.log("src/gmdebug/composer/ComposedEvent.hx:32:","sending from dap " + _this.event);
 			luaDebug.sendEvent(_this);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:94:","Worker error///");
-			console.log("src/gmdebug/dap/LaunchProcess.hx:95:",err.message);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:96:",err.stack);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:97:","Worker error end///");
+			console.log("src/gmdebug/dap/LaunchProcess.hx:95:","Worker error///");
+			console.log("src/gmdebug/dap/LaunchProcess.hx:96:",err.message);
+			console.log("src/gmdebug/dap/LaunchProcess.hx:97:",err.stack);
+			console.log("src/gmdebug/dap/LaunchProcess.hx:98:","Worker error end///");
 			luaDebug.shutdown();
 		});
 		this.stdin = this.worker.stdin;
@@ -1575,12 +1449,15 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 			} catch( _g ) {
 				let e = haxe_Exception.caught(_g);
 				console.log("src/gmdebug/dap/LuaDebugger.hx:295:","Failed to handle message " + e.toString());
+				let tmp = e.get_stack();
+				console.log("src/gmdebug/dap/LuaDebugger.hx:296:",tmp == null ? "null" : haxe_CallStack.toString(tmp));
 				let fail = gmdebug_composer_ComposeTools.composeFail(message,e.get_message(),{ id : 15, format : e.toString()});
 				console.log("src/gmdebug/composer/ComposedResponse.hx:52:","sending from dap " + fail.command);
 				this.sendResponse(fail);
+				throw haxe_Exception.thrown(e);
 			}
 		} else {
-			console.log("src/gmdebug/dap/LuaDebugger.hx:304:","Not handlin that...");
+			console.log("src/gmdebug/dap/LuaDebugger.hx:305:","Not handlin that...");
 		}
 	}
 }
@@ -1613,14 +1490,14 @@ class gmdebug_dap_PipeSocket {
 		this.readFunc = readFunc;
 	}
 	isReady() {
-		console.log("src/gmdebug/dap/PipeSocket.hx:47:","Checking readiness");
+		console.log("src/gmdebug/dap/PipeSocket.hx:50:","Checking readiness");
 		return sys_FileSystem.exists(this.locs.client_ready);
 	}
 	aquire() {
 		if(!this.isReady()) {
 			throw haxe_Exception.thrown("Client not ready yet...");
 		}
-		console.log("src/gmdebug/dap/PipeSocket.hx:53:","Client ready");
+		console.log("src/gmdebug/dap/PipeSocket.hx:56:","Client ready");
 		if(Sys.systemName() == "Windows") {
 			return this.aquireWindows();
 		} else {
@@ -1631,11 +1508,13 @@ class gmdebug_dap_PipeSocket {
 		let _gthis = this;
 		return tink_core_Future.irreversible(function(__return) {
 			try {
-				console.log("src/gmdebug/dap/PipeSocket.hx:62:","Waiting for windows socket");
-				let server = js_node_Net.createServer();
-				server.listen(gmdebug_dap_PipeSocket.WIN_PIPE_NAME);
-				console.log("src/gmdebug/dap/PipeSocket.hx:65:","Making links...");
-				let this1 = _gthis.makeLinksWindows(_gthis.locs.read,_gthis.locs.write);
+				console.log("src/gmdebug/dap/PipeSocket.hx:65:","Waiting for windows socket");
+				let serverIn = js_node_Net.createServer();
+				serverIn.listen(gmdebug_dap_PipeSocket.WIN_PIPE_NAME_IN);
+				let serverOut = js_node_Net.createServer();
+				serverOut.listen(gmdebug_dap_PipeSocket.WIN_PIPE_NAME_OUT);
+				console.log("src/gmdebug/dap/PipeSocket.hx:70:","Making links...");
+				let this1 = _gthis.makeLinksWindows(_gthis.locs.debugee_output,_gthis.locs.debugee_input);
 				this1.eager();
 				this1.handle(function(__t5) {
 					try {
@@ -1648,7 +1527,7 @@ class gmdebug_dap_PipeSocket {
 							return;
 						}
 						js_node_Fs.writeFileSync(_gthis.locs.ready,"");
-						_gthis.aquireWindowsSocket(server).handle(function(__t6) {
+						_gthis.aquireWindowsSocket(serverIn,serverOut).handle(function(__t6) {
 							try {
 								let __t6_result;
 								let _g = tink_await_OutcomeTools.getOutcome(__t6);
@@ -1660,8 +1539,11 @@ class gmdebug_dap_PipeSocket {
 									__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g.failure)));
 									return;
 								}
-								_gthis.readS = __t6_result;
-								_gthis.writeS = _gthis.readS;
+								let sockets = __t6_result;
+								console.log("src/gmdebug/dap/PipeSocket.hx:74:","Servers created");
+								_gthis.writeS = sockets.sockIn;
+								_gthis.readS = sockets.sockOut;
+								console.log("src/gmdebug/dap/PipeSocket.hx:77:","" + Std.string(_gthis.writeS) + " " + Std.string(_gthis.readS));
 								_gthis.writeS.write("\x04\r\n");
 								_gthis.readS.on("data",_gthis.readFunc);
 								_gthis.aquired = true;
@@ -1690,8 +1572,8 @@ class gmdebug_dap_PipeSocket {
 		let _gthis = this;
 		return tink_core_Future.irreversible(function(__return) {
 			try {
-				_gthis.makeFifos(_gthis.locs.read,_gthis.locs.write);
-				_gthis.aquireReadSocket(_gthis.locs.read).handle(function(__t7) {
+				_gthis.makeFifos(_gthis.locs.debugee_input,_gthis.locs.debugee_output);
+				_gthis.aquireReadSocket(_gthis.locs.debugee_output).handle(function(__t7) {
 					try {
 						let __t7_result;
 						let _g = tink_await_OutcomeTools.getOutcome(__t7);
@@ -1704,7 +1586,7 @@ class gmdebug_dap_PipeSocket {
 							return;
 						}
 						_gthis.readS = __t7_result;
-						_gthis.aquireWriteSocket(_gthis.locs.write).handle(function(__t8) {
+						_gthis.aquireWriteSocket(_gthis.locs.debugee_input).handle(function(__t8) {
 							try {
 								let __t8_result;
 								let _g = tink_await_OutcomeTools.getOutcome(__t8);
@@ -1721,7 +1603,7 @@ class gmdebug_dap_PipeSocket {
 								_gthis.writeS.write("\x04\r\n");
 								_gthis.readS.on("data",_gthis.readFunc);
 								_gthis.aquired = true;
-								console.log("src/gmdebug/dap/PipeSocket.hx:84:","Aquired socket...");
+								console.log("src/gmdebug/dap/PipeSocket.hx:92:","Aquired socket...");
 								__return(tink_core_Outcome.Success(null));
 								return;
 							} catch( _g ) {
@@ -1751,10 +1633,10 @@ class gmdebug_dap_PipeSocket {
 			js_node_Fs.chmodSync(output,"722");
 		}
 	}
-	makeLinksWindows(input,output) {
-		let inpPath = js_node_Path.normalize(input);
-		let outPath = js_node_Path.normalize(output);
-		let cmd = "mklink \"" + inpPath + "\" \"" + gmdebug_dap_PipeSocket.WIN_PIPE_NAME + "\" && mklink \"" + outPath + "\" \"" + gmdebug_dap_PipeSocket.WIN_PIPE_NAME + "\"";
+	makeLinksWindows(debugee_input,debugee_output) {
+		let inpPath = js_node_Path.normalize(debugee_input);
+		let outPath = js_node_Path.normalize(debugee_output);
+		let cmd = "mklink \"" + inpPath + "\" \"" + gmdebug_dap_PipeSocket.WIN_PIPE_NAME_IN + "\" && mklink \"" + outPath + "\" \"" + gmdebug_dap_PipeSocket.WIN_PIPE_NAME_OUT + "\"";
 		if(!sys_FileSystem.exists(inpPath) && !sys_FileSystem.exists(outPath)) {
 			try {
 				js_node_ChildProcess.execSync(cmd);
@@ -1762,11 +1644,11 @@ class gmdebug_dap_PipeSocket {
 			} catch( _g ) {
 				let _g1 = haxe_Exception.caught(_g);
 				if(_g1.get_message().includes("You do not have sufficient privilege to perform this operation")) {
-					console.log("src/gmdebug/dap/PipeSocket.hx:124:","Insufficient priveleges to make symbolic links. You can avoid this by switching to developer mode.");
+					console.log("src/gmdebug/dap/PipeSocket.hx:132:","Insufficient priveleges to make symbolic links. You can avoid this by switching to developer mode.");
 					return gmdebug_dap_PipeSocket.sudoExec(cmd);
 				} else {
-					console.log("src/gmdebug/dap/PipeSocket.hx:127:",_g1);
-					return new tink_core__$Future_SyncFuture(new tink_core__$Lazy_LazyConst(tink_core_Outcome.Failure(new tink_core_TypedError(null,"nani",{ fileName : "src/gmdebug/dap/PipeSocket.hx", lineNumber : 128, className : "gmdebug.dap.PipeSocket", methodName : "makeLinksWindows"}))));
+					console.log("src/gmdebug/dap/PipeSocket.hx:135:",_g1);
+					return new tink_core__$Future_SyncFuture(new tink_core__$Lazy_LazyConst(tink_core_Outcome.Failure(new tink_core_TypedError(null,"nani",{ fileName : "src/gmdebug/dap/PipeSocket.hx", lineNumber : 136, className : "gmdebug.dap.PipeSocket", methodName : "makeLinksWindows"}))));
 				}
 			}
 		} else {
@@ -1805,10 +1687,10 @@ class gmdebug_dap_PipeSocket {
 			}
 		});
 	}
-	aquireWindowsSocket(server) {
+	aquireWindowsSocket(serverIn,serverOut) {
 		return tink_core_Future.irreversible(function(__return) {
 			try {
-				gmdebug_dap_PipeSocket.getSocket(server).handle(function(__t10) {
+				tink_core_Future.inParallel([gmdebug_dap_PipeSocket.getValidSocket(serverIn),gmdebug_dap_PipeSocket.getValidSocket(serverOut)]).handle(function(__t10) {
 					try {
 						let __t10_result;
 						let _g = tink_await_OutcomeTools.getOutcome(null,__t10);
@@ -1820,9 +1702,9 @@ class gmdebug_dap_PipeSocket {
 							__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g.failure)));
 							return;
 						}
-						let sock = __t10_result;
-						console.log("src/gmdebug/dap/PipeSocket.hx:160:","We found the sock!");
-						__return(tink_core_Outcome.Success(sock));
+						let socks = __t10_result;
+						console.log("src/gmdebug/dap/PipeSocket.hx:176:","We found the sock!");
+						__return(tink_core_Outcome.Success({ sockIn : socks[0], sockOut : socks[1]}));
 						return;
 					} catch( _g ) {
 						haxe_NativeStackTrace.lastError = _g;
@@ -1854,7 +1736,7 @@ class gmdebug_dap_PipeSocket {
 							return;
 						}
 						let fd = __t11_result;
-						console.log("src/gmdebug/dap/PipeSocket.hx:169:",fd);
+						console.log("src/gmdebug/dap/PipeSocket.hx:188:",fd);
 						__return(tink_core_Outcome.Success(new js_node_net_Socket({ fd : fd, readable : false})));
 						return;
 					} catch( _g ) {
@@ -1876,32 +1758,41 @@ class gmdebug_dap_PipeSocket {
 	end() {
 		this.readS.end();
 		this.writeS.end();
-		js_node_Fs.unlinkSync(this.locs.read);
-		js_node_Fs.unlinkSync(this.locs.write);
+		js_node_Fs.unlinkSync(this.locs.debugee_output);
+		js_node_Fs.unlinkSync(this.locs.debugee_input);
 	}
 	static sudoExec(str) {
 		return tink_core_Future.irreversible(function(handler) {
-			SudoPrompt.exec(str,function(err,_,_1) {
-				let result;
+			SudoPrompt.exec(str,function(err) {
+				let handler1 = handler;
+				let tmp;
 				if(err != null) {
-					console.log("src/gmdebug/dap/PipeSocket.hx:104:","Sudo-prompt failure...");
-					result = tink_core_Outcome.Failure(tink_core_TypedError.withData(500,err.message,err,{ fileName : "src/gmdebug/dap/PipeSocket.hx", lineNumber : 105, className : "gmdebug.dap.PipeSocket", methodName : "sudoExec"}));
+					console.log("src/gmdebug/dap/PipeSocket.hx:112:","Sudo-prompt failure...");
+					tmp = tink_core_Outcome.Failure(tink_core_TypedError.withData(500,err.message,err,{ fileName : "src/gmdebug/dap/PipeSocket.hx", lineNumber : 113, className : "gmdebug.dap.PipeSocket", methodName : "sudoExec"}));
 				} else {
-					result = tink_core_Outcome.Success(null);
+					tmp = tink_core_Outcome.Success(null);
 				}
-				handler(result);
+				handler1(tmp);
 			});
 		});
 	}
-	static getSocket(server) {
+	static getValidSocket(server) {
 		return tink_core_Future.irreversible(function(handler) {
-			server.once("connection",function(socket) {
-				console.log("src/gmdebug/dap/PipeSocket.hx:146:","Connection... " + Std.string(socket));
-				socket.on("error",function(err) {
-					console.log("src/gmdebug/dap/PipeSocket.hx:148:",err);
+			server.on("connection",function(socket) {
+				console.log("src/gmdebug/dap/PipeSocket.hx:154:","Connection!");
+				let validSocket = true;
+				socket.on("end",function(err) {
+					console.log("src/gmdebug/dap/PipeSocket.hx:157:","Connection invalidated");
+					validSocket = false;
+					return validSocket;
 				});
-				console.log("src/gmdebug/dap/PipeSocket.hx:150:",socket.readyState);
-				handler(socket);
+				return haxe_Timer.delay(function() {
+					if(validSocket) {
+						console.log("src/gmdebug/dap/PipeSocket.hx:162:","Connection based");
+						server.close();
+						handler(socket);
+					}
+				},5);
 			});
 		});
 	}
@@ -2269,6 +2160,18 @@ class haxe_CallStack {
 		let eStack = haxe_NativeStackTrace.toHaxe(haxe_NativeStackTrace.exceptionStack());
 		return fullStack ? eStack : haxe_CallStack.subtract(eStack,haxe_CallStack.callStack());
 	}
+	static toString(stack) {
+		let b = new StringBuf();
+		let _g = 0;
+		let _g1 = stack;
+		while(_g < _g1.length) {
+			let s = _g1[_g];
+			++_g;
+			b.b += "\nCalled from ";
+			haxe_CallStack.itemToString(b,s);
+		}
+		return b.b;
+	}
 	static subtract(this1,stack) {
 		let startIndex = -1;
 		let i = -1;
@@ -2362,6 +2265,45 @@ class haxe_CallStack {
 				}
 				break;
 			}
+		}
+	}
+	static itemToString(b,s) {
+		switch(s._hx_index) {
+		case 0:
+			b.b += "a C function";
+			break;
+		case 1:
+			let _g = s.m;
+			b.b = (b.b += "module ") + (_g == null ? "null" : "" + _g);
+			break;
+		case 2:
+			let _g1 = s.s;
+			let _g2 = s.file;
+			let _g3 = s.line;
+			let _g4 = s.column;
+			if(_g1 != null) {
+				haxe_CallStack.itemToString(b,_g1);
+				b.b += " (";
+			}
+			b.b = (b.b += _g2 == null ? "null" : "" + _g2) + " line ";
+			b.b += _g3 == null ? "null" : "" + _g3;
+			if(_g4 != null) {
+				b.b = (b.b += " column ") + (_g4 == null ? "null" : "" + _g4);
+			}
+			if(_g1 != null) {
+				b.b += ")";
+			}
+			break;
+		case 3:
+			let _g5 = s.classname;
+			let _g6 = s.method;
+			b.b = (b.b += Std.string(_g5 == null ? "<unknown>" : _g5)) + ".";
+			b.b += _g6 == null ? "null" : "" + _g6;
+			break;
+		case 4:
+			let _g7 = s.v;
+			b.b = (b.b += "local function #") + (_g7 == null ? "null" : "" + _g7);
+			break;
 		}
 	}
 }
@@ -2591,6 +2533,36 @@ class haxe_NativeStackTrace {
 	}
 }
 haxe_NativeStackTrace.__name__ = true;
+class haxe_Timer {
+	constructor(time_ms) {
+		let me = this;
+		this.id = setInterval(function() {
+			me.run();
+		},time_ms);
+	}
+	stop() {
+		if(this.id == null) {
+			return;
+		}
+		clearInterval(this.id);
+		this.id = null;
+	}
+	run() {
+	}
+	static delay(f,time_ms) {
+		let t = new haxe_Timer(time_ms);
+		t.run = function() {
+			t.stop();
+			f();
+		};
+		return t;
+	}
+}
+haxe_Timer.__name__ = true;
+Object.assign(haxe_Timer.prototype, {
+	__class__: haxe_Timer
+	,id: null
+});
 class haxe_ValueException extends haxe_Exception {
 	constructor(value,previous,native) {
 		super(String(value),previous,native);
@@ -3427,6 +3399,128 @@ Object.assign(haxe_iterators_ArrayIterator.prototype, {
 	,array: null
 	,current: null
 });
+class js_Boot {
+	static getClass(o) {
+		if(o == null) {
+			return null;
+		} else if(((o) instanceof Array)) {
+			return Array;
+		} else {
+			let cl = o.__class__;
+			if(cl != null) {
+				return cl;
+			}
+			let name = js_Boot.__nativeClassName(o);
+			if(name != null) {
+				return js_Boot.__resolveNativeClass(name);
+			}
+			return null;
+		}
+	}
+	static __string_rec(o,s) {
+		if(o == null) {
+			return "null";
+		}
+		if(s.length >= 5) {
+			return "<...>";
+		}
+		let t = typeof(o);
+		if(t == "function" && (o.__name__ || o.__ename__)) {
+			t = "object";
+		}
+		switch(t) {
+		case "function":
+			return "<function>";
+		case "object":
+			if(o.__enum__) {
+				let e = $hxEnums[o.__enum__];
+				let con = e.__constructs__[o._hx_index];
+				let n = con._hx_name;
+				if(con.__params__) {
+					s = s + "\t";
+					return n + "(" + ((function($this) {
+						var $r;
+						let _g = [];
+						{
+							let _g1 = 0;
+							let _g2 = con.__params__;
+							while(true) {
+								if(!(_g1 < _g2.length)) {
+									break;
+								}
+								let p = _g2[_g1];
+								_g1 = _g1 + 1;
+								_g.push(js_Boot.__string_rec(o[p],s));
+							}
+						}
+						$r = _g;
+						return $r;
+					}(this))).join(",") + ")";
+				} else {
+					return n;
+				}
+			}
+			if(((o) instanceof Array)) {
+				let str = "[";
+				s += "\t";
+				let _g = 0;
+				let _g1 = o.length;
+				while(_g < _g1) {
+					let i = _g++;
+					str += (i > 0 ? "," : "") + js_Boot.__string_rec(o[i],s);
+				}
+				str += "]";
+				return str;
+			}
+			let tostr;
+			try {
+				tostr = o.toString;
+			} catch( _g ) {
+				return "???";
+			}
+			if(tostr != null && tostr != Object.toString && typeof(tostr) == "function") {
+				let s2 = o.toString();
+				if(s2 != "[object Object]") {
+					return s2;
+				}
+			}
+			let str = "{\n";
+			s += "\t";
+			let hasp = o.hasOwnProperty != null;
+			let k = null;
+			for( k in o ) {
+			if(hasp && !o.hasOwnProperty(k)) {
+				continue;
+			}
+			if(k == "prototype" || k == "__class__" || k == "__super__" || k == "__interfaces__" || k == "__properties__") {
+				continue;
+			}
+			if(str.length != 2) {
+				str += ", \n";
+			}
+			str += s + k + " : " + js_Boot.__string_rec(o[k],s);
+			}
+			s = s.substring(1);
+			str += "\n" + s + "}";
+			return str;
+		case "string":
+			return o;
+		default:
+			return String(o);
+		}
+	}
+	static __nativeClassName(o) {
+		let name = js_Boot.__toStr.call(o).slice(8,-1);
+		if(name == "Object" || name == "Function" || name == "Math" || name == "JSON") {
+			return null;
+		}
+		return name;
+	}
+	static __resolveNativeClass(name) {
+		return $global[name];
+	}
+}
+js_Boot.__name__ = true;
 var js_node_ChildProcess = require("child_process");
 var js_node_Fs = require("fs");
 var js_node_Net = require("net");
@@ -3453,7 +3547,6 @@ class sys_FileSystem {
 			js_node_Fs.accessSync(path);
 			return true;
 		} catch( _g ) {
-			haxe_NativeStackTrace.lastError = _g;
 			return false;
 		}
 	}
@@ -3461,7 +3554,6 @@ class sys_FileSystem {
 		try {
 			return js_node_Fs.statSync(path).isDirectory();
 		} catch( _g ) {
-			haxe_NativeStackTrace.lastError = _g;
 			return false;
 		}
 	}
@@ -3469,7 +3561,6 @@ class sys_FileSystem {
 		try {
 			js_node_Fs.mkdirSync(path);
 		} catch( _g ) {
-			haxe_NativeStackTrace.lastError = _g;
 			let _g1 = haxe_Exception.caught(_g).unwrap();
 			if(_g1.code == "ENOENT") {
 				sys_FileSystem.createDirectory(js_node_Path.dirname(path));
@@ -3569,6 +3660,41 @@ tink_core_CallbackLinkRef.__name__ = true;
 Object.assign(tink_core_CallbackLinkRef.prototype, {
 	__class__: tink_core_CallbackLinkRef
 	,link: null
+});
+class tink_core_CallbackLink {
+	static fromMany(callbacks) {
+		let this1 = new tink_core_SimpleLink(function() {
+			if(callbacks != null) {
+				let _g = 0;
+				while(_g < callbacks.length) {
+					let cb = callbacks[_g];
+					++_g;
+					if(cb != null) {
+						cb.cancel();
+					}
+				}
+			} else {
+				callbacks = null;
+			}
+		});
+		return this1;
+	}
+}
+class tink_core_SimpleLink {
+	constructor(f) {
+		this.f = f;
+	}
+	cancel() {
+		if(this.f != null) {
+			this.f();
+			this.f = null;
+		}
+	}
+}
+tink_core_SimpleLink.__name__ = true;
+Object.assign(tink_core_SimpleLink.prototype, {
+	__class__: tink_core_SimpleLink
+	,f: null
 });
 class tink_core__$Callback_LinkPair {
 	constructor(a,b) {
@@ -3854,7 +3980,6 @@ class tink_core_TypedError {
 		try {
 			tmp = haxe_CallStack.exceptionStack();
 		} catch( _g ) {
-			haxe_NativeStackTrace.lastError = _g;
 			tmp = [];
 		}
 		this.exceptionStack = tmp;
@@ -3862,7 +3987,6 @@ class tink_core_TypedError {
 		try {
 			tmp1 = haxe_CallStack.callStack();
 		} catch( _g ) {
-			haxe_NativeStackTrace.lastError = _g;
 			tmp1 = [];
 		}
 		this.callStack = tmp1;
@@ -3997,6 +4121,114 @@ class tink_core_Future {
 			});
 		});
 	}
+	static inParallel(futures,concurrency) {
+		return tink_core_Future.many(futures,concurrency);
+	}
+	static many(a,concurrency) {
+		return tink_core_Future.processMany(a,concurrency,tink_core_Outcome.Success,function(o) {
+			return tink_core_OutcomeTools.orNull(o);
+		});
+	}
+	static processMany(a,concurrency,fn,lift) {
+		if(a.length == 0) {
+			return new tink_core__$Future_SyncFuture(new tink_core__$Lazy_LazyConst(lift(tink_core_Outcome.Success([]))));
+		} else {
+			let this1 = new tink_core__$Future_SuspendableFuture(function($yield) {
+				let links = [];
+				let _g = [];
+				let _g1 = 0;
+				while(_g1 < a.length) {
+					++_g1;
+					_g.push(null);
+				}
+				let ret = _g;
+				let index = 0;
+				let pending = 0;
+				let done = false;
+				let concurrency1;
+				if(concurrency == null) {
+					concurrency1 = a.length;
+				} else {
+					let v = concurrency;
+					concurrency1 = v < 1 ? 1 : v > a.length ? a.length : v;
+				}
+				let fireWhenReady = function() {
+					if(index == ret.length) {
+						if(pending == 0) {
+							let v = lift(tink_core_Outcome.Success(ret));
+							done = true;
+							$yield(v);
+							return true;
+						} else {
+							return false;
+						}
+					} else {
+						return false;
+					}
+				};
+				let step = null;
+				step = function() {
+					if(!done && !fireWhenReady()) {
+						while(index < ret.length) {
+							index += 1;
+							let index1 = index - 1;
+							let p = a[index1];
+							let check = function(o) {
+								let _g = fn(o);
+								switch(_g._hx_index) {
+								case 0:
+									ret[index1] = _g.data;
+									fireWhenReady();
+									break;
+								case 1:
+									let _g1 = _g.failure;
+									let _g2 = 0;
+									while(_g2 < links.length) {
+										let l = links[_g2];
+										++_g2;
+										if(l != null) {
+											l.cancel();
+										}
+									}
+									let v = lift(tink_core_Outcome.Failure(_g1));
+									done = true;
+									$yield(v);
+									break;
+								}
+							};
+							let _g = p.getStatus();
+							if(_g._hx_index == 3) {
+								let _hx_tmp;
+								_hx_tmp = tink_core_Lazy.get(_g.result);
+								check(_hx_tmp);
+								if(!done) {
+									continue;
+								}
+							} else {
+								pending += 1;
+								links.push(p.handle(function(o) {
+									pending -= 1;
+									check(o);
+									if(!done) {
+										step();
+									}
+								}));
+							}
+							break;
+						}
+					}
+				};
+				let _g2 = 0;
+				let _g3 = concurrency1;
+				while(_g2 < _g3) {
+					++_g2;
+					step();
+				}
+				return tink_core_CallbackLink.fromMany(links);
+			});
+			return this1;
+		}
+	}
 	static irreversible(init) {
 		return new tink_core__$Future_SuspendableFuture(function($yield) {
 			init($yield);
@@ -4114,6 +4346,17 @@ var tink_core_Outcome = $hxEnums["tink.core.Outcome"] = { __ename__:true,__const
 	,Failure: ($_=function(failure) { return {_hx_index:1,failure:failure,__enum__:"tink.core.Outcome",toString:$estr}; },$_._hx_name="Failure",$_.__params__ = ["failure"],$_)
 };
 tink_core_Outcome.__constructs__ = [tink_core_Outcome.Success,tink_core_Outcome.Failure];
+class tink_core_OutcomeTools {
+	static orNull(outcome) {
+		switch(outcome._hx_index) {
+		case 0:
+			return outcome.data;
+		case 1:
+			return null;
+		}
+	}
+}
+tink_core_OutcomeTools.__name__ = true;
 class tink_core_Promise {
 	static next(this1,f,gather) {
 		return tink_core_Future.flatMap(this1,function(o) {
@@ -4178,7 +4421,8 @@ $hx_exports["runMode"] = gmdebug_dap_Extension.runMode = "inline";
 gmdebug_dap_LaunchProcess.EXTRA_ARGS = "+sv_lan 1 +sv_hibernate_think 1 +sv_allowcslua 1";
 gmdebug_dap_LaunchProcess.EXTRA_ARGS_WINDOWS = "-console";
 gmdebug_dap_LuaDebugger.SERVER_TIMEOUT = 15;
-gmdebug_dap_PipeSocket.WIN_PIPE_NAME = "\\\\.\\pipe\\gmdebug";
+gmdebug_dap_PipeSocket.WIN_PIPE_NAME_IN = "\\\\.\\pipe\\gmdebugin";
+gmdebug_dap_PipeSocket.WIN_PIPE_NAME_OUT = "\\\\.\\pipe\\gmdebugout";
 sys_io_File.copyBuf = js_node_buffer_Buffer.alloc(65536);
 tink_core_Callback.depth = 0;
 tink_core_SimpleDisposable._hx_skip_constructor = false;

@@ -293,12 +293,13 @@ typedef Programs = {
 
 				} catch (e) {
 					trace('Failed to handle message ${e.toString()}');
+					trace(e.stack);
 					final fail = (cast message : Request<Dynamic>).composeFail(e.message,{
 						id: 15,
 						format: e.toString()
 					});
 					fail.send(this);
-
+					throw e;
 				}
 			default:
 				trace("Not handlin that...");				

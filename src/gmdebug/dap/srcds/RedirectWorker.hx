@@ -44,7 +44,7 @@ class RedirectWorker {
             argv: argv,
             stdin: true,
             stdout: true,
-            stderr: true
+            stderr: true,
         });
     }
 

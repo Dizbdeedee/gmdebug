@@ -13,8 +13,8 @@ using StringTools;
 
 
 typedef PipeSocketLocations = {
-	read:String, 
-	write:String,
+	debugee_output:String, 
+	debugee_input:String,
 	ready:String,
 	client_ready:String
 }
@@ -25,7 +25,9 @@ typedef ReadFunc = (buf:js.node.Buffer) -> Void;
 @:await
 class PipeSocket {
 
-	static final WIN_PIPE_NAME = "\\\\.\\pipe\\gmdebug";
+	static final WIN_PIPE_NAME_IN = "\\\\.\\pipe\\gmdebugin";
+
+	static final WIN_PIPE_NAME_OUT = "\\\\.\\pipe\\gmdebugout";
 
     var writeS:Socket;
 
@@ -41,6 +43,7 @@ class PipeSocket {
     public function new(locs:PipeSocketLocations,readFunc:ReadFunc) {
 		this.locs = locs;
         this.readFunc = readFunc;
+		
     }
 
 	public function isReady() {
@@ -60,13 +63,18 @@ class PipeSocket {
 
 	@:async public function aquireWindows() {
 		trace("Waiting for windows socket");
-		final server = Net.createServer();
-		server.listen(WIN_PIPE_NAME);
+		final serverIn = Net.createServer();
+		serverIn.listen(WIN_PIPE_NAME_IN);
+		final serverOut = Net.createServer();
+		serverOut.listen(WIN_PIPE_NAME_OUT);
 		trace("Making links...");
-		@:await makeLinksWindows(locs.read, locs.write).eager();
+		@:await makeLinksWindows(locs.debugee_output, locs.debugee_input).eager();
 		sys.io.File.saveContent(locs.ready,"");
-		readS = @:await aquireWindowsSocket(server);
-		writeS = readS;
+		final sockets = @:await aquireWindowsSocket(serverIn,serverOut);
+		trace("Servers created");
+		writeS = sockets.sockIn;
+		readS = sockets.sockOut;
+		trace('$writeS $readS');
 		writeS.write("\004\r\n");
 		readS.on(Data,readFunc);
 		aquired = true;
@@ -74,9 +82,9 @@ class PipeSocket {
 	}
 
 	@:async public function aquireLinux() {
-		makeFifos(locs.read, locs.write);
-        readS = @:await aquireReadSocket(locs.read); 
-		writeS = @:await aquireWriteSocket(locs.write);
+		makeFifos(locs.debugee_input, locs.debugee_output);
+        readS = @:await aquireReadSocket(locs.debugee_output); 
+		writeS = @:await aquireWriteSocket(locs.debugee_input);
 		sys.io.File.saveContent(locs.ready, "");
 		writeS.write("\004\r\n");
 		readS.on(Data,readFunc);
@@ -99,22 +107,22 @@ class PipeSocket {
 
 	static function sudoExec(str:String):Promise<Noise> {
 		return Future.irreversible(function (handler:Outcome<Noise,Error> -> Void) {
-			std.SudoPrompt.exec(str,(err,_,_) -> {
-				final result = if (err != null) {
+			std.SudoPrompt.exec(str,(err) -> 
+				handler(if (err != null) {
 					trace("Sudo-prompt failure...");
 					Failure(tink.CoreApi.Error.ofJsError(err));
 				} else {
 					Success(Noise);
-				}
-				handler(result);
-			});
+				})
+			);
 		});
 	}
 
-	function makeLinksWindows(input:String,output:String):Promise<Noise> {
-		final inpPath = js.node.Path.normalize(input);
-		final outPath = js.node.Path.normalize(output);
-		final cmd = 'mklink "$inpPath" "$WIN_PIPE_NAME" && mklink "$outPath" "$WIN_PIPE_NAME"';
+
+	function makeLinksWindows(debugee_input:String,debugee_output:String):Promise<Noise> {
+		final inpPath = js.node.Path.normalize(debugee_input);
+		final outPath = js.node.Path.normalize(debugee_output);
+		final cmd = 'mklink "$inpPath" "$WIN_PIPE_NAME_IN" && mklink "$outPath" "$WIN_PIPE_NAME_OUT"';
 		return if (!FileSystem.exists(inpPath) && !FileSystem.exists(outPath)) {
 			try {
 				ChildProcess.execSync(cmd);
@@ -140,25 +148,36 @@ class PipeSocket {
 		return new Socket({fd: fd, writable: false});
 	}
 
-	static function getSocket(server:js.node.net.Server):Future<Socket> {
+	static function getValidSocket(server:js.node.net.Server):Future<Socket> {
 		return Future.irreversible(function (handler:Socket -> Void) {
-			server.once('connection',(socket:Socket) -> {
-				trace('Connection... ${socket}');
-				socket.on('error',(err) -> {
-					trace(err);
+			server.on('connection',(socket:Socket) -> {
+				trace("Connection!");
+				var validSocket = true;
+				socket.on('end',(err) -> {
+					trace("Connection invalidated");
+					validSocket = false;
 				});
-				trace(untyped socket.readyState);
-				handler(socket);
+				haxe.Timer.delay(() -> {
+					if (validSocket) {
+						trace("Connection based");
+						server.close();
+						handler(socket);
+					}
+				},5);
 			});
 		});
-		
 	}
 
+	
 
-	@:async function aquireWindowsSocket(server:js.node.net.Server) {
-		var sock = @:await getSocket(server);
+
+	@:async function aquireWindowsSocket(serverIn:js.node.net.Server,serverOut:js.node.net.Server):{sockIn : Socket, sockOut : Socket} {
+		final socks = @:await Future.inParallel([getValidSocket(serverIn),getValidSocket(serverOut)]);
 		trace("We found the sock!");
-		return sock;
+		return {
+			sockIn : socks[0],
+			sockOut : socks[1]
+		};
 	}
 
 	
@@ -177,8 +196,8 @@ class PipeSocket {
     public function end() {
         readS.end();
         writeS.end();
-        FileSystem.deleteFile(locs.read);
-		FileSystem.deleteFile(locs.write);
+        FileSystem.deleteFile(locs.debugee_output);
+		FileSystem.deleteFile(locs.debugee_input);
     }
 
 }
