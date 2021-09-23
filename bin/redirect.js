@@ -17,9 +17,17 @@ class HxOverrides {
 		return Date.now();
 	}
 }
+HxOverrides.__name__ = true;
+Math.__name__ = true;
 var RefArrayDi = require("ref-array-di");
 var RefNapi = require("ref-napi");
 var RefStructDi = require("ref-struct-di");
+class Std {
+	static string(s) {
+		return js_Boot.__string_rec(s,"");
+	}
+}
+Std.__name__ = true;
 var ffi_$napi_Library = require("ffi-napi").Library;
 class gmdebug_dap_srcds_RedirectWorker {
 	static isAllWhitespace(str) {
@@ -39,7 +47,7 @@ class gmdebug_dap_srcds_RedirectWorker {
 	}
 	static main() {
 		let r = new gmdebug_dap_srcds_Redirector();
-		console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:55:",process.argv);
+		console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:56:",process.argv);
 		r.Start(process.argv[2],process.argv.slice(3));
 		let bJustStarted = false;
 		let outputBuffer = [];
@@ -50,12 +58,24 @@ class gmdebug_dap_srcds_RedirectWorker {
 				return;
 			}
 			if(!r.SetScreenBufferSize(screenSize)) {
-				console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:64:","Failed to set screen size " + screenSize);
+				console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:65:","Failed to set screen size " + screenSize);
 			}
 			if(process.stdin.readable) {
-				let read = process.stdin.read();
-				if(read != null) {
-					r.WriteText(process.stdin.read());
+				let read;
+				let readStr_b = "";
+				while(true) {
+					read = process.stdin.read();
+					if(read != null) {
+						console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:73:",read);
+						readStr_b += Std.string(read.toString());
+					}
+					if(!(read != null)) {
+						break;
+					}
+				}
+				if(readStr_b.length > 0) {
+					console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:78:",readStr_b);
+					r.WriteText(readStr_b);
 				}
 			}
 			let output = r.ReadText(1,screenSize - 2);
@@ -116,7 +136,7 @@ class gmdebug_dap_srcds_RedirectWorker {
 						gmdebug_dap_srcds_RedirectWorker.HandleCommandLineDisplay(r,screenSize);
 						return;
 					} else {
-						console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:121:","Console moved too fast " + firstNewLine);
+						console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:132:","Console moved too fast " + firstNewLine);
 						firstNewLine = 0;
 					}
 				}
@@ -150,6 +170,7 @@ class gmdebug_dap_srcds_RedirectWorker {
 		mainLoop();
 	}
 }
+gmdebug_dap_srcds_RedirectWorker.__name__ = true;
 class gmdebug_dap_srcds_Redirector {
 	constructor() {
 		this.processInfo = gmdebug_dap_srcds_Redirector.PROCESS_INFO();
@@ -239,7 +260,7 @@ class gmdebug_dap_srcds_Redirector {
 		let pBuf = this.GetMappedBuffer();
 		pBuf[0] = 2;
 		let strBuf = pBuf.buffer.reinterpret(input.length + 1,RefNapi.types.int.size);
-		strBuf.writeCString(0,input);
+		strBuf.writeCString(input,0,"utf8");
 		this.ReleaseMappedBuffer(pBuf);
 		gmdebug_dap_srcds_Redirector.K32.SetEvent(this.event_parent_send);
 		if(!this.WaitForResponse()) {
@@ -296,6 +317,10 @@ class gmdebug_dap_srcds_Redirector {
 		return RefNapi.deref(buf);
 	}
 }
+gmdebug_dap_srcds_Redirector.__name__ = true;
+Object.assign(gmdebug_dap_srcds_Redirector.prototype, {
+	__class__: gmdebug_dap_srcds_Redirector
+});
 class haxe_Exception extends Error {
 	constructor(message,previous,native) {
 		super(message);
@@ -317,18 +342,30 @@ class haxe_Exception extends Error {
 		}
 	}
 }
+haxe_Exception.__name__ = true;
+Object.assign(haxe_Exception.prototype, {
+	__class__: haxe_Exception
+});
 class haxe__$Int64__$_$_$Int64 {
 	constructor(high,low) {
 		this.high = high;
 		this.low = low;
 	}
 }
+haxe__$Int64__$_$_$Int64.__name__ = true;
+Object.assign(haxe__$Int64__$_$_$Int64.prototype, {
+	__class__: haxe__$Int64__$_$_$Int64
+});
 class haxe_ValueException extends haxe_Exception {
 	constructor(value,previous,native) {
 		super(String(value),previous,native);
 		this.value = value;
 	}
 }
+haxe_ValueException.__name__ = true;
+Object.assign(haxe_ValueException.prototype, {
+	__class__: haxe_ValueException
+});
 class haxe_io_Path {
 	static isAbsolute(path) {
 		if(path.startsWith("/")) {
@@ -343,6 +380,7 @@ class haxe_io_Path {
 		return false;
 	}
 }
+haxe_io_Path.__name__ = true;
 class haxe_iterators_ArrayIterator {
 	constructor(array) {
 		this.current = 0;
@@ -355,6 +393,77 @@ class haxe_iterators_ArrayIterator {
 		return this.array[this.current++];
 	}
 }
+haxe_iterators_ArrayIterator.__name__ = true;
+Object.assign(haxe_iterators_ArrayIterator.prototype, {
+	__class__: haxe_iterators_ArrayIterator
+});
+class js_Boot {
+	static __string_rec(o,s) {
+		if(o == null) {
+			return "null";
+		}
+		if(s.length >= 5) {
+			return "<...>";
+		}
+		let t = typeof(o);
+		if(t == "function" && (o.__name__ || o.__ename__)) {
+			t = "object";
+		}
+		switch(t) {
+		case "function":
+			return "<function>";
+		case "object":
+			if(((o) instanceof Array)) {
+				let str = "[";
+				s += "\t";
+				let _g = 0;
+				let _g1 = o.length;
+				while(_g < _g1) {
+					let i = _g++;
+					str += (i > 0 ? "," : "") + js_Boot.__string_rec(o[i],s);
+				}
+				str += "]";
+				return str;
+			}
+			let tostr;
+			try {
+				tostr = o.toString;
+			} catch( _g ) {
+				return "???";
+			}
+			if(tostr != null && tostr != Object.toString && typeof(tostr) == "function") {
+				let s2 = o.toString();
+				if(s2 != "[object Object]") {
+					return s2;
+				}
+			}
+			let str = "{\n";
+			s += "\t";
+			let hasp = o.hasOwnProperty != null;
+			let k = null;
+			for( k in o ) {
+			if(hasp && !o.hasOwnProperty(k)) {
+				continue;
+			}
+			if(k == "prototype" || k == "__class__" || k == "__super__" || k == "__interfaces__" || k == "__properties__") {
+				continue;
+			}
+			if(str.length != 2) {
+				str += ", \n";
+			}
+			str += s + k + " : " + js_Boot.__string_rec(o[k],s);
+			}
+			s = s.substring(1);
+			str += "\n" + s + "}";
+			return str;
+		case "string":
+			return o;
+		default:
+			return String(o);
+		}
+	}
+}
+js_Boot.__name__ = true;
 var js_node_Fs = require("fs");
 var js_node_Timers = require("timers");
 class sys_FileSystem {
@@ -374,12 +483,17 @@ class sys_FileSystem {
 		}
 	}
 }
+sys_FileSystem.__name__ = true;
 if(typeof(performance) != "undefined" ? typeof(performance.now) == "function" : false) {
 	HxOverrides.now = performance.now.bind(performance);
 }
 if( String.fromCodePoint == null ) String.fromCodePoint = function(c) { return c < 0x10000 ? String.fromCharCode(c) : String.fromCharCode((c>>10)+0xD7C0)+String.fromCharCode((c&0x3FF)+0xDC00); }
 {
+	String.prototype.__class__ = String;
+	String.__name__ = true;
+	Array.__name__ = true;
 }
+js_Boot.__toStr = ({ }).toString;
 gmdebug_dap_srcds_RedirectWorker.CON_LINE_LENGTH = 80;
 gmdebug_dap_srcds_Redirector.STATUS_WAIT_0 = 0;
 gmdebug_dap_srcds_Redirector.WAIT_OBJECT_0 = gmdebug_dap_srcds_Redirector.STATUS_WAIT_0;
@@ -399,6 +513,6 @@ gmdebug_dap_srcds_Redirector.voidBuf = gmdebug_dap_srcds_Redirector.ArrayType(Re
 gmdebug_dap_srcds_Redirector.K32 = new ffi_$napi_Library("kernel32",{ CreateFileMappingA : [gmdebug_dap_srcds_Redirector.HANDLE,[gmdebug_dap_srcds_Redirector.HANDLE,RefNapi.refType(gmdebug_dap_srcds_Redirector.SECURITY_ATTR),RefNapi.types.ulong,RefNapi.types.ulong,RefNapi.types.ulong,RefNapi.types.CString]], CreateEventA : [gmdebug_dap_srcds_Redirector.HANDLE,[RefNapi.refType(gmdebug_dap_srcds_Redirector.SECURITY_ATTR),RefNapi.types.bool,RefNapi.types.bool,RefNapi.types.CString]], MapViewOfFile : [RefNapi.refType(RefNapi.types.void),[RefNapi.refType(RefNapi.types.void),gmdebug_dap_srcds_Redirector.DWORD,gmdebug_dap_srcds_Redirector.DWORD,gmdebug_dap_srcds_Redirector.DWORD,RefNapi.types.size_t]], UnmapViewOfFile : [RefNapi.types.void,[gmdebug_dap_srcds_Redirector.intBuf]], SetEvent : [RefNapi.types.bool,[RefNapi.refType(RefNapi.types.void)]], WaitForSingleObject : [gmdebug_dap_srcds_Redirector.DWORD,[RefNapi.types.uint,gmdebug_dap_srcds_Redirector.DWORD]], CreateProcessA : [RefNapi.types.int,[RefNapi.refType(RefNapi.types.char),RefNapi.refType(RefNapi.types.char),RefNapi.refType(gmdebug_dap_srcds_Redirector.SECURITY_ATTR),RefNapi.refType(gmdebug_dap_srcds_Redirector.SECURITY_ATTR),RefNapi.types.bool,RefNapi.types.ulong,RefNapi.refType(RefNapi.types.void),RefNapi.refType(RefNapi.types.char),RefNapi.refType(gmdebug_dap_srcds_Redirector.STARTUP_INFO),RefNapi.refType(gmdebug_dap_srcds_Redirector.PROCESS_INFO)]], GetLastError : [gmdebug_dap_srcds_Redirector.DWORD,[]], WaitForMultipleObjects : [gmdebug_dap_srcds_Redirector.DWORD,[gmdebug_dap_srcds_Redirector.DWORD,gmdebug_dap_srcds_Redirector.voidBuf,RefNapi.types.bool,gmdebug_dap_srcds_Redirector.DWORD]]});
 gmdebug_dap_srcds_Redirector.lib = new ffi_$napi_Library("ucrtbase",{ memset : [RefNapi.refType(RefNapi.types.void),[RefNapi.refType(RefNapi.types.void),RefNapi.types.int,RefNapi.types.size_t]]});
 gmdebug_dap_srcds_RedirectWorker.main();
-})({});
+})(typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);
 
 //# sourceMappingURL=redirect.js.map

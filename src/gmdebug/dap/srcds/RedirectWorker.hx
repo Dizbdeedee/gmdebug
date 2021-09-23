@@ -1,5 +1,6 @@
 package gmdebug.dap.srcds;
 
+import global.Buffer;
 import js.node.Timers;
 import node.worker_threads.Worker;
 import js.Node;
@@ -64,10 +65,20 @@ class RedirectWorker {
                 trace('Failed to set screen size $screenSize');
             }
             if (Node.process.stdin.readable) {
-                final read = Node.process.stdin.read();
-                if (read != null) {
-                    r.WriteText(Node.process.stdin.read());
+                var read:Buffer;
+                var readStr:StringBuf = new StringBuf();
+                do {
+                    read = Node.process.stdin.read();
+                    if (read != null) {
+                        trace(read);
+                        readStr.add(read.toString());
+                    }
+                } while (read != null);
+                if (readStr.length > 0) {
+                    trace(readStr.toString());
+                    r.WriteText(readStr.toString());
                 }
+                
             }
             final output = r.ReadText(1,screenSize-2);
             outputBuffer = [];

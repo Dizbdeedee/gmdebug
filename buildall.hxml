@@ -6,6 +6,10 @@ extension.hxml
 
 --next
 
+redirect_worker.hxml
+
+--next
+
 lua_server.hxml
 
 --next

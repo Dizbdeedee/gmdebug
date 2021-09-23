@@ -1133,20 +1133,16 @@ class gmdebug_dap_LaunchProcess {
 			luaDebug.shutdown();
 		});
 	}
-	attachOutput(_luaDebug) {
-		this.stdout.resume();
-		let luaDebug = _luaDebug;
+	attachOutput(luaDebug) {
 		this.stdout.on("data",function(str) {
 			let _this = new gmdebug_composer_ComposedEvent("output",{ category : "stdout", output : StringTools.replace(str.toString(),"\r",""), data : null});
 			console.log("src/gmdebug/composer/ComposedEvent.hx:32:","sending from dap " + _this.event);
 			luaDebug.sendEvent(_this);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:77:","look, some data!!");
 		});
 		this.stderr.on("data",function(str) {
 			let _this = new gmdebug_composer_ComposedEvent("output",{ category : "stdout", output : str.toString(), data : null});
 			console.log("src/gmdebug/composer/ComposedEvent.hx:32:","sending from dap " + _this.event);
 			luaDebug.sendEvent(_this);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:86:","even more data..?");
 		});
 	}
 	setupWindows(programPath,luaDebug,argString) {
@@ -1155,10 +1151,10 @@ class gmdebug_dap_LaunchProcess {
 			let _this = new gmdebug_composer_ComposedEvent("output",{ category : "stderr", output : err.message + "\n" + err.stack, data : null});
 			console.log("src/gmdebug/composer/ComposedEvent.hx:32:","sending from dap " + _this.event);
 			luaDebug.sendEvent(_this);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:98:","Worker error///");
-			console.log("src/gmdebug/dap/LaunchProcess.hx:99:",err.message);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:100:",err.stack);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:101:","Worker error end///");
+			console.log("src/gmdebug/dap/LaunchProcess.hx:93:","Worker error///");
+			console.log("src/gmdebug/dap/LaunchProcess.hx:94:",err.message);
+			console.log("src/gmdebug/dap/LaunchProcess.hx:95:",err.stack);
+			console.log("src/gmdebug/dap/LaunchProcess.hx:96:","Worker error end///");
 			luaDebug.shutdown();
 		});
 		this.stdin = this.worker.stdin;
@@ -1249,6 +1245,7 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 				__return(tink_core_Outcome.Success(success));
 				return;
 			} catch( _g ) {
+				haxe_NativeStackTrace.lastError = _g;
 				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(haxe_Exception.caught(_g).unwrap())));
 			}
 		});
@@ -1278,11 +1275,13 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 						__return(tink_core_Outcome.Success(null));
 						return;
 					} catch( _g ) {
+						haxe_NativeStackTrace.lastError = _g;
 						let _g1 = haxe_Exception.caught(_g).unwrap();
 						__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 					}
 				});
 			} catch( _g ) {
+				haxe_NativeStackTrace.lastError = _g;
 				let _g1 = haxe_Exception.caught(_g).unwrap();
 				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 			}
