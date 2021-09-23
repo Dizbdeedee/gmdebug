@@ -39,17 +39,18 @@ class gmdebug_dap_srcds_RedirectWorker {
 	}
 	static main() {
 		let r = new gmdebug_dap_srcds_Redirector();
-		console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:54:",process.argv);
+		console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:55:",process.argv);
 		r.Start(process.argv[2],process.argv.slice(3));
+		let bJustStarted = false;
 		let outputBuffer = [];
 		let oldOutput = [];
-		while(true) {
+		let loop = function() {
 			let screenSize = r.GetScreenBufferSize();
 			if(screenSize == -1) {
-				continue;
+				return;
 			}
 			if(!r.SetScreenBufferSize(screenSize)) {
-				console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:65:","Failed to set screen size " + screenSize);
+				console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:64:","Failed to set screen size " + screenSize);
 			}
 			if(process.stdin.readable) {
 				let read = process.stdin.read();
@@ -75,6 +76,9 @@ class gmdebug_dap_srcds_RedirectWorker {
 			}
 			if(lastNotEmptyIndex >= 0 && outputBuffer.length > lastNotEmptyIndex) {
 				outputBuffer.length = lastNotEmptyIndex + 1;
+			}
+			if(lastNotEmptyIndex != -1) {
+				bJustStarted = false;
 			}
 			if(oldOutput.length > 0) {
 				let lastLine = oldOutput.length - 1;
@@ -110,9 +114,9 @@ class gmdebug_dap_srcds_RedirectWorker {
 				if(firstNewLine < 0) {
 					if(hist) {
 						gmdebug_dap_srcds_RedirectWorker.HandleCommandLineDisplay(r,screenSize);
-						continue;
+						return;
 					} else {
-						console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:122:","Console moved too fast " + firstNewLine);
+						console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:121:","Console moved too fast " + firstNewLine);
 						firstNewLine = 0;
 					}
 				}
@@ -127,8 +131,7 @@ class gmdebug_dap_srcds_RedirectWorker {
 				if(sizeDiff > 0) {
 					oldOutput.splice(0,sizeDiff);
 				}
-			} else {
-				console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:136:","abloo bloo bloo");
+			} else if(!bJustStarted) {
 				let _g = 0;
 				while(_g < outputBuffer.length) {
 					let str = outputBuffer[_g];
@@ -138,7 +141,13 @@ class gmdebug_dap_srcds_RedirectWorker {
 				}
 			}
 			gmdebug_dap_srcds_RedirectWorker.HandleCommandLineDisplay(r,screenSize);
-		}
+		};
+		let mainLoop = null;
+		mainLoop = function() {
+			loop();
+			js_node_Timers.setImmediate(mainLoop);
+		};
+		mainLoop();
 	}
 }
 class gmdebug_dap_srcds_Redirector {
@@ -347,6 +356,7 @@ class haxe_iterators_ArrayIterator {
 	}
 }
 var js_node_Fs = require("fs");
+var js_node_Timers = require("timers");
 class sys_FileSystem {
 	static exists(path) {
 		try {
@@ -367,6 +377,7 @@ class sys_FileSystem {
 if(typeof(performance) != "undefined" ? typeof(performance.now) == "function" : false) {
 	HxOverrides.now = performance.now.bind(performance);
 }
+if( String.fromCodePoint == null ) String.fromCodePoint = function(c) { return c < 0x10000 ? String.fromCharCode(c) : String.fromCharCode((c>>10)+0xD7C0)+String.fromCharCode((c&0x3FF)+0xDC00); }
 {
 }
 gmdebug_dap_srcds_RedirectWorker.CON_LINE_LENGTH = 80;

@@ -1,5 +1,6 @@
 package gmdebug.dap.srcds;
 
+import js.node.Timers;
 import node.worker_threads.Worker;
 import js.Node;
 using StringTools;
@@ -53,14 +54,12 @@ class RedirectWorker {
         final r = new Redirector();
         trace(Node.process.argv);
         r.Start(Node.process.argv[2],Node.process.argv.slice(3));
-
         var bJustStarted = false;
         var outputBuffer:Array<String> = [];
         final oldOutput:Array<String> = [];
-        
-        while (true) {
+        function loop() {
             final screenSize = r.GetScreenBufferSize();
-            if (screenSize == -1) continue;
+            if (screenSize == -1) return;
             if (!r.SetScreenBufferSize(screenSize)) {
                 trace('Failed to set screen size $screenSize');
             }
@@ -117,7 +116,7 @@ class RedirectWorker {
                     if (hist) {
 
                         HandleCommandLineDisplay(r,screenSize);
-                        continue;
+                        return;
                     } else {
                         trace('Console moved too fast $firstNewLine');
                         firstNewLine = 0;
@@ -140,6 +139,13 @@ class RedirectWorker {
             }
             HandleCommandLineDisplay(r,screenSize);
         }
+        function mainLoop() {
+            loop();
+            Timers.setImmediate(mainLoop);
+        }
+        
+        mainLoop();
+        
         
     }
 }

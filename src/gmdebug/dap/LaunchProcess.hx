@@ -14,19 +14,17 @@ import gmdebug.composer.ComposedEvent;
 using StringTools;
 
 class LaunchProcess {
+	
+	static final EXTRA_ARGS = "+sv_lan 1 +sv_hibernate_think 1 +sv_allowcslua 1";
+	
+	static final EXTRA_ARGS_WINDOWS = "-console";
 
     var childProcess:js.node.child_process.ChildProcess;
 	var worker:Worker;
 
-
 	var stdout:IReadable;
 	var stderr:IReadable;
 	var stdin:IWritable;
-
-
-	static final EXTRA_ARGS = "+sv_lan 1 +sv_hibernate_think 1 +sv_allowcslua 1";
-	
-	static final EXTRA_ARGS_WINDOWS = "-console";
 
     public function new(programPath:String,luaDebug:LuaDebugger,?programArgs:Array<String>) {
         programArgs = programArgs.or([]);
@@ -68,14 +66,14 @@ class LaunchProcess {
 	}
 
 	function attachOutput(luaDebug) {
-		stdout.on("data", (str:Buffer) -> {
+		stdout.on(Data, (str:Buffer) -> {
 			new ComposedEvent(output, {
 				category: Stdout,
 				output: str.toString().replace("\r", ""),
 				data: null
 			}).send(luaDebug);
 		});
-		stderr.on("data", (str:Buffer) -> {
+		stderr.on(Data, (str:Buffer) -> {
 			new ComposedEvent(output, {
 				category: Stdout,
 				output: str.toString(),
@@ -117,6 +115,4 @@ class LaunchProcess {
 			worker.terminate();
 		}
     }
-
-    //read?
 }

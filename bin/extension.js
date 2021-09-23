@@ -854,6 +854,7 @@ Object.assign(gmdebug_dap_Client.prototype, {
 });
 class gmdebug_dap_ClientStorage {
 	constructor(readFunc) {
+		this.queuedServerMessages = [];
 		this.gmodIDMap = new haxe_ds_IntMap();
 		this.disconnect = false;
 		this.clients = [];
@@ -883,17 +884,15 @@ class gmdebug_dap_ClientStorage {
 							__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g.failure)));
 							return;
 						}
-						console.log("src/gmdebug/dap/ClientStorage.hx:53:","mega aquired");
+						console.log("src/gmdebug/dap/ClientStorage.hx:55:","mega aquired");
 						__return(tink_core_Outcome.Success(ps));
 						return;
 					} catch( _g ) {
-						haxe_NativeStackTrace.lastError = _g;
 						let _g1 = haxe_Exception.caught(_g).unwrap();
 						__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 					}
 				});
 			} catch( _g ) {
-				haxe_NativeStackTrace.lastError = _g;
 				let _g1 = haxe_Exception.caught(_g).unwrap();
 				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 			}
@@ -919,18 +918,16 @@ class gmdebug_dap_ClientStorage {
 						let pipesocket = __t3_result;
 						let client = new gmdebug_dap_Client(pipesocket,clID,gmodID,gmodName);
 						_gthis.clients.push(client);
-						console.log("src/gmdebug/dap/ClientStorage.hx:63:","client created");
+						console.log("src/gmdebug/dap/ClientStorage.hx:65:","client created");
 						_gthis.gmodIDMap.h[gmodID] = client;
 						__return(tink_core_Outcome.Success(client));
 						return;
 					} catch( _g ) {
-						haxe_NativeStackTrace.lastError = _g;
 						let _g1 = haxe_Exception.caught(_g).unwrap();
 						__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 					}
 				});
 			} catch( _g ) {
-				haxe_NativeStackTrace.lastError = _g;
 				let _g1 = haxe_Exception.caught(_g).unwrap();
 				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 			}
@@ -954,29 +951,42 @@ class gmdebug_dap_ClientStorage {
 							return;
 						}
 						let pipesocket = __t4_result;
-						console.log("src/gmdebug/dap/ClientStorage.hx:71:","Server created");
+						console.log("src/gmdebug/dap/ClientStorage.hx:73:","Server created");
 						let server = new gmdebug_dap_Server(pipesocket,clID);
 						_gthis.clients[gmdebug_dap_ClientStorage.SERVER_ID] = server;
 						__return(tink_core_Outcome.Success(server));
 						return;
 					} catch( _g ) {
-						haxe_NativeStackTrace.lastError = _g;
 						let _g1 = haxe_Exception.caught(_g).unwrap();
 						__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 					}
 				});
 			} catch( _g ) {
-				haxe_NativeStackTrace.lastError = _g;
 				let _g1 = haxe_Exception.caught(_g).unwrap();
 				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 			}
 		});
 	}
 	sendServer(msg) {
-		let tmp = this.clients[gmdebug_dap_ClientStorage.SERVER_ID];
-		let json = haxe_format_JsonPrinter.print(msg,null,null);
-		let len = haxe_io_Bytes.ofString(json).length;
-		tmp.sendRaw("Content-Length: " + len + "\r\n\r\n" + json);
+		if(this.clients[gmdebug_dap_ClientStorage.SERVER_ID] == null) {
+			let tmp = this.queuedServerMessages;
+			let json = haxe_format_JsonPrinter.print(msg,null,null);
+			let len = haxe_io_Bytes.ofString(json).length;
+			tmp.push("Content-Length: " + len + "\r\n\r\n" + json);
+		} else {
+			let _g = 0;
+			let _g1 = this.queuedServerMessages;
+			while(_g < _g1.length) {
+				let i = _g1[_g];
+				++_g;
+				this.clients[gmdebug_dap_ClientStorage.SERVER_ID].sendRaw(i);
+			}
+			this.queuedServerMessages = [];
+			let tmp = this.clients[gmdebug_dap_ClientStorage.SERVER_ID];
+			let json = haxe_format_JsonPrinter.print(msg,null,null);
+			let len = haxe_io_Bytes.ofString(json).length;
+			tmp.sendRaw("Content-Length: " + len + "\r\n\r\n" + json);
+		}
 	}
 	sendClient(id,msg) {
 		if(id == gmdebug_dap_ClientStorage.SERVER_ID) {
@@ -1024,6 +1034,7 @@ Object.assign(gmdebug_dap_ClientStorage.prototype, {
 	,disconnect: null
 	,gmodIDMap: null
 	,readFunc: null
+	,queuedServerMessages: null
 });
 class gmdebug_dap_DapFailureTools {
 	static sendError(opt,req,luaDebug) {
@@ -1115,23 +1126,27 @@ class gmdebug_dap_LaunchProcess {
 			let _this = new gmdebug_composer_ComposedEvent("output",{ category : "stderr", output : err.message + "\n" + err.stack, data : null});
 			console.log("src/gmdebug/composer/ComposedEvent.hx:32:","sending from dap " + _this.event);
 			luaDebug.sendEvent(_this);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:61:","Child process error///");
-			console.log("src/gmdebug/dap/LaunchProcess.hx:62:",err.message);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:63:",err.stack);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:64:","Child process error end///");
+			console.log("src/gmdebug/dap/LaunchProcess.hx:59:","Child process error///");
+			console.log("src/gmdebug/dap/LaunchProcess.hx:60:",err.message);
+			console.log("src/gmdebug/dap/LaunchProcess.hx:61:",err.stack);
+			console.log("src/gmdebug/dap/LaunchProcess.hx:62:","Child process error end///");
 			luaDebug.shutdown();
 		});
 	}
-	attachOutput(luaDebug) {
+	attachOutput(_luaDebug) {
+		this.stdout.resume();
+		let luaDebug = _luaDebug;
 		this.stdout.on("data",function(str) {
 			let _this = new gmdebug_composer_ComposedEvent("output",{ category : "stdout", output : StringTools.replace(str.toString(),"\r",""), data : null});
 			console.log("src/gmdebug/composer/ComposedEvent.hx:32:","sending from dap " + _this.event);
 			luaDebug.sendEvent(_this);
+			console.log("src/gmdebug/dap/LaunchProcess.hx:77:","look, some data!!");
 		});
 		this.stderr.on("data",function(str) {
 			let _this = new gmdebug_composer_ComposedEvent("output",{ category : "stdout", output : str.toString(), data : null});
 			console.log("src/gmdebug/composer/ComposedEvent.hx:32:","sending from dap " + _this.event);
 			luaDebug.sendEvent(_this);
+			console.log("src/gmdebug/dap/LaunchProcess.hx:86:","even more data..?");
 		});
 	}
 	setupWindows(programPath,luaDebug,argString) {
@@ -1140,10 +1155,10 @@ class gmdebug_dap_LaunchProcess {
 			let _this = new gmdebug_composer_ComposedEvent("output",{ category : "stderr", output : err.message + "\n" + err.stack, data : null});
 			console.log("src/gmdebug/composer/ComposedEvent.hx:32:","sending from dap " + _this.event);
 			luaDebug.sendEvent(_this);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:95:","Worker error///");
-			console.log("src/gmdebug/dap/LaunchProcess.hx:96:",err.message);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:97:",err.stack);
-			console.log("src/gmdebug/dap/LaunchProcess.hx:98:","Worker error end///");
+			console.log("src/gmdebug/dap/LaunchProcess.hx:98:","Worker error///");
+			console.log("src/gmdebug/dap/LaunchProcess.hx:99:",err.message);
+			console.log("src/gmdebug/dap/LaunchProcess.hx:100:",err.stack);
+			console.log("src/gmdebug/dap/LaunchProcess.hx:101:","Worker error end///");
 			luaDebug.shutdown();
 		});
 		this.stdin = this.worker.stdin;
@@ -1234,7 +1249,6 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 				__return(tink_core_Outcome.Success(success));
 				return;
 			} catch( _g ) {
-				haxe_NativeStackTrace.lastError = _g;
 				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(haxe_Exception.caught(_g).unwrap())));
 			}
 		});
@@ -1264,13 +1278,11 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 						__return(tink_core_Outcome.Success(null));
 						return;
 					} catch( _g ) {
-						haxe_NativeStackTrace.lastError = _g;
 						let _g1 = haxe_Exception.caught(_g).unwrap();
 						__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 					}
 				});
 			} catch( _g ) {
-				haxe_NativeStackTrace.lastError = _g;
 				let _g1 = haxe_Exception.caught(_g).unwrap();
 				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 			}
@@ -1550,19 +1562,16 @@ class gmdebug_dap_PipeSocket {
 								__return(tink_core_Outcome.Success(null));
 								return;
 							} catch( _g ) {
-								haxe_NativeStackTrace.lastError = _g;
 								let _g1 = haxe_Exception.caught(_g).unwrap();
 								__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 							}
 						});
 					} catch( _g ) {
-						haxe_NativeStackTrace.lastError = _g;
 						let _g1 = haxe_Exception.caught(_g).unwrap();
 						__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 					}
 				});
 			} catch( _g ) {
-				haxe_NativeStackTrace.lastError = _g;
 				let _g1 = haxe_Exception.caught(_g).unwrap();
 				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 			}
@@ -1607,19 +1616,16 @@ class gmdebug_dap_PipeSocket {
 								__return(tink_core_Outcome.Success(null));
 								return;
 							} catch( _g ) {
-								haxe_NativeStackTrace.lastError = _g;
 								let _g1 = haxe_Exception.caught(_g).unwrap();
 								__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 							}
 						});
 					} catch( _g ) {
-						haxe_NativeStackTrace.lastError = _g;
 						let _g1 = haxe_Exception.caught(_g).unwrap();
 						__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 					}
 				});
 			} catch( _g ) {
-				haxe_NativeStackTrace.lastError = _g;
 				let _g1 = haxe_Exception.caught(_g).unwrap();
 				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 			}
@@ -1675,13 +1681,11 @@ class gmdebug_dap_PipeSocket {
 						__return(tink_core_Outcome.Success(new js_node_net_Socket({ fd : fd, writable : false})));
 						return;
 					} catch( _g ) {
-						haxe_NativeStackTrace.lastError = _g;
 						let _g1 = haxe_Exception.caught(_g).unwrap();
 						__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 					}
 				});
 			} catch( _g ) {
-				haxe_NativeStackTrace.lastError = _g;
 				let _g1 = haxe_Exception.caught(_g).unwrap();
 				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 			}
@@ -1707,13 +1711,11 @@ class gmdebug_dap_PipeSocket {
 						__return(tink_core_Outcome.Success({ sockIn : socks[0], sockOut : socks[1]}));
 						return;
 					} catch( _g ) {
-						haxe_NativeStackTrace.lastError = _g;
 						let _g1 = haxe_Exception.caught(_g).unwrap();
 						__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 					}
 				});
 			} catch( _g ) {
-				haxe_NativeStackTrace.lastError = _g;
 				let _g1 = haxe_Exception.caught(_g).unwrap();
 				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 			}
@@ -1740,13 +1742,11 @@ class gmdebug_dap_PipeSocket {
 						__return(tink_core_Outcome.Success(new js_node_net_Socket({ fd : fd, readable : false})));
 						return;
 					} catch( _g ) {
-						haxe_NativeStackTrace.lastError = _g;
 						let _g1 = haxe_Exception.caught(_g).unwrap();
 						__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 					}
 				});
 			} catch( _g ) {
-				haxe_NativeStackTrace.lastError = _g;
 				let _g1 = haxe_Exception.caught(_g).unwrap();
 				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 			}

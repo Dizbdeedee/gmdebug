@@ -27,6 +27,8 @@ class ClientStorage {
 
 	final readFunc:ReadWithClientID;
 
+	var queuedServerMessages = [];
+
 	public function new(readFunc:ReadWithClientID) {
 		this.readFunc = readFunc;
 
@@ -79,7 +81,15 @@ class ClientStorage {
 	}
 
 	public function sendServer(msg:Dynamic) {
-		clients[SERVER_ID].sendRaw(composeMessage(msg));
+		if (clients[SERVER_ID] == null) {
+			queuedServerMessages.push(composeMessage(msg));
+		} else {
+			for (i in queuedServerMessages) {
+				clients[SERVER_ID].sendRaw(i);
+			}
+			queuedServerMessages = [];
+			clients[SERVER_ID].sendRaw(composeMessage(msg));
+		}
 	}
 
 	public function sendClient(id:Int,msg:Dynamic) {
