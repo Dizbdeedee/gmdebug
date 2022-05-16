@@ -51,7 +51,6 @@ class RedirectWorker {
     }
 
     public static function main() {
-        
         final r = new Redirector();
         trace(Node.process.argv);
         r.Start(Node.process.argv[2],Node.process.argv.slice(3));
@@ -154,9 +153,6 @@ class RedirectWorker {
             loop();
             Timers.setImmediate(mainLoop);
         }
-        
         mainLoop();
-        
-        
     }
 }

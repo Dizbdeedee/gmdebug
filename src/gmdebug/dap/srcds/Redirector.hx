@@ -16,9 +16,7 @@ import RefNapi.refType;
 import RefNapi.types as rtypes;
 
 
-extern class Kernel32 {
-    // static function CreateFileMappingW(hFile:global.Buffer, securityAttr:global.Buffer, flProtect:)
-
+private extern class Kernel32 {
     function CreateFileMappingA(...rest:Dynamic):global.Buffer;
     function CreateEventA(...rest:Dynamic):global.Buffer;
     function MapViewOfFile(map_file:global.Buffer,dwDesiredAccess:Int,dwFileOffsetHigh:global.Buffer,
@@ -27,12 +25,10 @@ extern class Kernel32 {
     function SetEvent(handle:global.Buffer):Bool;
     function WaitForSingleObject(event:Int,timeout:Int):Int;
     function CreateProcessA(...rest:global.Buffer):Bool;
-
     function WaitForMultipleObjects(nCount:Int,lpHandles:global.Buffer,bWaitAll:Bool,dwMilliseconds:Int):Int;
 }
 
 class Redirector {
-
 
     static final STATUS_WAIT_0 = 0x00000000;
 
@@ -42,8 +38,6 @@ class Redirector {
 
     static final ArrayType = RefArrayDi.call(cast RefNapi);
 
-    
-    
     static final LPVOID = refType(RefNapi.types.void);
 
     static final DWORD = rtypes.ulong;
