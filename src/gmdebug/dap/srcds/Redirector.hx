@@ -42,6 +42,7 @@ private extern class Lib {
 
 extern class ProcessInfo extends global.Buffer {
     var hProcess:global.Buffer;
+    var dwProcessId:BufInt;
 }
 
 extern class SecurityInfo extends global.Buffer {
@@ -200,9 +201,12 @@ class Redirector {
         K32.CloseHandle(map_file);
         K32.CloseHandle(event_parent_send);
         K32.CloseHandle(event_child_send);
-        K32.TerminateProcess(processInfo.hProcess,1);
+        if (processInfo.dwProcessId != 0) {
+            trace("Attempting destruction");
+            K32.TerminateProcess(processInfo.hProcess,1);
+            lib.memset(processInfo.ref(),0,cast PROCESS_INFO.size);
+        }
         // K32.WaitForSingleObject(processInfo.hProcess,0xFFFFFFFF);
-        lib.memset(processInfo.ref(),0,cast PROCESS_INFO.size);
 
     }
 
@@ -335,6 +339,7 @@ class Redirector {
         final waitResult = K32.WaitForMultipleObjects(2,cast waitForEvents,false,0xFFFFFFF);
         if (waitResult == WAIT_OBJECT_0 + 1) {
             trace("Process ended");
+            throw "Ended";
         }
         return waitResult == WAIT_OBJECT_0;
     }

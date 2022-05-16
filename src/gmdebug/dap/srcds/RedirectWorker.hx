@@ -1,5 +1,6 @@
 package gmdebug.dap.srcds;
 
+import js.node.ChildProcess;
 import js.node.Process;
 import ffi_napi.Callback;
 import global.Buffer;
@@ -54,12 +55,21 @@ class RedirectWorker {
         });
     }
 
+    public static function makeChildProcess(program:String,args:Array<String>):js.node.child_process.ChildProcess {
+        final argString = args.join(" ");
+        final cp = js.node.ChildProcess.spawn('node ./bin/redirect.js $program $argString', {
+			env: Node.process.env,
+			shell: true
+		});
+        return cp;
+    }
+
     static var red:Redirector;
 
     static function handleDeth(...rest) {
         trace("deth handled");
         canLoop = false;
-        red.Destroy();
+        // red.Destroy();
         return false;
     }
 
@@ -172,14 +182,18 @@ class RedirectWorker {
                 loop();
             } catch (e) {
                 canLoop = false;
-                trace(e);
-                return;
             }
             if (canLoop) {
                 Timers.setImmediate(mainLoop);
+            } else {
+                trace("Bugger off please");
+                r.Destroy();
+                trace("exiting");
+                Node.process.exit(1);
+                trace("ohohoho");
             }
         }
         mainLoop();
-        // Node.process.exit(0);
+        trace("mm");
     }
 }

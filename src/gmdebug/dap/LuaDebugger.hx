@@ -53,6 +53,8 @@ typedef Programs = {
 
 	var clients:ClientStorage;
 
+	public var shutdownActive(default,null):Bool;
+
 	public function new(?x, ?y) {
 		super(x, y);
 		clientLocation = null;
@@ -67,8 +69,10 @@ typedef Programs = {
 		prevRequests = new PreviousRequests();
 		clients = new ClientStorage(readGmodBuffer);
 		requestRouter = new RequestRouter(this,clients,prevRequests);
+		poking = false;
 		Node.process.on("uncaughtException", uncaughtException);
 		Node.process.on("SIGTRM", shutdown);
+		shutdownActive = false;
 		Sys.setCwd(HxPath.directory(HxPath.directory(Sys.programPath())));
 		checkPrograms();
 		shouldAutoConnect = false;
@@ -187,18 +191,20 @@ typedef Programs = {
 	function uncaughtException(err:js.lib.Error, origin) {
 		trace(err.message);
 		trace(err.stack);
+		shutdown();
 		// Timer.delay(() -> this.shutdown(), 2000);
 	}
 
 	function pokeClients() {
-		
+		if (!poking || shutdownActive) return;
 		playerTry(clientLocation).handle((out) -> {
 			switch (out) {
 				case Success(_):
-				
+
 				case Failure(err):
 					trace(err);
 			}
+			Timers.setTimeout(pokeClients,500);
 		});
 	}
 
@@ -289,9 +295,20 @@ typedef Programs = {
 		}
 	}
 
+	var pokeClientCancel:Timeout;
+
+	var poking:Bool;
+
 	function startPokeClients() {
 		if (clientLocation != null) {
-			Timers.setInterval(pokeClients,500);
+			poking = true;		
+			pokeClients();
+		}
+	}
+
+	function stopPokeClients() {
+		if (poking != null) {
+			poking = false;
 		}
 	}
 
@@ -330,31 +347,22 @@ typedef Programs = {
 	}
 
 	override public function shutdown() {
-		// trace("why?");
-		// switch (dapMode) {
-		// 	case LAUNCH(child):
-		// 		child.write("quit\n");
-		// 		child.kill();
-		// 	default:
-		// }
+		// trace("shutdown attempted");
+		shutdownActive = true;
+		switch (dapMode) {
+			case LAUNCH(child = {active : true}):
+				child.write("quit\n");
+				child.kill();
+			default:
+		}
+		sendEvent(new ComposedEvent(terminated, {}));
+		sendEvent(new ComposedEvent(exited,{exitCode: 0}));
 		clients.disconnectAll();
 		final dir = HxPath.join([serverFolder,"addons","debugee"]);
-		trace(dir);
-		try {
-			if (Fs.existsSync(dir)) {
-				untyped Fs.rmSync(dir,{recursive : true, force : true});
-				// (cast Fs.rmdirSync : (a:String,b:Dynamic) -> Void)(dir,{recursive : true});
-			}
-		} catch (e) {
-			trace(e);
+		if (Fs.existsSync(dir)) {
+			untyped Fs.rmSync(dir,{recursive : true, force : true});
 		}
-		
-		// trace("What");
-		super.shutdown();
-		// Timer.delay(delayshut,2500);
-	}
-
-	function delayshut() {
+		trace("Final shutdown active");
 		super.shutdown();
 	}
 

@@ -13,6 +13,8 @@ using StringTools;
 
 
 typedef PipeSocketLocations = {
+	folder : String,
+	aquired : String,
 	debugee_output:String, 
 	debugee_input:String,
 	ready:String,
@@ -188,6 +190,7 @@ class PipeSocket {
 
 	@:async function aquireWindowsSocket(serverIn:js.node.net.Server,serverOut:js.node.net.Server):{sockIn : Socket, sockOut : Socket} {
 		final socks = @:await Future.inParallel([getValidSocket(serverIn),getValidSocket(serverOut)]);
+		//TODO on end, kill
 		trace("We found the sock!");
 		return {
 			sockIn : socks[0],
@@ -212,8 +215,15 @@ class PipeSocket {
 		
         readS.end();
         writeS.end();
-        FileSystem.deleteFile(locs.debugee_output);
-		FileSystem.deleteFile(locs.debugee_input);
+		if (FileSystem.exists(locs.debugee_output)) {
+			FileSystem.deleteFile(locs.debugee_output);
+		}
+		if (FileSystem.exists(locs.debugee_input)) {
+			FileSystem.deleteFile(locs.debugee_input);
+		}
+		if (FileSystem.exists(locs.aquired)) {
+			FileSystem.deleteFile(locs.aquired);
+		}
     }
 
 }

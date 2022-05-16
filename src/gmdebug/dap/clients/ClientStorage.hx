@@ -84,7 +84,9 @@ class ClientStorage {
 			debugee_output : join([chosenFolder,OUTPUT]),
 			debugee_input : join([chosenFolder,INPUT]),
 			ready : join([chosenFolder,READY]),
-			client_ready : join([chosenFolder,CLIENT_READY])
+			client_ready : join([chosenFolder,CLIENT_READY]),
+			folder : chosenFolder,
+			aquired : join([chosenFolder,AQUIRED])
 		};
 	}
 

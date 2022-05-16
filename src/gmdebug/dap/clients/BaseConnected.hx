@@ -9,16 +9,20 @@ abstract class BaseConnected {
 
 	public final clID:Int;
 
+	var disconnectActive = false;
+
 	public function new(fs:PipeSocket,clID:Int) {
 		socket = fs;
 		this.clID = clID;
 	}
 
 	public function sendRaw(x:String) {
+		if (disconnectActive) return;
 		socket.write(x);
 	}
 
 	public function disconnect() {
+		disconnectActive = true;
 		socket.end();
 	}
     
