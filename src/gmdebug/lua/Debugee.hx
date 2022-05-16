@@ -415,8 +415,6 @@ class Debugee {
 		socket = null;
 		socketActive = false;
 		trace("Debugging aborted");
-		// Exceptions.unhookGamemodeHooks();
-		// Exceptions.unhookEntityHooks();
 	}
 
 	function startLoop() {

@@ -151,8 +151,8 @@ class PipeSocket {
 					trace("Insufficient priveleges to make symbolic links. You can avoid this by switching to developer mode.");
 					sudoExec(cmd);
 				} else {
-					trace(e);
-					new Error("nani");
+					trace("Cannot make windows links... Unhandled error");
+					throw e;
 				}
 			}
 		} else {

@@ -1,5 +1,6 @@
 package gmdebug.dap.clients;
 
+import gmdebug.dap.PipeSocket;
 import tink.core.Error;
 import gmdebug.dap.PipeSocket.PipeSocketLocations;
 import haxe.io.Bytes;
@@ -107,7 +108,6 @@ class ClientStorage {
 		final client = new Client(pipesocket,clID);
 		clients.push(client);
 		trace("client created");
-		// gmodIDMap.set(gmodID,client);
 		return client;
 	}
 

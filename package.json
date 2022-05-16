@@ -83,16 +83,20 @@
 				},
 				"initialConfigurations": [
 					{
-						"label": "gmdebug: Launch server",
-						"description": "Launch your garry's mod server.",
-						"body": {
-							"type": "gmdebug",
-							"request": "launch",
-							"name": "gmdebug : Launch server",
-							"serverFolder": "/path_to_server_from_root/garrysmod",
-							"programPath": "auto",
-							"autoConnectLocalGmodClient": true
-						}
+						
+						"type": "gmdebug",
+						"request": "launch",
+						"name": "gmdebug : Launch server",
+						"serverFolder": "/path_to_server_from_root/garrysmod",
+						"programPath": "auto",
+						"programArgs" : [
+							"+map",
+							"gm_flatgrass",
+							"+sv_lan",
+							"1"
+						],
+						"autoConnectLocalGmodClient": true
+						
 					}
 				],
 				"configurationSnippets": [
