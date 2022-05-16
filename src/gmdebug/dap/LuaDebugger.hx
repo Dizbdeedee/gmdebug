@@ -1,35 +1,23 @@
 package gmdebug.dap;
 
+import gmdebug.Util.recurseCopy;
+import gmdebug.dap.Validate;
 import js.Node;
-import js.Syntax;
-import js.node.Process;
-import haxe.ValueException;
 import sys.FileSystem;
-import js.node.ChildProcess;
 import gmdebug.composer.*;
-import js.node.util.Promisify;
 import js.node.Fs;
 import vscode.debugProtocol.DebugProtocol;
-import js.node.net.Server;
-import haxe.io.Output;
-import haxe.io.BytesInput;
-import haxe.io.BufferInput;
 import js.node.Buffer;
-import haxe.io.Bytes;
-import haxe.Json;
 import haxe.io.Path as HxPath;
 import js.node.net.Socket;
-import js.node.Net;
 import vscode.debugAdapter.DebugSession;
 import gmdebug.Cross;
-
+using gmdebug.dap.DapFailure;
+import js.node.ChildProcess;
 using tink.CoreApi;
 using gmdebug.composer.ComposeTools;
 
 import gmdebug.GmDebugMessage;
-import haxe.io.Path;
-import js.node.child_process.ChildProcess;
-import js.node.ChildProcess as NCP;
 
 using Lambda;
 
@@ -42,21 +30,19 @@ typedef Programs = {
 
 	public final commMethod:CommMethod;
 
-	public var clientFiles:Array<ClientFiles>;
-
 	public var dapMode:DapMode;
 
 	public var serverFolder:String;
-
-	public var clientsTaken:Map<Int, Bool>;
 
 	public var programs:Programs;
 
 	public var shouldAutoConnect:Bool;
 
+	public var requestArguments:Null<GmDebugLaunchRequestArguments>;
+
 	var requestRouter:RequestRouter;
 
-	var clientLocations:String;
+	var clientLocation:String;
 
 	var bytesProcessor:BytesProcessor;
 
@@ -66,14 +52,14 @@ typedef Programs = {
 
 	public function new(?x, ?y) {
 		super(x, y);
-		clientLocations = null;
+		clientLocation = null;
 		serverFolder = null;
-		clientsTaken = [];
 		dapMode = ATTACH;
 		commMethod = Pipe;
 		programs = {
 			xdotool : false
 		}
+		requestArguments = null;
 		bytesProcessor = new BytesProcessor();
 		prevRequests = new PreviousRequests();
 		clients = new ClientStorage(readGmodBuffer);
@@ -84,10 +70,108 @@ typedef Programs = {
 		shouldAutoConnect = false;
 	}
 
-	function checkPrograms() {
-		if (Sys.systemName() != "linux") return;
+	public function initFromRequest(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments) {
+		final serverFolderResult = validateServerFolder(args.serverFolder);
+		requestArguments = args;
+		if (serverFolderResult != None) {
+			serverFolderResult.sendError(req,this);
+			return;
+		}
+		serverFolder = args.serverFolder;
+		var programPath = switch (args.programPath) {
+			case null:
+				req.composeFail("Gmdebug requires the property \"programPath\" to be specified when launching.", {
+					id: 2,
+					format: "Gmdebug requires the property \"programPath\" to be specified when launching",
+				}).send(this);
+				return;
+			case "auto":
+				if (Sys.systemName() == "Windows") {
+					'$serverFolder/../srcds.exe';
+				} else {
+					'$serverFolder/../srcds_run';
+				}
+			case path:
+				path;
+		}
+		if (!HxPath.isAbsolute(programPath)) {
+			programPath = HxPath.join([serverFolder,programPath]);
+		}
+		final programPathResult = validateProgramPath(programPath);
+		if (programPathResult != None) {
+			programPathResult.sendError(req,this);
+			return;
+		}
+		shouldAutoConnect = args.autoConnectLocalGmodClient.or(false);
+		var childProcess = new LaunchProcess(programPath,this,req.arguments.programArgs);
+		if (req.arguments.noDebug) {
+			dapMode = LAUNCH(childProcess);
+			serverFolder = HxPath.addTrailingSlash(req.arguments.serverFolder);
+			final comp = (req : LaunchRequest).compose(launch,{});
+			comp.send(this);
+			return;
+		}
+		generateInitFiles(serverFolder);
+		copyLuaFiles(serverFolder);
+		var clientFolder = req.arguments.clientFolder;
+		if (clientFolder != null) {
+			final clientFolderResult = validateClientFolder(clientFolder);
+			if (clientFolderResult != None) {
+				clientFolderResult.sendError(req,this);
+				return;
+			}
+			clientFolder = HxPath.addTrailingSlash(clientFolder);
+		}
+		final serverSlash = HxPath.addTrailingSlash(req.arguments.serverFolder);
+		serverFolder = serverSlash;
+		setClientLocation(clientFolder);
+		dapMode = LAUNCH(childProcess);
+		startServer(req);
+	}
+
+	function copyLuaFiles(serverFolder:String) {
+		final addonFolder = HxPath.join([serverFolder, "addons"]);
+		recurseCopy('generated',addonFolder,(_) -> true);
+	}
+
+	function generateInitFiles(serverFolder:String) {
+		final initFile = HxPath.join([serverFolder,"lua","includes","init.lua"]);
+		final backupFile = HxPath.join(["generated","debugee","lua","includes","init_backup.lua"]);
+		final initContents = if (FileSystem.exists(initFile)) {
+			sys.io.File.getContent(initFile);
+		} else if (FileSystem.exists(backupFile)) {
+			sys.io.File.getContent(backupFile);
+		} else {
+			throw "Could not find real, or backup file >=(";
+		}
+		final appendFile = HxPath.join(["generated","debugee","lua","includes","init_attach.lua"]);
+		final appendContents = if (FileSystem.exists(appendFile)) {
+			sys.io.File.getContent(appendFile);
+		} else {
+			throw "Could not find append file...";
+		}
+		final ourInitFile = HxPath.join(["generated","debugee","lua","includes","init.lua"]);
+		sys.io.File.saveContent(ourInitFile,initContents + appendContents);
+	}
+	
+	/**
+	 * Async start server. Respond to attach request when attached.
+	**/
+	function startServer(attachReq:Request<Dynamic>) {
+		final resp = attachReq.compose(attach);
+		resp.send(this);
 		try {
-			NCP.execSync("xdotool --help");
+			pokeServerNamedPipes();
+		} catch (e) {
+			shutdown();
+			throw e;
+		}		
+	}
+
+	function checkPrograms() {
+		if (Sys.systemName() != "Linux") return;
+		try {
+			ChildProcess.execSync("xdotool --help");
 			programs.xdotool = true;
 		} catch (e) {
 			trace("Xdotool not found");
@@ -103,15 +187,13 @@ typedef Programs = {
 
 	@:async function playerAddedMessage(x:GMPlayerAddedMessage) {
 		var success = false;
-		if (clientLocations != null) {
-			if (!clientsTaken.exists(0)) {
-				try {
-					@:await playerTry(clientLocations, x.playerID, x.name).eager();
-					success = true;
-				} catch (e) {
-					trace('could not aquire in $clientLocations');
-				}	
-			}
+		if (clientLocation != null) {
+			try {
+				@:await playerTry(clientLocation, x.playerID, x.name).eager();
+				success = true;
+			} catch (e) {
+				trace('could not aquire in $clientLocation');
+			}	
 		}
 		return success;
 	}
@@ -125,7 +207,6 @@ typedef Programs = {
 		}).send(this);
 		setupPlayer(cl.clID);
 		return Noise;
-		
 	}
 
 	function setupPlayer(clientID:Int) {
@@ -143,11 +224,10 @@ typedef Programs = {
 			threadId: clients.getByGmodID(x.playerID).clID,
 			reason: Exited
 		}).send(this);
-		clientsTaken.remove(clients.getByGmodID(x.playerID).clID);
 	}
 
 	function serverInfoMessage(x:GMServerInfoMessage) {
-		if (!shouldAutoConnect) {
+		if (!requestArguments.autoConnectLocalGmodClient) {
 			return;
 		}
 		final sp = x.ip.split(":");
@@ -157,7 +237,12 @@ typedef Programs = {
 			sp[0];
 		}
 		final port = sp[1];
-		js.node.ChildProcess.spawn('xdg-open steam://connect/$ip:$port', {shell: true});
+		if (Sys.systemName() == "Linux") {
+			js.node.ChildProcess.spawn('xdg-open steam://connect/$ip:$port', {shell: true});
+
+		} else {
+			js.node.ChildProcess.spawn('start steam://connect/$ip:$port', {shell: true});
+		}
 	}
 
 	function processCustomMessages(x:GmDebugMessage<Dynamic>) {
@@ -185,10 +270,8 @@ typedef Programs = {
 		}
 	}
 
-	
-
-	@:await function pokeServerNamedPipes(attachReq:GmDebugAttachRequest) {
-		@:await Promise.retry(clients.newServer.bind(attachReq.arguments.serverFolder),(data) -> {
+	@:await function pokeServerNamedPipes() {
+		@:await Promise.retry(clients.newServer.bind(serverFolder),(data) -> {
 			return if (data.elapsed > SERVER_TIMEOUT * 1000) {
 				new Error(Timeout,"Poke serverNamedPipes timed out");
 			} else {
@@ -262,22 +345,9 @@ typedef Programs = {
 		super.shutdown();
 	}
 
-	/**
-	 * Async start server. Respond to attach request when attached.
-	**/
-	public function startServer(attachReq:Request<Dynamic>) {
-		final resp = attachReq.compose(attach);
-		resp.send(this);
-		try {
-			pokeServerNamedPipes(attachReq);
-		} catch (e) {
-			shutdown();
-			throw e;
-		}		
-	}
 
-	public function setClientLocations(a:String) {
-		return clientLocations = a;
+	public function setClientLocation(a:String) {
+		return clientLocation = a;
 	}
 
 	public override function handleMessage(message:ProtocolMessage) {
@@ -309,11 +379,6 @@ typedef Programs = {
 typedef FileSocket = {
 	readS:Socket,
 	writeS:Socket,
-}
-
-typedef ClientFiles = {
-	read:String,
-	write:String
 }
 
 enum DapMode {

@@ -146,100 +146,16 @@ class RequestRouter {
 		response.body.supportsFunctionBreakpoints = true;
 		response.body.supportsDelayedStackTraceLoading = true;
 		response.body.supportsBreakpointLocationsRequest = false;
-		
 		luaDebug.sendResponse(response);
 	}
 
 	function h_launch(req:GmDebugLaunchRequest) {
-		final serverFolder = req.arguments.serverFolder;
-		final serverFolderResult = validateServerFolder(serverFolder);
-		if (serverFolderResult != None) {
-			serverFolderResult.sendError(req,luaDebug);
-			return;
-		}
-		// handle windows stuff here
-		var programPath = switch (req.arguments.programPath) {
-			case null:
-				req.composeFail("Gmdebug requires the property \"programPath\" to be specified when launching.", {
-					id: 2,
-					format: "Gmdebug requires the property \"programPath\" to be specified when launching",
-				}).send(luaDebug);
-				return;
-			case "auto":
-				if (Sys.systemName() == "Windows") {
-					'$serverFolder/../srcds.exe';
-				} else {
-					'$serverFolder/../srcds_run';
-				}
-			case path:
-				path;
-		}
-		if (!HxPath.isAbsolute(programPath)) {
-			programPath = HxPath.join([serverFolder,programPath]);
-		}
-		final programPathResult = validateProgramPath(programPath);
-		if (programPathResult != None) {
-			programPathResult.sendError(req,luaDebug);
-			return;
-		}
-		luaDebug.shouldAutoConnect = req.arguments.autoConnectLocalGmodClient.or(false);
-		var childProcess = new LaunchProcess(programPath,luaDebug,req.arguments.programArgs);
-		if (req.arguments.noDebug) {
-			luaDebug.dapMode = LAUNCH(childProcess);
-			
-			luaDebug.serverFolder = HxPath.addTrailingSlash(req.arguments.serverFolder);
-			final comp = (req : LaunchRequest).compose(launch,{});
-			comp.send(luaDebug);
-			return;
-		}
-		generateInitFiles(serverFolder);
-		copyLuaFiles(serverFolder);
-		var clientFolder = req.arguments.clientFolder;
-		if (clientFolder != null) {
-			final clientFolderResult = validateClientFolder(clientFolder);
-			if (clientFolderResult != None) {
-				clientFolderResult.sendError(req,luaDebug);
-				return;
-			}
-			clientFolder = HxPath.addTrailingSlash(clientFolder);
-		}
-		final serverSlash = HxPath.addTrailingSlash(req.arguments.serverFolder);
-		luaDebug.serverFolder = serverSlash;
-		luaDebug.setClientLocations(clientFolder);
-		luaDebug.dapMode = LAUNCH(childProcess);
-		luaDebug.startServer(req);
+		luaDebug.initFromRequest(req,req.arguments);
 	}
 
 	function h_scopes(req:ScopesRequest) {
 		final client = (req.arguments.frameId : FrameID).getValue().clientID; // mandatory
 		clients.sendAny(client, req);
-	}
-
-	function generateInitFiles(serverFolder:String) {
-		final initFile = HxPath.join([serverFolder,"lua","includes","init.lua"]);
-		final backupFile = HxPath.join(["generated","debugee","lua","includes","init_backup.lua"]);
-		final initContents = if (FileSystem.exists(initFile)) {
-			sys.io.File.getContent(initFile);
-		} else if (FileSystem.exists(backupFile)) {
-			sys.io.File.getContent(backupFile);
-		} else {
-			throw "Could not find real, or backup file >=(";
-		}
-		final appendFile = HxPath.join(["generated","debugee","lua","includes","init_attach.lua"]);
-		final appendContents = if (FileSystem.exists(appendFile)) {
-			sys.io.File.getContent(appendFile);
-		} else {
-			throw "Could not find append file...";
-		}
-		final ourInitFile = HxPath.join(["generated","debugee","lua","includes","init.lua"]);
-		// if (FileSystem.exists(ourInitFile)) throw "Init file already exists...";
-		sys.io.File.saveContent(ourInitFile,initContents + appendContents);
-	}
-
-	function copyLuaFiles(serverFolder:String) {
-		final addonFolder = HxPath.join([serverFolder, "addons"]);
-		recurseCopy('generated',addonFolder,(_) -> true);
-		// js.node.ChildProcess.execSync('cp -r generated/debugee $addonFolder'); // todo fix for windows
 	}
 
 	function h_attach(req:GmDebugAttachRequest) {
@@ -250,95 +166,7 @@ class RequestRouter {
 		}).send(luaDebug);
 		return;
 	}
-
-
-	function validateProgramPath(programPath:String):haxe.ds.Option<DapFailure> {
-
-		return if (programPath == null) {
-			Some({
-				id : 2,
-				message : "Gmdebug requires the property \"programPath\" to be specified when launching"
-			});
-		} else {
-		
-			if (!Fs.existsSync(programPath)) {
-				Some({
-					id : 4,
-					message : "The program specified by \"programPath\" does not exist!"
-				});
-			} else if (!Fs.statSync(programPath).isFile()) {
-				Some({
-					id : 5,
-					message : "The program specified by \"programPath\" is not a file."
-				});
-			} else {
-				None;
-			}
-		}
-
-	}
-
-	function validateServerFolder(serverFolder:String):haxe.ds.Option<DapFailure> {
-		return if (serverFolder == null) {
-			Some({
-				id : 2,
-				message : "Gmdebug requires the property \"serverFolder\" to be specified."
-			});
-		} else {
-			final addonFolder = js.node.Path.join(serverFolder, "addons");
-			if (!HxPath.isAbsolute(serverFolder)) {
-				Some({
-					id : 3,
-					message : "Gmdebug requires the property \"serverFolder\" to be an absolute path (i.e from root folder)."
-				});
-			} else if (!Fs.existsSync(serverFolder)) {
-				Some({
-					id : 4,
-					message : "The \"serverFolder\" path does not exist!"
-				});
-			} else if (!Fs.statSync(serverFolder).isDirectory()) {
-				Some({
-					id : 5,
-					message : "The \"serverFolder\" path is not a directory."
-				});
-			} else if (!Fs.existsSync(addonFolder) || !Fs.statSync(addonFolder).isDirectory()) {
-				Some({
-					id : 6,
-					message : "\"serverFolder\" does not seem to be a garrysmod directory. (looking for \"addons\" folder)"
-				});
-			} else {
-				None;
-			}
-		}
-	}
-
-	function validateClientFolder(folder:String):haxe.ds.Option<DapFailure> {
-		final addonFolder = js.node.Path.join(folder, "addons");
-		final gmdebug = js.node.Path.join(folder, "data", "gmdebug");
-		return if (!HxPath.isAbsolute(folder)) {
-			Some({
-				id : 8,
-				message : 'Gmdebug requires client folder: $folder to be an absolute path (i.e from root folder).'
-			});
-		} else if (!Fs.existsSync(folder)) {
-			Some({
-				id : 9,
-				message : 'The client folder: $folder does not exist!'
-			});
-		} else if (!Fs.statSync(folder).isDirectory()) {
-			Some({
-				id : 10,
-				message : 'The client folder: $folder is not a directory.'
-			});
-		} else if (!Fs.existsSync(addonFolder) || !Fs.statSync(addonFolder).isDirectory()) {
-			Some({
-				id : 11,
-				message : 'The client folder: $folder does not seem to be a garrysmod directory. (looking for \"addons\" folder)'
-			});
-		} else {
-			None;
-		}
-	}
+	
 }
 
 private typedef HasThreadID = {
