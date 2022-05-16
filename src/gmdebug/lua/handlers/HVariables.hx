@@ -247,10 +247,7 @@ class HVariables implements IHandler<VariablesRequest> {
 		final variablesArr = addVars.map(variableManager.genvar);
 		fixupNames(variablesArr);
 		var resp = req.compose(variables, {variables: variablesArr});
-		// final old = Gmod.SysTime();
-		// trace("custom json start");
-		final js = tink.Json.stringify((cast resp : VariablesResponse)); // in pratical terms they're the same
-		// trace('custom json end ${Gmod.SysTime() - old}');
+		final js = tink.Json.stringify((cast resp : VariablesResponse)); 
 		debugee.send(js);
 		return WAIT;
 	}

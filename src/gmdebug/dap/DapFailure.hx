@@ -22,9 +22,7 @@ class DapFailureTools {
 				false;
 		}
 	}
-
 	
-
 	public inline static function noError(err:haxe.ds.Option<DapFailure>) {
 		return err == None;
 	}

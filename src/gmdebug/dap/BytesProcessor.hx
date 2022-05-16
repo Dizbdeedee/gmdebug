@@ -13,6 +13,7 @@ import vscode.debugProtocol.DebugProtocol;
 
 
 class BytesProcessor {
+	
 	public var fillRequested(default, null):Bool = false;
 
 	var prevClientResults:Array<Null<RecvMessageResponse>> = [];
