@@ -194,18 +194,18 @@ class RequestRouter {
 		}
 		generateInitFiles(serverFolder);
 		copyLuaFiles(serverFolder);
-		final clientFolders = req.arguments.clientFolders.or([]);
-		for (ind => client in clientFolders) {
-			final clientFolderResult = validateClientFolder(client);
+		var clientFolder = req.arguments.clientFolder;
+		if (clientFolder != null) {
+			final clientFolderResult = validateClientFolder(clientFolder);
 			if (clientFolderResult != None) {
 				clientFolderResult.sendError(req,luaDebug);
 				return;
 			}
-			clientFolders[ind] = HxPath.addTrailingSlash(client);
+			clientFolder = HxPath.addTrailingSlash(clientFolder);
 		}
 		final serverSlash = HxPath.addTrailingSlash(req.arguments.serverFolder);
 		luaDebug.serverFolder = serverSlash;
-		luaDebug.setClientLocations(clientFolders);
+		luaDebug.setClientLocations(clientFolder);
 		luaDebug.dapMode = LAUNCH(childProcess);
 		luaDebug.startServer(req);
 	}
@@ -243,25 +243,12 @@ class RequestRouter {
 	}
 
 	function h_attach(req:GmDebugAttachRequest) {
-		final serverFolder = req.arguments.serverFolder;
-		final serverFolderResult = validateServerFolder(serverFolder);
-		if (serverFolderResult != None) {
-			serverFolderResult.sendError(req,luaDebug);
-			return;
-		}
-		final clientFolders = req.arguments.clientFolders.or([]);
-		for (ind => client in clientFolders) {
-			final clientFolderResult = validateClientFolder(client);
-			if (clientFolderResult != None) {
-				clientFolderResult.sendError(req,luaDebug);
-				return;
-			}
-			clientFolders[ind] = HxPath.addTrailingSlash(client);
-		}
-		final serverSlash = HxPath.addTrailingSlash(req.arguments.serverFolder);
-		luaDebug.serverFolder = serverSlash;
-		luaDebug.setClientLocations(clientFolders);
-		luaDebug.startServer(req);
+		req.composeFail("Gmdebug does not currently support attach requests",
+		{
+			id : 15,
+			format : "Gmdebug does not currently support attach requests"
+		}).send(luaDebug);
+		return;
 	}
 
 

@@ -69,9 +69,9 @@ typedef GmDebugBaseRequestArguments = {
 	serverFolder:String,
 
 	/**
-		The paths to client(s) "garrysmod" folder. Must be fully qualified.
+		The path to client "garrysmod" folder. Must be fully qualified.
 	**/
-	?clientFolders:Array<String>
+	?clientFolder:String
 }
 
 typedef GmDebugAttachRequestArguments = AttachRequestArguments & GmDebugBaseRequestArguments;

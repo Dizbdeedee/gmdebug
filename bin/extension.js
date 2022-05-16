@@ -45,6 +45,9 @@ class Lambda {
 }
 Lambda.__name__ = true;
 Math.__name__ = true;
+var RefArrayDi = require("ref-array-di");
+var RefNapi = require("ref-napi");
+var RefStructDi = require("ref-struct-di");
 class Reflect {
 	static field(o,field) {
 		try {
@@ -321,6 +324,7 @@ class Type {
 }
 Type.__name__ = true;
 var Vscode = require("vscode");
+var ffi_$napi_Library = require("ffi-napi").Library;
 class haxe_io_Path {
 	constructor(path) {
 		switch(path) {
@@ -1187,7 +1191,7 @@ var vscode_debugAdapter_DebugSession = require("vscode-debugadapter").DebugSessi
 class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 	constructor(x,y) {
 		super(x,y);
-		this.clientLocations = [];
+		this.clientLocations = null;
 		this.serverFolder = null;
 		this.clientsTaken = new haxe_ds_IntMap();
 		this.dapMode = gmdebug_dap_DapMode.ATTACH;
@@ -1226,27 +1230,62 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 		return tink_core_Future.irreversible(function(__return) {
 			try {
 				let success = false;
-				let _this = _gthis.clientLocations;
-				let _g_current = 0;
-				while(_g_current < _this.length) {
-					let _g1_value = _this[_g_current];
-					let _g1_key = _g_current++;
-					if(!_gthis.clientsTaken.h.hasOwnProperty(_g1_key)) {
+				let __t0 = function() {
+					__return(tink_core_Outcome.Success(success));
+				};
+				if(_gthis.clientLocations != null) {
+					let __t2 = function() {
+						__t0();
+					};
+					if(!_gthis.clientsTaken.h.hasOwnProperty(0)) {
+						let __t4 = function() {
+							__t2();
+						};
+						let __t6 = function(e) {
+							try {
+								let e1 = e;
+								throw haxe_Exception.thrown(e1.code == 0 ? e1.data : e1);
+							} catch( _g ) {
+								console.log("src/gmdebug/dap/LuaDebugger.hx:112:","could not aquire in " + _gthis.clientLocations);
+								__t4();
+							}
+						};
 						try {
-							let this1 = _gthis.playerTry(_g1_value,x.playerID,x.name);
+							let this1 = _gthis.playerTry(_gthis.clientLocations,x.playerID,x.name);
 							this1.eager();
-							success = true;
-							break;
+							this1.handle(function(__t7) {
+								try {
+									let _g = tink_await_OutcomeTools.getOutcome(__t7);
+									switch(_g._hx_index) {
+									case 0:
+										break;
+									case 1:
+										__t6(_g.failure);
+										return;
+									}
+									success = true;
+									__t4();
+								} catch( _g ) {
+									haxe_NativeStackTrace.lastError = _g;
+									let _g1 = haxe_Exception.caught(_g).unwrap();
+									__t6(_g1);
+								}
+							});
 						} catch( _g ) {
-							console.log("src/gmdebug/dap/LuaDebugger.hx:114:","could not aquire in " + _g1_value);
+							haxe_NativeStackTrace.lastError = _g;
+							let _g1 = haxe_Exception.caught(_g).unwrap();
+							__t6(_g1);
 						}
+					} else {
+						__t2();
 					}
+				} else {
+					__t0();
 				}
-				__return(tink_core_Outcome.Success(success));
-				return;
 			} catch( _g ) {
 				haxe_NativeStackTrace.lastError = _g;
-				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(haxe_Exception.caught(_g).unwrap())));
+				let _g1 = haxe_Exception.caught(_g).unwrap();
+				__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g1)));
 			}
 		});
 	}
@@ -1254,19 +1293,19 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 		let _gthis = this;
 		return tink_core_Future.irreversible(function(__return) {
 			try {
-				_gthis.clients.newClient(clientLoc,gmodID,playerName).handle(function(__t0) {
+				_gthis.clients.newClient(clientLoc,gmodID,playerName).handle(function(__t8) {
 					try {
-						let __t0_result;
-						let _g = tink_await_OutcomeTools.getOutcome(__t0);
+						let __t8_result;
+						let _g = tink_await_OutcomeTools.getOutcome(__t8);
 						switch(_g._hx_index) {
 						case 0:
-							__t0_result = _g.data;
+							__t8_result = _g.data;
 							break;
 						case 1:
 							__return(tink_core_Outcome.Failure(tink_core_TypedError.asError(_g.failure)));
 							return;
 						}
-						let cl = __t0_result;
+						let cl = __t8_result;
 						_gthis.clients.sendClient(cl.clID,new gmdebug_composer_ComposedGmDebugMessage(2,{ id : cl.clID}));
 						let _this = new gmdebug_composer_ComposedEvent("thread",{ threadId : cl.clID, reason : "started"});
 						console.log("src/gmdebug/composer/ComposedEvent.hx:32:","sending from dap " + _this.event);
@@ -1320,16 +1359,16 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 		js_node_ChildProcess.spawn("xdg-open steam://connect/" + ip + ":" + port,{ shell : true});
 	}
 	processCustomMessages(x) {
-		console.log("src/gmdebug/dap/LuaDebugger.hx:168:","custom message");
+		console.log("src/gmdebug/dap/LuaDebugger.hx:164:","custom message");
 		switch(x.msg) {
 		case 0:
 			this.playerAddedMessage(x.body).handle(function(out) {
 				switch(out._hx_index) {
 				case 0:
 					if(out.data) {
-						console.log("src/gmdebug/dap/LuaDebugger.hx:174:","Whater a sucess");
+						console.log("src/gmdebug/dap/LuaDebugger.hx:170:","Whater a sucess");
 					} else {
-						console.log("src/gmdebug/dap/LuaDebugger.hx:176:","Could not add a new player...");
+						console.log("src/gmdebug/dap/LuaDebugger.hx:172:","Could not add a new player...");
 					}
 					break;
 				case 1:
@@ -1355,14 +1394,14 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 			return _g(serverLoc);
 		},function(data) {
 			if(data.elapsed > gmdebug_dap_LuaDebugger.SERVER_TIMEOUT * 1000) {
-				return new tink_core__$Future_SyncFuture(new tink_core__$Lazy_LazyConst(tink_core_Outcome.Failure(new tink_core_TypedError(408,"Poke serverNamedPipes timed out",{ fileName : "src/gmdebug/dap/LuaDebugger.hx", lineNumber : 197, className : "gmdebug.dap.LuaDebugger", methodName : "pokeServerNamedPipes"}))));
+				return new tink_core__$Future_SyncFuture(new tink_core__$Lazy_LazyConst(tink_core_Outcome.Failure(new tink_core_TypedError(408,"Poke serverNamedPipes timed out",{ fileName : "src/gmdebug/dap/LuaDebugger.hx", lineNumber : 193, className : "gmdebug.dap.LuaDebugger", methodName : "pokeServerNamedPipes"}))));
 			} else {
 				return new tink_core__$Future_SyncFuture(new tink_core__$Lazy_LazyConst(tink_core_Outcome.Success(null)));
 			}
 		});
 		this1.eager();
-		this1.handle(function(__t1) {
-			let _g = tink_await_OutcomeTools.getOutcome(__t1);
+		this1.handle(function(__t9) {
+			let _g = tink_await_OutcomeTools.getOutcome(__t9);
 			switch(_g._hx_index) {
 			case 0:
 				break;
@@ -1405,18 +1444,18 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 		switch(debugeeMessage.type) {
 		case "event":
 			let cmd = debugeeMessage.event;
-			console.log("src/gmdebug/dap/LuaDebugger.hx:236:","recieved event from debugee, " + cmd);
+			console.log("src/gmdebug/dap/LuaDebugger.hx:232:","recieved event from debugee, " + cmd);
 			gmdebug_dap_EventIntercepter.event(debugeeMessage,threadId,this);
 			this.sendEvent(debugeeMessage);
 			break;
 		case "gmdebug":
 			let cmd1 = debugeeMessage.msg;
-			console.log("src/gmdebug/dap/LuaDebugger.hx:245:","recieved gmdebug from debugee, " + cmd1);
+			console.log("src/gmdebug/dap/LuaDebugger.hx:241:","recieved gmdebug from debugee, " + cmd1);
 			this.processCustomMessages(debugeeMessage);
 			break;
 		case "response":
 			let cmd2 = debugeeMessage.command;
-			console.log("src/gmdebug/dap/LuaDebugger.hx:241:","recieved response from debugee, " + cmd2);
+			console.log("src/gmdebug/dap/LuaDebugger.hx:237:","recieved response from debugee, " + cmd2);
 			this.sendResponse(debugeeMessage);
 			break;
 		default:
@@ -1454,21 +1493,22 @@ class gmdebug_dap_LuaDebugger extends vscode_debugAdapter_DebugSession {
 	}
 	handleMessage(message) {
 		if(message.type == "request") {
-			console.log("src/gmdebug/dap/LuaDebugger.hx:290:","recieved request from client " + message.command);
+			let request = message;
+			console.log("src/gmdebug/dap/LuaDebugger.hx:287:","recieved request from client " + request.command);
 			try {
 				this.requestRouter.route(message);
 			} catch( _g ) {
-				let e = haxe_Exception.caught(_g);
-				console.log("src/gmdebug/dap/LuaDebugger.hx:295:","Failed to handle message " + e.toString());
-				let tmp = e.get_stack();
-				console.log("src/gmdebug/dap/LuaDebugger.hx:296:",tmp == null ? "null" : haxe_CallStack.toString(tmp));
-				let fail = gmdebug_composer_ComposeTools.composeFail(message,e.get_message(),{ id : 15, format : e.toString()});
+				let _g1 = haxe_Exception.caught(_g);
+				console.log("src/gmdebug/dap/LuaDebugger.hx:292:","Failed to handle message " + _g1.toString());
+				let tmp = _g1.get_stack();
+				console.log("src/gmdebug/dap/LuaDebugger.hx:293:",tmp == null ? "null" : haxe_CallStack.toString(tmp));
+				let fail = gmdebug_composer_ComposeTools.composeFail(message,_g1.get_message(),{ id : 15, format : _g1.toString()});
 				console.log("src/gmdebug/composer/ComposedResponse.hx:52:","sending from dap " + fail.command);
 				this.sendResponse(fail);
-				throw haxe_Exception.thrown(e);
+				throw haxe_Exception.thrown(_g1);
 			}
 		} else {
-			console.log("src/gmdebug/dap/LuaDebugger.hx:305:","Not handlin that...");
+			console.log("src/gmdebug/dap/LuaDebugger.hx:302:","Sent message type " + message.type + " from dap. Not a request: not handling");
 		}
 	}
 }
@@ -1993,23 +2033,18 @@ class gmdebug_dap_RequestRouter {
 		}
 		this.generateInitFiles(serverFolder);
 		this.copyLuaFiles(serverFolder);
-		let value1 = req.arguments.clientFolders;
-		let clientFolders = value1 == null ? [] : value1;
-		let _g1_current = 0;
-		let _g1_array = clientFolders;
-		while(_g1_current < _g1_array.length) {
-			let _g2_value = _g1_array[_g1_current];
-			let _g2_key = _g1_current++;
-			let clientFolderResult = this.validateClientFolder(_g2_value);
+		let clientFolder = req.arguments.clientFolder;
+		if(clientFolder != null) {
+			let clientFolderResult = this.validateClientFolder(clientFolder);
 			if(clientFolderResult != haxe_ds_Option.None) {
 				gmdebug_dap_DapFailureTools.sendError(clientFolderResult,req,this.luaDebug);
 				return;
 			}
-			clientFolders[_g2_key] = haxe_io_Path.addTrailingSlash(_g2_value);
+			clientFolder = haxe_io_Path.addTrailingSlash(clientFolder);
 		}
 		let serverSlash = haxe_io_Path.addTrailingSlash(req.arguments.serverFolder);
 		this.luaDebug.serverFolder = serverSlash;
-		this.luaDebug.setClientLocations(clientFolders);
+		this.luaDebug.setClientLocations(clientFolder);
 		this.luaDebug.dapMode = gmdebug_dap_DapMode.LAUNCH(childProcess);
 		this.luaDebug.startServer(req);
 	}
@@ -2045,30 +2080,10 @@ class gmdebug_dap_RequestRouter {
 		});
 	}
 	h_attach(req) {
-		let serverFolder = req.arguments.serverFolder;
-		let serverFolderResult = this.validateServerFolder(serverFolder);
-		if(serverFolderResult != haxe_ds_Option.None) {
-			gmdebug_dap_DapFailureTools.sendError(serverFolderResult,req,this.luaDebug);
-			return;
-		}
-		let value = req.arguments.clientFolders;
-		let clientFolders = value == null ? [] : value;
-		let _g_current = 0;
-		let _g_array = clientFolders;
-		while(_g_current < _g_array.length) {
-			let _g1_value = _g_array[_g_current];
-			let _g1_key = _g_current++;
-			let clientFolderResult = this.validateClientFolder(_g1_value);
-			if(clientFolderResult != haxe_ds_Option.None) {
-				gmdebug_dap_DapFailureTools.sendError(clientFolderResult,req,this.luaDebug);
-				return;
-			}
-			clientFolders[_g1_key] = haxe_io_Path.addTrailingSlash(_g1_value);
-		}
-		let serverSlash = haxe_io_Path.addTrailingSlash(req.arguments.serverFolder);
-		this.luaDebug.serverFolder = serverSlash;
-		this.luaDebug.setClientLocations(clientFolders);
-		this.luaDebug.startServer(req);
+		let _this = gmdebug_composer_ComposeTools.composeFail(req,"Gmdebug does not currently support attach requests",{ id : 15, format : "Gmdebug does not currently support attach requests"});
+		let luaDebug = this.luaDebug;
+		console.log("src/gmdebug/composer/ComposedResponse.hx:52:","sending from dap " + _this.command);
+		luaDebug.sendResponse(_this);
 	}
 	validateProgramPath(programPath) {
 		if(programPath == null) {
@@ -2133,12 +2148,305 @@ Object.assign(gmdebug_dap_Server.prototype, {
 	__class__: gmdebug_dap_Server
 });
 class gmdebug_dap_srcds_RedirectWorker {
+	static isAllWhitespace(str) {
+		let _g_offset = 0;
+		while(_g_offset < str.length) {
+			let c = str.charCodeAt(_g_offset++);
+			if(c != 32) {
+				return false;
+			}
+		}
+		return true;
+	}
+	static HandleCommandLineDisplay(r,screenSize) {
+		let cmdLine = r.ReadText(screenSize - 1,screenSize - 1);
+		cmdLine.length > 0 && !gmdebug_dap_srcds_RedirectWorker.isAllWhitespace(cmdLine) && gmdebug_dap_srcds_RedirectWorker.oldCmdLine != null && !cmdLine.startsWith(gmdebug_dap_srcds_RedirectWorker.oldCmdLine);
+		gmdebug_dap_srcds_RedirectWorker.oldCmdLine = cmdLine;
+	}
 	static makeWorker(program,args) {
 		let argv = [program].concat(args);
 		return new node_worker_$threads_Worker("./bin/redirect.js",{ argv : argv, stdin : true, stdout : true, stderr : true});
 	}
+	static main() {
+		let r = new gmdebug_dap_srcds_Redirector();
+		console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:56:",process.argv);
+		r.Start(process.argv[2],process.argv.slice(3));
+		let bJustStarted = false;
+		let outputBuffer = [];
+		let oldOutput = [];
+		let loop = function() {
+			let screenSize = r.GetScreenBufferSize();
+			if(screenSize == -1) {
+				return;
+			}
+			if(!r.SetScreenBufferSize(screenSize)) {
+				console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:65:","Failed to set screen size " + screenSize);
+			}
+			if(process.stdin.readable) {
+				let read;
+				let readStr_b = "";
+				while(true) {
+					read = process.stdin.read();
+					if(read != null) {
+						console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:73:",read);
+						readStr_b += Std.string(read.toString());
+					}
+					if(!(read != null)) {
+						break;
+					}
+				}
+				if(readStr_b.length > 0) {
+					console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:78:",readStr_b);
+					r.WriteText(readStr_b);
+				}
+			}
+			let output = r.ReadText(1,screenSize - 2);
+			outputBuffer = [];
+			let lastNotEmptyIndex = -1;
+			let _g = 0;
+			let _g1 = screenSize - 2;
+			while(_g < _g1) {
+				let i = _g++;
+				if(i * gmdebug_dap_srcds_RedirectWorker.CON_LINE_LENGTH >= output.length) {
+					break;
+				}
+				let line = HxOverrides.substr(output,i * gmdebug_dap_srcds_RedirectWorker.CON_LINE_LENGTH,gmdebug_dap_srcds_RedirectWorker.CON_LINE_LENGTH);
+				if(!gmdebug_dap_srcds_RedirectWorker.isAllWhitespace(line)) {
+					lastNotEmptyIndex = outputBuffer.length;
+				}
+				outputBuffer.push(line);
+			}
+			if(lastNotEmptyIndex >= 0 && outputBuffer.length > lastNotEmptyIndex) {
+				outputBuffer.length = lastNotEmptyIndex + 1;
+			}
+			if(lastNotEmptyIndex != -1) {
+				bJustStarted = false;
+			}
+			if(oldOutput.length > 0) {
+				let lastLine = oldOutput.length - 1;
+				let firstNewLine = outputBuffer.length - 1;
+				let hist = false;
+				let _g = 0;
+				let _g1 = outputBuffer.length - 1;
+				while(_g < _g1) {
+					let i = _g++;
+					let x = outputBuffer.length - 1 - i;
+					if(outputBuffer[x].startsWith(oldOutput[lastLine])) {
+						++firstNewLine;
+						hist = true;
+						let _g = i + 1;
+						let _g1 = outputBuffer.length - 1;
+						while(_g < _g1) {
+							let _u = _g++;
+							let u = outputBuffer.length - 1 - _u;
+							if(!outputBuffer[u].startsWith(oldOutput[--lastLine])) {
+								lastLine = oldOutput.length - 1;
+								firstNewLine -= 2;
+								hist = false;
+								break;
+							}
+						}
+						if(hist) {
+							break;
+						}
+					} else {
+						--firstNewLine;
+					}
+				}
+				if(firstNewLine < 0) {
+					if(hist) {
+						gmdebug_dap_srcds_RedirectWorker.HandleCommandLineDisplay(r,screenSize);
+						return;
+					} else {
+						console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:132:","Console moved too fast " + firstNewLine);
+						firstNewLine = 0;
+					}
+				}
+				let _g2 = firstNewLine;
+				let _g3 = outputBuffer.length;
+				while(_g2 < _g3) {
+					let i = _g2++;
+					oldOutput.push(outputBuffer[i]);
+					process.stdout.write(outputBuffer[i] + "\n");
+				}
+				let sizeDiff = oldOutput.length - screenSize;
+				if(sizeDiff > 0) {
+					oldOutput.splice(0,sizeDiff);
+				}
+			} else if(!bJustStarted) {
+				let _g = 0;
+				while(_g < outputBuffer.length) {
+					let str = outputBuffer[_g];
+					++_g;
+					oldOutput.push(str);
+					process.stdout.write(str);
+				}
+			}
+			gmdebug_dap_srcds_RedirectWorker.HandleCommandLineDisplay(r,screenSize);
+		};
+		let mainLoop = null;
+		mainLoop = function() {
+			loop();
+			js_node_Timers.setImmediate(mainLoop);
+		};
+		mainLoop();
+	}
 }
 gmdebug_dap_srcds_RedirectWorker.__name__ = true;
+class gmdebug_dap_srcds_Redirector {
+	constructor() {
+		this.processInfo = gmdebug_dap_srcds_Redirector.PROCESS_INFO();
+		let securityAttr = gmdebug_dap_srcds_Redirector.SECURITY_ATTR({ nLength : gmdebug_dap_srcds_Redirector.SECURITY_ATTR.size, lpSecurityDescriptor : gmdebug_dap_srcds_Redirector.NULL, bInheritHandle : true});
+		let point = gmdebug_dap_srcds_Redirector.bufferAtAddress(new haxe__$Int64__$_$_$Int64(0xFFFFFFFF,0xFFFFFFFF));
+		console.log("src/gmdebug/dap/srcds/Redirector.hx:154:",point.address());
+		this.map_file = gmdebug_dap_srcds_Redirector.K32.CreateFileMappingA(point,securityAttr.ref(),4,0,65536,gmdebug_dap_srcds_Redirector.NULL);
+		console.log("src/gmdebug/dap/srcds/Redirector.hx:156:",this.map_file.address());
+		if(RefNapi.isNull(this.map_file)) {
+			throw haxe_Exception.thrown("NOOOO");
+		}
+		this.event_parent_send = gmdebug_dap_srcds_Redirector.K32.CreateEventA(securityAttr.ref(),false,false,RefNapi.NULL);
+		if(RefNapi.isNull(this.event_parent_send)) {
+			throw haxe_Exception.thrown("Nooo 2");
+		}
+		this.event_child_send = gmdebug_dap_srcds_Redirector.K32.CreateEventA(securityAttr.ref(),false,false,gmdebug_dap_srcds_Redirector.NULL);
+		if(RefNapi.isNull(this.event_child_send)) {
+			throw haxe_Exception.thrown("NOOO!! 3");
+		}
+	}
+	Start(program,args) {
+		if(!sys_FileSystem.exists(program)) {
+			throw haxe_Exception.thrown("Program path does not exist.");
+		}
+		if(sys_FileSystem.isDirectory(program)) {
+			throw haxe_Exception.thrown("Program path is a directory.");
+		}
+		if(!haxe_io_Path.isAbsolute(program)) {
+			throw haxe_Exception.thrown("Absolute paths only.");
+		}
+		let si = gmdebug_dap_srcds_Redirector.STARTUP_INFO();
+		let tmp = si.ref();
+		gmdebug_dap_srcds_Redirector.lib.memset(tmp,0,gmdebug_dap_srcds_Redirector.STARTUP_INFO.size);
+		si.cb = gmdebug_dap_srcds_Redirector.STARTUP_INFO.size;
+		let mf = this.map_file.address();
+		let eps = this.event_parent_send.address();
+		let ecs = this.event_child_send.address();
+		let argString = args.join(" ");
+		let command = RefNapi.allocCString("" + program + " -HFILE " + mf + " -HPARENT " + eps + " -HCHILD " + ecs + " " + argString);
+		let result = gmdebug_dap_srcds_Redirector.K32.CreateProcessA(null,command,null,null,true,16,null,null,si.ref(),this.processInfo.ref());
+		if(!result) {
+			throw haxe_Exception.thrown("Good luck debugging this, asshole");
+		}
+	}
+	ReadText(iBeginLine,iEndLine) {
+		let pbuf = this.GetMappedBuffer();
+		pbuf[0] = 3;
+		pbuf[1] = iBeginLine;
+		pbuf[2] = iEndLine;
+		this.ReleaseMappedBuffer(pbuf);
+		let eventSet = gmdebug_dap_srcds_Redirector.K32.SetEvent(this.event_parent_send);
+		if(!eventSet) {
+			throw haxe_Exception.thrown("Event not set...");
+		}
+		if(!this.WaitForResponse()) {
+			console.log("src/gmdebug/dap/srcds/Redirector.hx:206:","Could not wait...");
+			throw haxe_Exception.thrown("Yikes");
+		}
+		let pBuf = this.GetMappedBuffer();
+		let output = pBuf[0] == 1 ? RefNapi.readCString(pBuf.buffer.reinterpretUntilZeros(RefNapi.types.char.size),RefNapi.types.int.size) : "gay";
+		this.ReleaseMappedBuffer(pBuf);
+		return output;
+	}
+	SetScreenBufferSize(iLines) {
+		let pBuf = this.GetMappedBuffer();
+		pBuf[0] = 5;
+		pBuf[1] = iLines;
+		this.ReleaseMappedBuffer(pBuf);
+		gmdebug_dap_srcds_Redirector.K32.SetEvent(this.event_parent_send);
+		if(!this.WaitForResponse()) {
+			throw haxe_Exception.thrown("Could not wait");
+		}
+		let pBuf1 = this.GetMappedBuffer();
+		let success = pBuf1[0] == 1;
+		this.ReleaseMappedBuffer(pBuf1);
+		return success;
+	}
+	GetMappedBuffer() {
+		let pbuf = gmdebug_dap_srcds_Redirector.K32.MapViewOfFile(this.map_file,6,RefNapi.NULL,RefNapi.NULL,0);
+		let pbuf2 = gmdebug_dap_srcds_Redirector.intBuf(pbuf.reinterpret(3 * RefNapi.types.int.size),3);
+		if(RefNapi.isNull(pbuf2.buffer)) {
+			console.log("src/gmdebug/dap/srcds/Redirector.hx:242:","Wuh oh");
+		}
+		return pbuf2;
+	}
+	WriteText(input) {
+		let pBuf = this.GetMappedBuffer();
+		pBuf[0] = 2;
+		let strBuf = pBuf.buffer.reinterpret((input.length + 1) * RefNapi.types.char.size,RefNapi.types.int32.size);
+		strBuf.write(input + "\x00",0);
+		this.ReleaseMappedBuffer(pBuf);
+		gmdebug_dap_srcds_Redirector.K32.SetEvent(this.event_parent_send);
+		if(!this.WaitForResponse()) {
+			throw haxe_Exception.thrown("Could not wait");
+		}
+		let pBuf1 = this.GetMappedBuffer();
+		let success = pBuf1[0] == 1;
+		this.ReleaseMappedBuffer(pBuf1);
+		return success;
+	}
+	GetScreenBufferSize() {
+		let pBuf = this.GetMappedBuffer();
+		pBuf[0] = 4;
+		this.ReleaseMappedBuffer(pBuf);
+		let eventSet = gmdebug_dap_srcds_Redirector.K32.SetEvent(this.event_parent_send);
+		if(!eventSet) {
+			throw haxe_Exception.thrown("Event not set...");
+		}
+		if(!this.WaitForResponse()) {
+			throw haxe_Exception.thrown("Could not wati...");
+		}
+		let pBuf1 = this.GetMappedBuffer();
+		let bufferSize;
+		if(pBuf1[0] == 1) {
+			bufferSize = pBuf1[1];
+		} else {
+			console.log("src/gmdebug/dap/srcds/Redirector.hx:284:",pBuf1[0]);
+			console.log("src/gmdebug/dap/srcds/Redirector.hx:285:",pBuf1[1]);
+			bufferSize = -1;
+		}
+		this.ReleaseMappedBuffer(pBuf1);
+		return bufferSize;
+	}
+	WaitForResponse() {
+		let waitForEvents = gmdebug_dap_srcds_Redirector.voidBuf(2);
+		waitForEvents[0] = this.event_child_send;
+		waitForEvents[1] = this.processInfo.hProcess;
+		let waitResult = gmdebug_dap_srcds_Redirector.K32.WaitForMultipleObjects(2,waitForEvents,false,268435455);
+		if(waitResult == gmdebug_dap_srcds_Redirector.WAIT_OBJECT_0 + 1) {
+			console.log("src/gmdebug/dap/srcds/Redirector.hx:299:","Process ended");
+		}
+		return waitResult == gmdebug_dap_srcds_Redirector.WAIT_OBJECT_0;
+	}
+	ReleaseMappedBuffer(pbuf) {
+		gmdebug_dap_srcds_Redirector.K32.UnmapViewOfFile(pbuf);
+	}
+	static bufferAtAddress(address) {
+		let buf = Buffer.alloc(8);
+		buf.writeUInt32LE(address.high,0);
+		buf.writeUInt32LE(address.low,4);
+		let newType = Object.assign({ },RefNapi.types.void);
+		newType.indirection = 2;
+		buf.type = newType;
+		return RefNapi.deref(buf);
+	}
+}
+gmdebug_dap_srcds_Redirector.__name__ = true;
+Object.assign(gmdebug_dap_srcds_Redirector.prototype, {
+	__class__: gmdebug_dap_srcds_Redirector
+	,event_parent_send: null
+	,map_file: null
+	,event_child_send: null
+	,processInfo: null
+});
 var gmdebug_lib_js_Ip = require("ip");
 var haxe_StackItem = $hxEnums["haxe.StackItem"] = { __ename__:true,__constructs__:null
 	,CFunction: {_hx_name:"CFunction",_hx_index:0,__enum__:"haxe.StackItem",toString:$estr}
@@ -2393,6 +2701,18 @@ Object.assign(haxe_Exception.prototype, {
 	,__skipStack: null
 	,__nativeException: null
 	,__previousException: null
+});
+class haxe__$Int64__$_$_$Int64 {
+	constructor(high,low) {
+		this.high = high;
+		this.low = low;
+	}
+}
+haxe__$Int64__$_$_$Int64.__name__ = true;
+Object.assign(haxe__$Int64__$_$_$Int64.prototype, {
+	__class__: haxe__$Int64__$_$_$Int64
+	,high: null
+	,low: null
 });
 class haxe_NativeStackTrace {
 	static saveStack(e) {
@@ -3524,6 +3844,7 @@ var js_node_ChildProcess = require("child_process");
 var js_node_Fs = require("fs");
 var js_node_Net = require("net");
 var js_node_Path = require("path");
+var js_node_Timers = require("timers");
 var js_node_buffer_Buffer = require("buffer").Buffer;
 class js_node_buffer__$Buffer_Helper {
 	static bytesOfBuffer(b) {
@@ -4422,6 +4743,24 @@ gmdebug_dap_LaunchProcess.EXTRA_ARGS_WINDOWS = "-console";
 gmdebug_dap_LuaDebugger.SERVER_TIMEOUT = 15;
 gmdebug_dap_PipeSocket.WIN_PIPE_NAME_IN = "\\\\.\\pipe\\gmdebugin";
 gmdebug_dap_PipeSocket.WIN_PIPE_NAME_OUT = "\\\\.\\pipe\\gmdebugout";
+gmdebug_dap_srcds_RedirectWorker.CON_LINE_LENGTH = 80;
+gmdebug_dap_srcds_Redirector.STATUS_WAIT_0 = 0;
+gmdebug_dap_srcds_Redirector.WAIT_OBJECT_0 = gmdebug_dap_srcds_Redirector.STATUS_WAIT_0;
+gmdebug_dap_srcds_Redirector.StructType = RefStructDi(RefNapi);
+gmdebug_dap_srcds_Redirector.ArrayType = RefArrayDi(RefNapi);
+gmdebug_dap_srcds_Redirector.LPVOID = RefNapi.refType(RefNapi.types.void);
+gmdebug_dap_srcds_Redirector.DWORD = RefNapi.types.ulong;
+gmdebug_dap_srcds_Redirector.WORD = RefNapi.types.ushort;
+gmdebug_dap_srcds_Redirector.BOOL = RefNapi.types.int;
+gmdebug_dap_srcds_Redirector.NULL = RefNapi.NULL;
+gmdebug_dap_srcds_Redirector.HANDLE = RefNapi.refType(RefNapi.types.void);
+gmdebug_dap_srcds_Redirector.SECURITY_ATTR = gmdebug_dap_srcds_Redirector.StructType({ nLength : gmdebug_dap_srcds_Redirector.DWORD, lpSecurityDescriptor : gmdebug_dap_srcds_Redirector.LPVOID, bInheritHandle : gmdebug_dap_srcds_Redirector.BOOL});
+gmdebug_dap_srcds_Redirector.PROCESS_INFO = gmdebug_dap_srcds_Redirector.StructType({ hProcess : gmdebug_dap_srcds_Redirector.HANDLE, hThread : gmdebug_dap_srcds_Redirector.HANDLE, dwProcessId : gmdebug_dap_srcds_Redirector.DWORD, dwThreadId : gmdebug_dap_srcds_Redirector.DWORD});
+gmdebug_dap_srcds_Redirector.STARTUP_INFO = gmdebug_dap_srcds_Redirector.StructType({ cb : gmdebug_dap_srcds_Redirector.DWORD, lpReserved : RefNapi.refType(RefNapi.types.char), lpDesktop : RefNapi.refType(RefNapi.types.char), lpTitle : RefNapi.refType(RefNapi.types.char), dwX : gmdebug_dap_srcds_Redirector.DWORD, dwY : gmdebug_dap_srcds_Redirector.DWORD, dwXSize : gmdebug_dap_srcds_Redirector.DWORD, dwYSize : gmdebug_dap_srcds_Redirector.DWORD, dwXCountChars : gmdebug_dap_srcds_Redirector.DWORD, dwYCountChars : gmdebug_dap_srcds_Redirector.DWORD, dwFillAttribute : gmdebug_dap_srcds_Redirector.DWORD, dwFlags : gmdebug_dap_srcds_Redirector.DWORD, wShowWindow : gmdebug_dap_srcds_Redirector.WORD, cbReserved2 : gmdebug_dap_srcds_Redirector.WORD, lpReserved2 : RefNapi.refType(RefNapi.types.byte), hStdInput : gmdebug_dap_srcds_Redirector.HANDLE, hStdOutput : gmdebug_dap_srcds_Redirector.HANDLE, hStdError : gmdebug_dap_srcds_Redirector.HANDLE});
+gmdebug_dap_srcds_Redirector.intBuf = gmdebug_dap_srcds_Redirector.ArrayType(RefNapi.types.int,3);
+gmdebug_dap_srcds_Redirector.voidBuf = gmdebug_dap_srcds_Redirector.ArrayType(RefNapi.refType(RefNapi.types.void));
+gmdebug_dap_srcds_Redirector.K32 = new ffi_$napi_Library("kernel32",{ CreateFileMappingA : [gmdebug_dap_srcds_Redirector.HANDLE,[gmdebug_dap_srcds_Redirector.HANDLE,RefNapi.refType(gmdebug_dap_srcds_Redirector.SECURITY_ATTR),RefNapi.types.ulong,RefNapi.types.ulong,RefNapi.types.ulong,RefNapi.types.CString]], CreateEventA : [gmdebug_dap_srcds_Redirector.HANDLE,[RefNapi.refType(gmdebug_dap_srcds_Redirector.SECURITY_ATTR),RefNapi.types.bool,RefNapi.types.bool,RefNapi.types.CString]], MapViewOfFile : [RefNapi.refType(RefNapi.types.void),[RefNapi.refType(RefNapi.types.void),gmdebug_dap_srcds_Redirector.DWORD,gmdebug_dap_srcds_Redirector.DWORD,gmdebug_dap_srcds_Redirector.DWORD,RefNapi.types.size_t]], UnmapViewOfFile : [RefNapi.types.void,[gmdebug_dap_srcds_Redirector.intBuf]], SetEvent : [RefNapi.types.bool,[RefNapi.refType(RefNapi.types.void)]], WaitForSingleObject : [gmdebug_dap_srcds_Redirector.DWORD,[RefNapi.types.uint,gmdebug_dap_srcds_Redirector.DWORD]], CreateProcessA : [RefNapi.types.int,[RefNapi.refType(RefNapi.types.char),RefNapi.refType(RefNapi.types.char),RefNapi.refType(gmdebug_dap_srcds_Redirector.SECURITY_ATTR),RefNapi.refType(gmdebug_dap_srcds_Redirector.SECURITY_ATTR),RefNapi.types.bool,RefNapi.types.ulong,RefNapi.refType(RefNapi.types.void),RefNapi.refType(RefNapi.types.char),RefNapi.refType(gmdebug_dap_srcds_Redirector.STARTUP_INFO),RefNapi.refType(gmdebug_dap_srcds_Redirector.PROCESS_INFO)]], GetLastError : [gmdebug_dap_srcds_Redirector.DWORD,[]], WaitForMultipleObjects : [gmdebug_dap_srcds_Redirector.DWORD,[gmdebug_dap_srcds_Redirector.DWORD,gmdebug_dap_srcds_Redirector.voidBuf,RefNapi.types.bool,gmdebug_dap_srcds_Redirector.DWORD]]});
+gmdebug_dap_srcds_Redirector.lib = new ffi_$napi_Library("ucrtbase",{ memset : [RefNapi.refType(RefNapi.types.void),[RefNapi.refType(RefNapi.types.void),RefNapi.types.int,RefNapi.types.size_t]]});
 sys_io_File.copyBuf = js_node_buffer_Buffer.alloc(65536);
 tink_core_Callback.depth = 0;
 tink_core_SimpleDisposable._hx_skip_constructor = false;

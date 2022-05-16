@@ -42,22 +42,6 @@
 				"program": "./bin/main.js",
 				"runtime": "node",
 				"configurationAttributes": {
-					"attach": {
-						"required": [
-							"serverFolder"
-						],
-						"properties": {
-							"serverFolder": {
-								"type": "string",
-								"description": "The path to your garry's mod server (the garrysmod folder specifically)",
-								"default": "/path_to_server_from_root/garrysmod"
-							},
-							"clientFolders": {
-								"type": "array",
-								"description": "The path to the client connecting to the server you wish to debug."
-							}
-						}
-					},
 					"launch": {
 						"required": [
 							"serverFolder",
@@ -70,8 +54,8 @@
 								"description": "The path to your garry's mod server (the garrysmod folder specifically)",
 								"default": "/path_to_server_from_root/garrysmod"
 							},
-							"clientFolders": {
-								"type": "array",
+							"clientFolder": {
+								"type": "string",
 								"description": "The path to the client connecting to the server you wish to debug."
 							},
 							"programPath": {

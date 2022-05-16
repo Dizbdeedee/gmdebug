@@ -56,7 +56,7 @@ typedef Programs = {
 
 	var requestRouter:RequestRouter;
 
-	var clientLocations:Array<String>;
+	var clientLocations:String;
 
 	var bytesProcessor:BytesProcessor;
 
@@ -66,7 +66,7 @@ typedef Programs = {
 
 	public function new(?x, ?y) {
 		super(x, y);
-		clientLocations = [];
+		clientLocations = null;
 		serverFolder = null;
 		clientsTaken = [];
 		dapMode = ATTACH;
@@ -103,15 +103,13 @@ typedef Programs = {
 
 	@:async function playerAddedMessage(x:GMPlayerAddedMessage) {
 		var success = false;
-		for (ind => loc in clientLocations) {
-			if (!clientsTaken.exists(ind)) {
+		if (clientLocations != null) {
+			if (!clientsTaken.exists(0)) {
 				try {
-					@:await playerTry(loc, x.playerID, x.name).eager();
-					
+					@:await playerTry(clientLocations, x.playerID, x.name).eager();
 					success = true;
-					break;
 				} catch (e) {
-					trace('could not aquire in $loc');
+					trace('could not aquire in $clientLocations');
 				}	
 			}
 		}
@@ -150,10 +148,8 @@ typedef Programs = {
 
 	function serverInfoMessage(x:GMServerInfoMessage) {
 		if (!shouldAutoConnect) {
-			
 			return;
 		}
-		
 		final sp = x.ip.split(":");
 		final ip = if (x.isLan) {
 			gmdebug.lib.js.Ip.address();
@@ -280,14 +276,15 @@ typedef Programs = {
 		}		
 	}
 
-	public function setClientLocations(a:Array<String>) {
+	public function setClientLocations(a:String) {
 		return clientLocations = a;
 	}
 
 	public override function handleMessage(message:ProtocolMessage) {
 		switch (message.type) {
 			case Request:
-				untyped trace('recieved request from client ${message.command}');
+				final request:Request<Dynamic> = cast message;
+				trace('recieved request from client ${request.command}');
 				try {
 					requestRouter.route(cast message);
 
@@ -302,7 +299,7 @@ typedef Programs = {
 					throw e;
 				}
 			default:
-				trace("Not handlin that...");				
+				trace('Sent message type ${message.type} from dap. Not a request: not handling');				
 		}
 	
 	
