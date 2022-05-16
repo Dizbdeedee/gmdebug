@@ -14,6 +14,7 @@ import gmdebug.composer.*;
 import vscode.debugProtocol.DebugProtocol;
 import gmdebug.VariableReference;
 import gmdebug.GmDebugMessage;
+import gmdebug.dap.clients.ClientStorage;
 import haxe.io.Path as HxPath;
 using gmdebug.composer.ComposeTools;
 using gmdebug.dap.DapFailure; 

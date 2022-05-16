@@ -1,4 +1,4 @@
-package gmdebug.dap;
+package gmdebug.dap.clients;
 
 import js.node.net.Socket;
 class Client extends BaseConnected {

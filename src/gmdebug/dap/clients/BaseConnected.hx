@@ -1,4 +1,4 @@
-package gmdebug.dap;
+package gmdebug.dap.clients;
 
 //BaseDebugee
 abstract class BaseConnected {
@@ -13,8 +13,6 @@ abstract class BaseConnected {
 		socket = fs;
 		this.clID = clID;
 	}
-
-	
 
 	public function sendRaw(x:String) {
 		socket.write(x);

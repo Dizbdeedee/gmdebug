@@ -1,5 +1,6 @@
 package gmdebug.dap;
 
+import gmdebug.dap.clients.ClientStorage;
 import gmdebug.Util.recurseCopy;
 import gmdebug.dap.Validate;
 import js.Node;
@@ -103,8 +104,8 @@ typedef Programs = {
 			return;
 		}
 		shouldAutoConnect = args.autoConnectLocalGmodClient.or(false);
-		var childProcess = new LaunchProcess(programPath,this,req.arguments.programArgs);
-		if (req.arguments.noDebug) {
+		var childProcess = new LaunchProcess(programPath,this,args.programArgs);
+		if (args.noDebug) {
 			dapMode = LAUNCH(childProcess);
 			serverFolder = HxPath.addTrailingSlash(req.arguments.serverFolder);
 			final comp = (req : LaunchRequest).compose(launch,{});
@@ -113,7 +114,7 @@ typedef Programs = {
 		}
 		generateInitFiles(serverFolder);
 		copyLuaFiles(serverFolder);
-		var clientFolder = req.arguments.clientFolder;
+		var clientFolder = args.clientFolder;
 		if (clientFolder != null) {
 			final clientFolderResult = validateClientFolder(clientFolder);
 			if (clientFolderResult != None) {
@@ -246,7 +247,6 @@ typedef Programs = {
 	}
 
 	function processCustomMessages(x:GmDebugMessage<Dynamic>) {
-		trace("custom message");
 		switch (x.msg) {
 			case playerAdded:
 				playerAddedMessage(cast x.body).handle((out) -> {
@@ -265,7 +265,7 @@ typedef Programs = {
 				serverInfoMessage(cast x.body);
 			case clientID | intialInfo:
 				
-				throw "dur";
+				throw "Wrong direction..?";
 				
 		}
 	}

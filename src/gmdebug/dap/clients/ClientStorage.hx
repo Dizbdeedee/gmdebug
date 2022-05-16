@@ -1,4 +1,4 @@
-package gmdebug.dap;
+package gmdebug.dap.clients;
 
 import haxe.io.Bytes;
 import haxe.Json;
@@ -20,18 +20,17 @@ class ClientStorage {
 	static final SERVER_ID = 0;
 
 	final clients:Array<BaseConnected> = [];
+	
+	final readFunc:ReadWithClientID;
 
 	var disconnect = false;
 
 	var gmodIDMap:Map<Int,Client> = [];
 
-	final readFunc:ReadWithClientID;
-
 	var queuedServerMessages = [];
 
 	public function new(readFunc:ReadWithClientID) {
 		this.readFunc = readFunc;
-
 	}
 
 	//TODO move
