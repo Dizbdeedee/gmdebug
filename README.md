@@ -3,10 +3,6 @@ Gmod debugger using the debug adapter protocol in haxe (javascript + lua)
 
 Can be run as a vscode extension or as a standalone server.
 
-Linux only
-
-Currently this debugger is not fully reliable, please report any issues you run into
-
 ## Features
 
 - Conditional breakpoints targeting functions and lines
@@ -35,8 +31,6 @@ If I can get this project in a stable state, here are the current features that 
 - Your game/server may freeze when the debugger does not shutdown cleanly, or in other scenarios (due to blocking named pipes)
 - Breakpoints in top level init files will not fire
 - Can't catch exceptions that occur before the addon has loaded
-
-Please report any other issues or weirdness you run into when using gmdebug. I've only been able to test my own use cases so far, so anything you report would be greatly appreciated.
 
 ## Usage
 
