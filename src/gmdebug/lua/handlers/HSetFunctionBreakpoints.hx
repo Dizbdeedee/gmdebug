@@ -2,13 +2,20 @@ package gmdebug.lua.handlers;
 
 import gmdebug.lua.managers.FunctionBreakpointManager;
 
+typedef InitHSetFunctionBreakpoints = {
+	fbm : FunctionBreakpointManager,
+	debugee : Debugee
+}
 class HSetFunctionBreakpoints implements IHandler<SetFunctionBreakpointsRequest> {
 
 
     final fbm:FunctionBreakpointManager;
 
-    public function new(fbm:FunctionBreakpointManager) {
-        this.fbm = fbm;
+	final debugee:Debugee;
+
+    public function new(init:InitHSetFunctionBreakpoints) {
+        fbm = init.fbm;
+		debugee = init.debugee;
     }
 
     public function handle(req:SetFunctionBreakpointsRequest) {
@@ -45,7 +52,7 @@ class HSetFunctionBreakpoints implements IHandler<SetFunctionBreakpointsRequest>
 		final resp = req.compose(setFunctionBreakpoints, {
 			breakpoints: bpResponse
 		});
-		resp.send();
+		debugee.sendMessage(resp);
 		return WAIT;
 	}
 }

@@ -1,5 +1,6 @@
 package gmdebug.lua;
 
+import haxe.Json;
 import gmod.libs.VguiLib;
 import gmdebug.lua.managers.BreakpointManager;
 import gmdebug.lua.managers.FunctionBreakpointManager;
@@ -47,32 +48,32 @@ enum RecursiveGuard {
 @:keep
 class Debugee {
 
-	public static final POLL_TIME = 0.1;
+	public final POLL_TIME = 0.1;
 
-	public static var clientID:Int = 0; //go
+	public var clientID:Int = 0; //go
 
-	public static var state:DebugState = WAIT; //go
+	public var state:DebugState = WAIT; //go
 
-	public static var socketActive:Bool = false; //keep
+	public var socketActive:Bool = false; //keep
 
-	public static var pauseLoopActive = false; //keep
+	public var pauseLoopActive = false; //keep
 
-	public static var dapMode:Null<DapModeStr>;
+	public var dapMode:Null<DapModeStr>;
 
-	public static var stepHeight(get,never):Int;
+	public var stepHeight(get,never):Int;
 
-	public static extern inline function get_stepHeight():Int {
+	public extern inline function get_stepHeight():Int {
 		return stackHeight - StackConst.STEP;
 	}
 
-	public static var baseDepth:Null<Int>;
+	public var baseDepth:Null<Int>;
 
-	public static var recursiveGuard:RecursiveGuard = NONE;
+	public var recursiveGuard:RecursiveGuard = NONE;
 
-	public static var stackHeight(get, never):Int;
+	public var stackHeight(get, never):Int;
 
 	@:noCompletion
-	public static function get_stackHeight():Int {
+	public function get_stackHeight():Int {
 		for (i in 1...999999) {
 			if (DebugLib.getinfo(i + 1, "") == null) {
 				return i;
@@ -81,55 +82,53 @@ class Debugee {
 		throw "No stack height";
 	}
 
-	public static var tracebackActive = false;
+	public var tracebackActive = false;
 
-	static var hooksActive = false;
+	var hooksActive = false;
 
-	public static var socket(default, set):Null<DebugIO>;
+	public var socket(default, set):Null<DebugIO>;
 
 	// SENT BY DEBUG CLIENT
-	public static var dest = "";
+	public var dest = "";
 
 	@:noCompletion
-	static function set_socket(sock) {
+	function set_socket(sock) {
 		G.previousSocket = sock;
 		return socket = sock;
 	}
 
-	public static var pollActive = false;
+	public var pollActive = false;
 
-	static var outputter:Null<Outputter>;
+	final outputter:Null<Outputter>;
 
-	static var sc:Null<SourceContainer>;
+	final sc:Null<SourceContainer>;
 
-	static var vm:Null<VariableManager>;
+	final vm:Null<VariableManager>;
 
-	static var hc:Null<HandlerContainer>;
+	final hc:Null<HandlerContainer>;
 
-	static var bm:Null<BreakpointManager>;
+	final bm:Null<BreakpointManager>;
 
-	static var fbm:Null<FunctionBreakpointManager>;
+	final fbm:Null<FunctionBreakpointManager>;
+	
+	final customHandlers:Null<CustomHandlers>;
 
-	static final TIMEOUT_CONNECT = 10;
+	final TIMEOUT_CONNECT = 10;
 
-	static final TIMEOUT_CONFIG = 5;
+	final TIMEOUT_CONFIG = 5;
 
-	public static function start() {
+	public function start() {
 		if (socketActive)
 			return false;
 		socket = try {
 			new PipeSocket();
 		} catch (e) {
-			trace(e);
 			socket = null;
 			return false;
 		}
 		trace("Connected to server...");
 		socketActive = true;
-		trace("initEvent about to be sent...");
-		final initEvent = new ComposedEvent(initialized);
-		initEvent.send();
-		trace("initEvent sent...");
+		sendMessage(new ComposedEvent(initialized));
 		#if debugdump
 		FileLib.CreateDir("gmdebugdump");
 		Gmod.collectgarbage("collect");
@@ -137,7 +136,7 @@ class Debugee {
 		#end
 		#if server
 		hookPlayer();
-		new ComposedEvent(continued, {threadId: 0, allThreadsContinued: true}).send();
+		sendMessage(new ComposedEvent(continued, {threadId: 0, allThreadsContinued: true}));
 		#end
 		if (!startLoop()) {
 			trace("Failed to setup debugger after timeout");
@@ -145,30 +144,35 @@ class Debugee {
 		}
 		DebugHook.addHook(DebugLoop.debugloop, "c");
 		Exceptions.tryHooks();
+		G.__gmdebugTraceback = traceback;
 		hooksActive = true;
 		return true;
 	}
 
 	@:access(sys.net.Socket)
-	public inline static function writeJson(json:String) { // x:Dynamic
+	public inline function send(data:String) { // x:Dynamic
 		var str:String = untyped __lua__("{0} .. {1} .. {2} .. {3}", "Content-Length: ", json.length, "\r\n\r\n", json);
 		socket.output.unsafe().writeString(str); // awful perfomance with non native writing
 		socket.output.unsafe().flush();
 	}
 
-	static final ignores:Map<String, Bool> = [];
+	public inline function sendMessage(message:ComposedProtocolMessage) {
+		send(Json.stringify(message));
+	}
+
+	final ignores:Map<String, Bool> = [];
 
 	// currently only on first lines for now. can expand to tracebacks.
-	static inline function checkIgnoreError(_err:String) {
+	inline function checkIgnoreError(_err:String) {
 		return ignores.exists(_err);
 	}
 
-	static inline function ignoreError(_err:String) {
+	inline function ignoreError(_err:String) {
 		ignores.set(_err, true);
 	}
 
 	#if server
-	static function hookPlayer() {
+	function hookPlayer() {
 		var tbl = lua.Table.create();
 		for (x in tbl) {
 			trace(x);
@@ -180,36 +184,28 @@ class Debugee {
 		// 	}).send();
 		// });
 		HookLib.Add(PlayerDisconnected, "gmdebug-byeplayer", (ply) -> {
-			new ComposedGmDebugMessage(playerRemoved, {
+			sendMessage(new ComposedGmDebugMessage(playerRemoved, {
 				playerID: ply.UserID()
-			}).send();
+			}));
 		});
 		for (ply in PlayerLib.GetAll()) {
-			new ComposedGmDebugMessage(playerAdded, {
+			sendMessage(new ComposedGmDebugMessage(playerAdded, {
 				name: ply.Name(),
 				playerID: ply.UserID()
-			}).send();
+			}));
 		}
 	}
 	#end
 
-	@:expose("__gmdebugTraceback")
-	static function traceback(err:Any) {
+	function traceback(err:Any) {
 		final _err = err;
 		if (pollActive) return err;
 		if (checkIgnoreError(err))
 			return _err;
-		if (Debugee.pauseLoopActive || tracebackActive) {
-			trace('traceback failed... ${Debugee.pauseLoopActive} $tracebackActive');
+		if (pauseLoopActive || tracebackActive) {
+			trace('traceback failed... ${pauseLoopActive} $tracebackActive');
 			return _err;
 		}
-		#if server
-		if (!socketActive && Jit.checkCanActivateJit()) {
-			final result = Jit.jitCheck(err, _err);
-			if (!result)
-				return _err;
-		}
-		#end
 		if (!hooksActive || !socketActive)
 			return _err;
 		tracebackActive = true;
@@ -222,13 +218,13 @@ class Debugee {
 		return DebugLib.traceback(err);
 	}
 
-	inline static function parseInput(x:Input):MessageResult {
+	inline function parseInput(x:Input):MessageResult {
 		socket.unsafe().output.writeString("\004");
 		socket.unsafe().output.flush();
 		return Cross.recvMessage(x);
 	}
 
-	static function recvMessage():RecvMessageResult {
+	function recvMessage():RecvMessageResult {
 		return try {
 			switch (parseInput(socket.unsafe().input)) {
 				case ACK:
@@ -245,7 +241,7 @@ class Debugee {
 		}
 	}
 
-	public static function poll() {
+	public function poll() {
 		if (socket == null)
 			return;
 		try {
@@ -268,18 +264,40 @@ class Debugee {
 
 	}
 
-	public static function main() {
+	public function new() {
 		DebugHook.addHook();
 		if (G.previousSocket != null) {
 			G.previousSocket.close();
 		}
-		vm = new VariableManager();
-		sc = new SourceContainer();
-		outputter = new Outputter(vm);
-		bm = new BreakpointManager();
+		vm = new VariableManager({
+			debugee: this
+		});
+		sc = new SourceContainer({
+			debugee: this
+		});
+		customHandlers = new CustomHandlers({
+			debugee : this
+		});
+		outputter = new Outputter({
+			vm: vm,
+			debugee: this
+		});
+		bm = new BreakpointManager({
+			debugee: this 
+		});
 		fbm = new FunctionBreakpointManager();
-		hc = new HandlerContainer(vm,bm,fbm);
-		DebugLoop.init(bm,sc,fbm);
+		hc = new HandlerContainer({
+			vm : vm,
+			debugee: this,
+			fbm : fbm,
+			bm : bm
+		});
+		DebugLoop.init({
+			bm: bm,
+			debugee: this,
+			fbm: fbm,
+			sc: sc
+		});
 		FileLib.CreateDir("gmdebug");
 		#if server
 		GameLib.ConsoleCommand("sv_timeout 999999\n");
@@ -304,20 +322,6 @@ class Debugee {
 				// trace(ee.details());
 			}
 		}
-		
-		// TimerLib.Create("gmdebug-start", 3, 0, () -> {
-		// 	#if server
-		// 	Jit.jitActivate();
-		// 	#end
-		// 	try {
-		// 		start();
-		// 	} catch (ee) {
-		// 		socket.run((sock) -> sock.close());
-		// 		socket = null;
-		// 		trace('closed socket on error ${ee.toString()}');
-		// 		trace(ee.details());
-		// 	}
-		// });
 		TimerLib.Create("report-profling", 3, 0, () -> {
 			DebugLoopProfile.report();
 		});
@@ -332,7 +336,7 @@ class Debugee {
 		});
 	}
 
-	public static function normalPath(x:String):String {
+	public function normalPath(x:String):String {
 		if (x.charAt(0) == "@") {
 			x = @:nullSafety(Off) x.substr(1);
 		}
@@ -340,25 +344,24 @@ class Debugee {
 		return x;
 	}
 
-	public static function startHaltLoop(reason:StopReason, bd:Int, ?txt:String) {
-		if (Debugee.pauseLoopActive) return;
-		Debugee.pauseLoopActive = true;
+	public function startHaltLoop(reason:StopReason, bd:Int, ?txt:String) {
+		if (pauseLoopActive) return;
+		pauseLoopActive = true;
 		baseDepth = bd;
 		final tstop:TStoppedEvent = {
-			threadId: Debugee.clientID,
+			threadId: clientID,
 			allThreadsStopped: false,
 			reason: reason,
 			text: txt
 		}
-		var e = new ComposedEvent(stopped, tstop);
-		e.send();
+		sendMessage(new ComposedEvent(stopped, tstop));
 		trace("HALT LOOP");
 		haltLoop();
 	}
 
 	#if debugdump
 	@:expose("stopDump")
-	public static function stopDump() {
+	public function stopDump() {
 		Gmod.collectgarbage("collect");
 		Mri.DumpMemorySnapshot("gmdebugdump", "after", -1);
 		Mri.DumpMemorySnapshotComparedFile("gmdebugdump", "Compared", -1, "gmdebugdump/LuaMemRefInfo-All-[]-[before].txt",
@@ -366,7 +369,7 @@ class Debugee {
 	}
 	#end
 
-	static function abortDebugee() {
+	function abortDebugee() {
 		DebugHook.addHook();
 		socket.run((sock) -> {
 			sock.close();
@@ -380,7 +383,7 @@ class Debugee {
 		Exceptions.unhookEntityHooks();
 	}
 
-	static function startLoop() {
+	function startLoop() {
 		#if client return true; #end
 		var success = false;
 		final timeoutTime = Gmod.SysTime() + TIMEOUT_CONFIG;
@@ -409,7 +412,7 @@ class Debugee {
 	}
 
 
-	static function haltLoop() {
+	function haltLoop() {
 		while (true) {
 			final msg = switch (recvMessage()) {
 				case ACK | TIMEOUT:
@@ -428,15 +431,15 @@ class Debugee {
 					break;
 			}
 		}
-		Debugee.pauseLoopActive = false;
+		pauseLoopActive = false;
 	}
 
-	static function chooseHandler(incoming:{type:String}):HandlerResponse {
+	function chooseHandler(incoming:{type:String}):HandlerResponse {
 		return switch (incoming.type) {
 			case null:
 				throw "message sent to us had a null type";
 			case "gmdebug":
-				CustomHandlers.handle(cast incoming);
+				customHandlers.handle(cast incoming);
 				WAIT; // this is a safe option in all scenarios.
 			case MessageType.Request:
 				hc.handlers(cast incoming);
@@ -445,9 +448,9 @@ class Debugee {
 		}
 	}
 
-	public static function fullPathToGmod(fullPath:String):Option<GmodPath> {
-		return if (fullPath.contains(Debugee.dest)) {
-			var result = fullPath.replace(Debugee.dest, "");
+	public function fullPathToGmod(fullPath:String):Option<GmodPath> {
+		return if (fullPath.contains(dest)) {
+			var result = fullPath.replace(dest, "");
 			result = "@" + result;
 			Some(cast result);
 		} else {
@@ -461,6 +464,8 @@ typedef LineMap = Map<Int, Bool>;
 // TODO
 @:native("_G") private extern class G {
 	static var previousSocket:Null<DebugIO>;
+
+	static dynamic function __gmdebugTraceback(err:Any):Any;
 }
 
 enum DebugState {

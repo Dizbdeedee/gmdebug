@@ -1,12 +1,21 @@
 package gmdebug.lua.handlers;
 
+typedef InitHStepIn = {
+	debugee : Debugee
+}
+
 class HStepIn implements IHandler<StepInRequest> {
-	public function new() {}
+	
+	final debugee:Debugee;
+
+	public function new(initHStepIn:InitHStepIn) {
+		debugee = initHStepIn.debugee;
+	}
 
 	public function handle(stepInReq:StepInRequest):HandlerResponse {
-		Debugee.state = STEP(null);
+		debugee.state = STEP(null);
 		var rep = stepInReq.compose(stepIn);
-		rep.send();
+		debugee.sendMessage(rep);
 		DebugLoop.enableLineStep();
 		return CONTINUE;
 	}

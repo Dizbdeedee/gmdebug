@@ -22,14 +22,9 @@ class ComposedProtocolMessage {
 	}
 
 	#if lua
-	public inline function send() {
-
-		var js = Json.stringify(this);
-		Debugee.writeJson(js);
+	public inline function json() {
+		return Json.stringify(this);
 	}
 
-	public inline function sendtink(x:String) {
-		Debugee.writeJson(x);
-	}
 	#end
 }

@@ -9,13 +9,18 @@ import lua.NativeStringTools;
 import gmdebug.VariableReference;
 import gmdebug.lua.handlers.IHandler;
 
+typedef InitVariableManager = {
+	debugee : Debugee
+}
 
 class VariableManager {
     
 	var storedVariables:Array<Null<Dynamic>> = [null];
+
+	final debugee:Debugee;
 	
-	public function new() {
-		
+	public function new(initVariableManager:InitVariableManager) {
+		debugee = initVariableManager.debugee;
 	}
 
 	public function resetVariables() {
@@ -63,7 +68,7 @@ class VariableManager {
 				case TYPE_ENTITY if (!Gmod.IsValid(val)):
 					0;
 				case TYPE_TABLE | TYPE_FUNCTION | TYPE_USERDATA | TYPE_ENTITY:
-					VariableReference.encode(Child(Debugee.clientID, storedVariables.push(val) - 1));
+					VariableReference.encode(Child(debugee.clientID, storedVariables.push(val) - 1));
 				default:
 					0;
 			},
@@ -93,7 +98,7 @@ class VariableManager {
 			case TYPE_ENTITY if (!Gmod.IsValid(val)):
 				0;
 			case TYPE_TABLE | TYPE_FUNCTION | TYPE_USERDATA | TYPE_ENTITY:
-				VariableReference.encode(Child(Debugee.clientID, storedVariables.push(val) - 1));
+				VariableReference.encode(Child(debugee.clientID, storedVariables.push(val) - 1));
 			default:
 				0;
 		};

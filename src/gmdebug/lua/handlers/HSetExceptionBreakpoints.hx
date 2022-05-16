@@ -1,10 +1,19 @@
 package gmdebug.lua.handlers;
 
+typedef InitHSetExceptionBreakpoints = {
+	debugee : Debugee
+}
+
 class HSetExceptionBreakpoints implements IHandler<SetExceptionBreakpointsRequest> {
-	public function new() {}
+
+	final debugee:Debugee;
+
+	public function new(init:InitHSetExceptionBreakpoints) {
+		debugee = init.debugee;
+	}
 
 	public function handle(x:SetExceptionBreakpointsRequest):HandlerResponse {
-		var rep = x.compose(setExceptionBreakpoints);
+		var resp = x.compose(setExceptionBreakpoints);
 		var gamemodeSet = false;
 		var entitiesSet = false;
 		for (filter in x.arguments.unsafe().filters) {
@@ -21,7 +30,7 @@ class HSetExceptionBreakpoints implements IHandler<SetExceptionBreakpointsReques
 			Exceptions.unhookGamemodeHooks();
 		if (!entitiesSet)
 			Exceptions.unhookEntityHooks();
-		rep.send();
+		debugee.sendMessage(resp);
 		return WAIT;
 	}
 }

@@ -6,7 +6,7 @@ import gmdebug.lua.handlers.HVariables;
 class Dumper {
     
     public static function dump() {
-        final vars = new HVariables(new VariableManager());
+        // final vars = new HVariables(new VariableManager());
         
     }
 

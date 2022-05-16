@@ -19,6 +19,10 @@ import gmdebug.lib.lua.Protocol;
 import vscode.debugProtocol.DebugProtocol;
 #end
 
+typedef InitSourceContainer = {
+	debugee : Debugee
+}
+
 class SourceContainer {
 	
 	final uniqueSources:Map<String, Null<Source>> = [];
@@ -27,7 +31,9 @@ class SourceContainer {
 
 	public var sourceCache:ObjectMap<Function,SourceInfo>;
 
-	public function new() {
+	final debugee:Debugee;
+
+	public function new(initSourceContainer:InitSourceContainer) {
 		HookLib.Add(GMHook.Think, "gmdebug-source-get", () -> {
 			if (Gmod.CurTime() > readSourceTime) {
 				readSourceTime = Gmod.CurTime() + 1;
@@ -35,6 +41,7 @@ class SourceContainer {
 			}
 		});
 		sourceCache = makeSourceCache();
+		debugee = initSourceContainer.debugee;
 	}
 
 	function makeSourceCache() {
@@ -44,16 +51,16 @@ class SourceContainer {
 	}
 
 	function readSourceInfo() {
-		if (Debugee.dest == "")
+		if (debugee.dest == "")
 			return;
 		for (si in sourceCache) {
 			if (!uniqueSources.exists(si.source)) {
 				final result = infoToSource(si);
 				if (result != null) {
-					new ComposedEvent(loadedSource, {
+					debugee.sendMessage(new ComposedEvent(loadedSource, {
 						reason: New,
 						source: result
-					}).send();
+					}));
 					sources.push(result);
 				}
 				uniqueSources.set(si.source, result);
@@ -61,14 +68,14 @@ class SourceContainer {
 		}
 	}
 
-	static var readSourceTime:Float = 0;
+	var readSourceTime:Float = 0;
 
-	static function infoToSource(info:SourceInfo):Null<Source> {
+	function infoToSource(info:SourceInfo):Null<Source> {
 		return switch (info.source) {
 			case "=[C]":
 				null;
 			case x:
-				final pathStr = Debugee.normalPath(x);
+				final pathStr = debugee.normalPath(x);
 				final path = new HxPath(pathStr);
 				{
 					name: path.file,
