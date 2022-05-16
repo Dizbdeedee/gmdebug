@@ -47,7 +47,7 @@ class gmdebug_dap_srcds_RedirectWorker {
 	}
 	static main() {
 		let r = new gmdebug_dap_srcds_Redirector();
-		console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:56:",process.argv);
+		console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:55:",process.argv);
 		r.Start(process.argv[2],process.argv.slice(3));
 		let bJustStarted = false;
 		let outputBuffer = [];
@@ -58,7 +58,7 @@ class gmdebug_dap_srcds_RedirectWorker {
 				return;
 			}
 			if(!r.SetScreenBufferSize(screenSize)) {
-				console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:65:","Failed to set screen size " + screenSize);
+				console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:64:","Failed to set screen size " + screenSize);
 			}
 			if(process.stdin.readable) {
 				let read;
@@ -66,7 +66,7 @@ class gmdebug_dap_srcds_RedirectWorker {
 				while(true) {
 					read = process.stdin.read();
 					if(read != null) {
-						console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:73:",read);
+						console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:72:",read);
 						readStr_b += Std.string(read.toString());
 					}
 					if(!(read != null)) {
@@ -74,7 +74,7 @@ class gmdebug_dap_srcds_RedirectWorker {
 					}
 				}
 				if(readStr_b.length > 0) {
-					console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:78:",readStr_b);
+					console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:77:",readStr_b);
 					r.WriteText(readStr_b);
 				}
 			}
@@ -136,7 +136,7 @@ class gmdebug_dap_srcds_RedirectWorker {
 						gmdebug_dap_srcds_RedirectWorker.HandleCommandLineDisplay(r,screenSize);
 						return;
 					} else {
-						console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:132:","Console moved too fast " + firstNewLine);
+						console.log("src/gmdebug/dap/srcds/RedirectWorker.hx:131:","Console moved too fast " + firstNewLine);
 						firstNewLine = 0;
 					}
 				}
@@ -176,9 +176,9 @@ class gmdebug_dap_srcds_Redirector {
 		this.processInfo = gmdebug_dap_srcds_Redirector.PROCESS_INFO();
 		let securityAttr = gmdebug_dap_srcds_Redirector.SECURITY_ATTR({ nLength : gmdebug_dap_srcds_Redirector.SECURITY_ATTR.size, lpSecurityDescriptor : gmdebug_dap_srcds_Redirector.NULL, bInheritHandle : true});
 		let point = gmdebug_dap_srcds_Redirector.bufferAtAddress(new haxe__$Int64__$_$_$Int64(0xFFFFFFFF,0xFFFFFFFF));
-		console.log("src/gmdebug/dap/srcds/Redirector.hx:154:",point.address());
+		console.log("src/gmdebug/dap/srcds/Redirector.hx:148:",point.address());
 		this.map_file = gmdebug_dap_srcds_Redirector.K32.CreateFileMappingA(point,securityAttr.ref(),4,0,65536,gmdebug_dap_srcds_Redirector.NULL);
-		console.log("src/gmdebug/dap/srcds/Redirector.hx:156:",this.map_file.address());
+		console.log("src/gmdebug/dap/srcds/Redirector.hx:150:",this.map_file.address());
 		if(RefNapi.isNull(this.map_file)) {
 			throw haxe_Exception.thrown("NOOOO");
 		}
@@ -226,7 +226,7 @@ class gmdebug_dap_srcds_Redirector {
 			throw haxe_Exception.thrown("Event not set...");
 		}
 		if(!this.WaitForResponse()) {
-			console.log("src/gmdebug/dap/srcds/Redirector.hx:206:","Could not wait...");
+			console.log("src/gmdebug/dap/srcds/Redirector.hx:200:","Could not wait...");
 			throw haxe_Exception.thrown("Yikes");
 		}
 		let pBuf = this.GetMappedBuffer();
@@ -252,7 +252,7 @@ class gmdebug_dap_srcds_Redirector {
 		let pbuf = gmdebug_dap_srcds_Redirector.K32.MapViewOfFile(this.map_file,6,RefNapi.NULL,RefNapi.NULL,0);
 		let pbuf2 = gmdebug_dap_srcds_Redirector.intBuf(pbuf.reinterpret(3 * RefNapi.types.int.size),3);
 		if(RefNapi.isNull(pbuf2.buffer)) {
-			console.log("src/gmdebug/dap/srcds/Redirector.hx:242:","Wuh oh");
+			console.log("src/gmdebug/dap/srcds/Redirector.hx:236:","Wuh oh");
 		}
 		return pbuf2;
 	}
@@ -287,8 +287,8 @@ class gmdebug_dap_srcds_Redirector {
 		if(pBuf1[0] == 1) {
 			bufferSize = pBuf1[1];
 		} else {
-			console.log("src/gmdebug/dap/srcds/Redirector.hx:284:",pBuf1[0]);
-			console.log("src/gmdebug/dap/srcds/Redirector.hx:285:",pBuf1[1]);
+			console.log("src/gmdebug/dap/srcds/Redirector.hx:278:",pBuf1[0]);
+			console.log("src/gmdebug/dap/srcds/Redirector.hx:279:",pBuf1[1]);
 			bufferSize = -1;
 		}
 		this.ReleaseMappedBuffer(pBuf1);
@@ -300,7 +300,7 @@ class gmdebug_dap_srcds_Redirector {
 		waitForEvents[1] = this.processInfo.hProcess;
 		let waitResult = gmdebug_dap_srcds_Redirector.K32.WaitForMultipleObjects(2,waitForEvents,false,268435455);
 		if(waitResult == gmdebug_dap_srcds_Redirector.WAIT_OBJECT_0 + 1) {
-			console.log("src/gmdebug/dap/srcds/Redirector.hx:299:","Process ended");
+			console.log("src/gmdebug/dap/srcds/Redirector.hx:293:","Process ended");
 		}
 		return waitResult == gmdebug_dap_srcds_Redirector.WAIT_OBJECT_0;
 	}
