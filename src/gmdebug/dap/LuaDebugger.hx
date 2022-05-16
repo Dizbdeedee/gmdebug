@@ -203,7 +203,7 @@ typedef Programs = {
 				case Failure(err):
 					trace(err);
 			}
-			Timers.setTimeout(pokeClients,500);
+			Timers.setTimeout(pokeClients,1500);
 		});
 	}
 

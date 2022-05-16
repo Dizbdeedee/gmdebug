@@ -157,15 +157,15 @@ class Debugee {
 	public function start() {
 		if (socketActive)
 			return false;
+
 		socket = try {
 			new PipeSocket(generateLocations(checkFreeSlots()));
 		} catch (e) {
-			trace(e);
-			Logger.log("No free locations");
+			Logger.log(e);
 			return false;
 		}
 		Logger.log("We made it");
-		trace("Connected to server...");
+		trace("GMDEBUG SUCCESSFULLY CONNECTED");
 		socketActive = true;
 		sendMessage(new ComposedEvent(initialized));
 		#if debugdump
@@ -178,7 +178,6 @@ class Debugee {
 		sendMessage(new ComposedEvent(continued, {threadId: 0, allThreadsContinued: true}));
 		#end
 		if (!startLoop()) {
-			trace("Failed to setup debugger after timeout");
 			return false;
 		}
 		DebugHook.addHook(DebugLoop.debugloop, "c");
@@ -349,15 +348,16 @@ class Debugee {
 		#elseif client
 		Gmod.RunConsoleCommand("cl_timeout", 999999);
 		#end
-		trace("before socketactive");
 		var timeout = Gmod.SysTime() + CONNECT_TIMEOUT;
 		while (!socketActive && Gmod.SysTime() < timeout) {
 			start();
 		}
 		if (!socketActive) {
-			trace("Could not connect to server!!");
+			trace("GMDEBUG FAILED TO CONNECT");
+			Logger.log("GMDEBUG FAILED TO CONNECT");
 			throw "Failed to connect to server";
 		}
+		Logger.log("GMDEBUG CONNECTED SUCCESSFULLY");
 		TimerLib.Create("report-profling", 3, 0, () -> {
 			DebugLoopProfile.report();
 		});
