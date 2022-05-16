@@ -97,6 +97,12 @@ class LaunchProcess {
 			luaDebug.shutdown();
 			return;
 		});
+		worker.on('exit', (_) -> {
+			trace("Exit");
+			luaDebug.shutdown();
+			
+		});
+		worker.unref();
 		stdin = cast worker.stdin;
 		stdout = cast worker.stdout;
 		stderr = cast worker.stderr;
