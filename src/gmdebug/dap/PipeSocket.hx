@@ -34,6 +34,8 @@ private typedef MakeLinksWin = {
 @:await
 class PipeSocket {
 
+	static final CONNECT_ESTABLISH_DELAY = 15; //ms
+
 	static final WIN_PIPE_NAME_IN = "\\\\.\\pipe\\gmdebugin";
 
 	static final WIN_PIPE_NAME_OUT = "\\\\.\\pipe\\gmdebugout";
@@ -180,7 +182,7 @@ class PipeSocket {
 						server.close();
 						handler(socket);
 					}
-				},15);
+				},CONNECT_ESTABLISH_DELAY);
 			});
 		});
 	}
