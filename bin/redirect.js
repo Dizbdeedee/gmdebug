@@ -259,8 +259,8 @@ class gmdebug_dap_srcds_Redirector {
 	WriteText(input) {
 		let pBuf = this.GetMappedBuffer();
 		pBuf[0] = 2;
-		let strBuf = pBuf.buffer.reinterpret(input.length + 1,RefNapi.types.int.size);
-		strBuf.writeCString(input,0,"utf8");
+		let strBuf = pBuf.buffer.reinterpret((input.length + 1) * RefNapi.types.char.size,RefNapi.types.int32.size);
+		strBuf.write(input + "\x00",0);
 		this.ReleaseMappedBuffer(pBuf);
 		gmdebug_dap_srcds_Redirector.K32.SetEvent(this.event_parent_send);
 		if(!this.WaitForResponse()) {
@@ -287,8 +287,8 @@ class gmdebug_dap_srcds_Redirector {
 		if(pBuf1[0] == 1) {
 			bufferSize = pBuf1[1];
 		} else {
-			console.log("src/gmdebug/dap/srcds/Redirector.hx:283:",pBuf1[0]);
-			console.log("src/gmdebug/dap/srcds/Redirector.hx:284:",pBuf1[1]);
+			console.log("src/gmdebug/dap/srcds/Redirector.hx:284:",pBuf1[0]);
+			console.log("src/gmdebug/dap/srcds/Redirector.hx:285:",pBuf1[1]);
 			bufferSize = -1;
 		}
 		this.ReleaseMappedBuffer(pBuf1);
@@ -300,7 +300,7 @@ class gmdebug_dap_srcds_Redirector {
 		waitForEvents[1] = this.processInfo.hProcess;
 		let waitResult = gmdebug_dap_srcds_Redirector.K32.WaitForMultipleObjects(2,waitForEvents,false,268435455);
 		if(waitResult == gmdebug_dap_srcds_Redirector.WAIT_OBJECT_0 + 1) {
-			console.log("src/gmdebug/dap/srcds/Redirector.hx:298:","Process ended");
+			console.log("src/gmdebug/dap/srcds/Redirector.hx:299:","Process ended");
 		}
 		return waitResult == gmdebug_dap_srcds_Redirector.WAIT_OBJECT_0;
 	}

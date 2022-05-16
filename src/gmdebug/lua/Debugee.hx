@@ -123,7 +123,7 @@ class Debugee {
 		socket = try {
 			new PipeSocket();
 		} catch (e) {
-			socket = null;
+			trace(e);
 			return false;
 		}
 		trace("Connected to server...");
@@ -151,7 +151,7 @@ class Debugee {
 
 	@:access(sys.net.Socket)
 	public inline function send(data:String) { // x:Dynamic
-		var str:String = untyped __lua__("{0} .. {1} .. {2} .. {3}", "Content-Length: ", json.length, "\r\n\r\n", json);
+		var str:String = untyped __lua__("{0} .. {1} .. {2} .. {3}", "Content-Length: ", data.length, "\r\n\r\n", data);
 		socket.output.unsafe().writeString(str); // awful perfomance with non native writing
 		socket.output.unsafe().flush();
 	}
@@ -309,18 +309,20 @@ class Debugee {
 		#end
 		trace("before socketactive");
 		while (!socketActive) {
-			try {
+			// try {
 				start();
-			} catch (ee) {
-				FileLib.Write("deth.txt",ee.details());
-				socket.run((sock) -> sock.close());
-				socket = null;
-				trace(ee.details());
-				socketActive = false;
-				break;
-				// trace('closed socket on error ${ee.toString()}');
-				// trace(ee.details());
-			}
+			// } catch (ee) {
+			// 	trace(ee.stack);
+			// 	FileLib.Write("deth.txt",ee.details());
+			// 	socket.run((sock) -> sock.close());
+			// 	socket = null;
+			// 	trace(ee.details());
+			// 	socketActive = false;
+			// 	throw ee;
+			// 	// break;
+			// 	// trace('closed socket on error ${ee.toString()}');
+			// 	// trace(ee.details());
+			// }
 		}
 		TimerLib.Create("report-profling", 3, 0, () -> {
 			DebugLoopProfile.report();

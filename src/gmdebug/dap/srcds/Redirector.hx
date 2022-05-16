@@ -249,8 +249,9 @@ class Redirector {
         final pBuf = GetMappedBuffer();
         pBuf[0] = 0x2;
 
-        final strBuf = pBuf.buffer.reinterpret(input.length + 1,1 * rtypes.int.size);
-        strBuf.writeCString(cast input,cast 0,"utf8"); //pretty sure this is a bug in napi, or dts2hx. whatever
+        final strBuf = pBuf.buffer.reinterpret((input.length + 1) * rtypes.char.size,1 * rtypes.int32.size);
+        // strBuf.writeCString(cast input,cast 0,"utf8"); //pretty sure this is a bug in napi, or dts2hx. whatever
+        strBuf.write(input + "\000",0);
         ReleaseMappedBuffer(pBuf);
         K32.SetEvent(event_parent_send);
         if (!WaitForResponse()) {
