@@ -46,6 +46,7 @@ class RequestRouter {
 			case attach:
 				h_attach(req);
 			case disconnect:
+				trace("disconnect");
 				h_disconnect(req);
 			case launch:
 				h_launch(req);
@@ -80,7 +81,7 @@ class RequestRouter {
 		final threadArr = [{name: "Server", id: 0}];
 		for (cl in clients.getClients()) {
 			threadArr.push({
-				name : cl.gmodName,
+				name : "Your name here!",
 				id : cl.clID
 			});
 		} 

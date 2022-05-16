@@ -1,18 +1,27 @@
 package gmdebug.dap.clients;
 
+import tink.core.Error;
+import gmdebug.dap.PipeSocket.PipeSocketLocations;
 import haxe.io.Bytes;
 import haxe.Json;
 import js.node.Fs;
 import sys.FileSystem;
 import haxe.io.Path as HxPath;
+import haxe.io.Path.join;
 import js.node.Buffer;
+import gmdebug.Cross;
 
 using Lambda;
 
 typedef ClientID = Int;
 
 typedef ReadWithClientID = (buf:Buffer,id:Int) -> Void;
-	
+
+enum ConnectionStatus {
+	AVALIABLE;
+	TAKEN;
+	NOT_AVALIABLE;
+}
 //DebugeeStorage
 @:await
 class ClientStorage {
@@ -40,29 +49,63 @@ class ClientStorage {
 		return 'Content-Length: $len\r\n\r\n$json';
 	}
 
+	function status(loc:String):ConnectionStatus {
+		return if (!FileSystem.exists(loc)) {
+			NOT_AVALIABLE;
+		} else if (FileSystem.exists(join([loc,AQUIRED]))) {
+			TAKEN;
+		} else {
+			AVALIABLE;
+		}
+	}
+
+	function getFreeFolder(loc:String):String {
+		switch (status(join([loc,DATA,FOLDER]))) {
+			case AVALIABLE:
+				return join([loc,DATA,FOLDER]);
+			case NOT_AVALIABLE:
+				throw new Error("No free connections");
+			case TAKEN:
+		}
+		for (i in 1...127) {
+			switch (status(join([loc,DATA,'$FOLDER$i']))) {
+				case AVALIABLE:
+					return join([loc,DATA,'$FOLDER$i']);
+				case NOT_AVALIABLE:
+					throw new Error('No free connections $i');
+				case TAKEN:
+			}
+		}
+		throw new Error('Exhasted all possible connections');
+	}
+
+	function generateSocketLocations(chosenFolder:String):PipeSocketLocations {
+		return {
+			debugee_output : join([chosenFolder,OUTPUT]),
+			debugee_input : join([chosenFolder,INPUT]),
+			ready : join([chosenFolder,READY]),
+			client_ready : join([chosenFolder,CLIENT_READY])
+		};
+	}
+
 	@:async function makePipeSocket(loc:String,id:Int) {
-		final data = HxPath.join([loc, Cross.DATA]);
-		final input = HxPath.join([data, Cross.INPUT]);
-		final output = HxPath.join([data, Cross.OUTPUT]);
-		final ready = HxPath.join([data, Cross.READY]);
-		final client_ready = HxPath.join([data, Cross.CLIENT_READY]);
-		final ps = new PipeSocket({debugee_output : output, debugee_input : input, ready : ready,client_ready: client_ready},
+		final chosenFolder = getFreeFolder(loc);
+		final ps = new PipeSocket(generateSocketLocations(chosenFolder),
 			(buf:Buffer) -> readFunc(buf,id)
 		);
-		
 		@:await ps.aquire().eager();
 		trace("mega aquired");
 		return ps;
 	}
 
 
-	@:async public function newClient(clientLoc:String, gmodID:Int, gmodName:String) {
+	@:async public function newClient(clientLoc:String) {
 		final clID = clients.length; 
 		final pipesocket = @:await makePipeSocket(clientLoc,clID);
-		final client = new Client(pipesocket,clID,gmodID,gmodName);
+		final client = new Client(pipesocket,clID);
 		clients.push(client);
 		trace("client created");
-		gmodIDMap.set(gmodID,client);
+		// gmodIDMap.set(gmodID,client);
 		return client;
 	}
 

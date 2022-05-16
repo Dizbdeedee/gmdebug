@@ -72,6 +72,7 @@ class PipeSocket {
 
 	@:async public function aquireWindows() {
 		trace("Waiting for windows socket");
+		trace(locs);
 		final pipeNo = nextWinPipeNo++;
 		final serverIn = Net.createServer();
 		final pipeInName = '$WIN_PIPE_NAME_IN$pipeNo';
@@ -91,7 +92,6 @@ class PipeSocket {
 		trace("Servers created");
 		writeS = sockets.sockIn;
 		readS = sockets.sockOut;
-		trace('$writeS $readS');
 		writeS.write("\004\r\n");
 		readS.on(Data,readFunc);
 		aquired = true;
@@ -178,7 +178,7 @@ class PipeSocket {
 						server.close();
 						handler(socket);
 					}
-				},5);
+				},15);
 			});
 		});
 	}
@@ -209,6 +209,7 @@ class PipeSocket {
     }
 
     public function end() {
+		
         readS.end();
         writeS.end();
         FileSystem.deleteFile(locs.debugee_output);

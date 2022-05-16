@@ -18,15 +18,17 @@ import haxe.io.Path as HxPath;
 
 final FOLDER = "gmdebug";
 
-final CLIENT_READY = HxPath.join([FOLDER,"clientready.dat"]);
+final CLIENT_READY = "clientready.dat";
 
-final INPUT = HxPath.join([FOLDER, "in.dat"]);
+final INPUT = "in.dat";
 
-final OUTPUT = HxPath.join([FOLDER, "out.dat"]);
+final OUTPUT = "out.dat";
 
-final READY = HxPath.join([FOLDER, "ready.dat"]);
+final READY = "ready.dat";
 
 final DATA = "data";
+
+final AQUIRED = "aquired.dat";
 
 final JIT = HxPath.join([FOLDER, "jitchoice.txt"]);
 

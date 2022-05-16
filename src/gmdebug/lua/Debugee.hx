@@ -25,6 +25,7 @@ import gmdebug.lib.lua.Protocol.TStoppedEvent;
 import gmdebug.lib.lua.Protocol.StopReason;
 import gmdebug.composer.*;
 import gmod.libs.DebugLib;
+import haxe.io.Path.join;
 
 using Lambda;
 
@@ -47,6 +48,10 @@ enum RecursiveGuard {
 
 @:keep
 class Debugee {
+
+	static final CONNECT_TIMEOUT = 25;
+
+	static final TIMEOUT_CONFIG = 5;
 
 	public final POLL_TIME = 0.1;
 
@@ -113,15 +118,45 @@ class Debugee {
 	
 	final customHandlers:Null<CustomHandlers>;
 
-	final TIMEOUT_CONNECT = 10;
 
-	final TIMEOUT_CONFIG = 5;
+	function freeFolder(folder:String):Bool {
+		return if (!FileLib.Exists(folder,DATA)) {
+			true;
+		} else if (!FileLib.Exists(join([folder,AQUIRED]),DATA)) {
+			true;
+		} else {
+			false;
+		}
+	}
+
+	function checkFreeSlots():String {
+		if (freeFolder(FOLDER)) {
+			return FOLDER;
+		}
+		for (i in 1...127) {
+			if (freeFolder('$FOLDER$i')) {
+				return '$FOLDER$i';
+			}
+		}
+		throw "Can't find a free folder to claim";
+	}
+
+	function generateLocations(folder:String):PipeLocations {
+		FileLib.CreateDir(folder);
+		return {
+			folder : folder,
+			client_ready: join([folder,CLIENT_READY]),
+			output: join([folder,OUTPUT]),
+			input: join([folder,INPUT]),
+			ready: join([folder,READY])
+		}
+	}
 
 	public function start() {
 		if (socketActive)
 			return false;
 		socket = try {
-			new PipeSocket();
+			new PipeSocket(generateLocations(checkFreeSlots()));
 		} catch (e) {
 			trace(e);
 			return false;
@@ -145,6 +180,9 @@ class Debugee {
 		DebugHook.addHook(DebugLoop.debugloop, "c");
 		Exceptions.tryHooks();
 		G.__gmdebugTraceback = traceback;
+		HookLib.Add(ShutDown,"debugee-shutdown",() -> {
+			shutdown();
+		});
 		hooksActive = true;
 		return true;
 	}
@@ -298,31 +336,19 @@ class Debugee {
 			fbm: fbm,
 			sc: sc
 		});
-		FileLib.CreateDir("gmdebug");
 		#if server
 		GameLib.ConsoleCommand("sv_timeout 999999\n");
 		#elseif client
 		Gmod.RunConsoleCommand("cl_timeout", 999999);
 		#end
-		#if client
-		// Jit.init();
-		#end
 		trace("before socketactive");
-		while (!socketActive) {
-			// try {
-				start();
-			// } catch (ee) {
-			// 	trace(ee.stack);
-			// 	FileLib.Write("deth.txt",ee.details());
-			// 	socket.run((sock) -> sock.close());
-			// 	socket = null;
-			// 	trace(ee.details());
-			// 	socketActive = false;
-			// 	throw ee;
-			// 	// break;
-			// 	// trace('closed socket on error ${ee.toString()}');
-			// 	// trace(ee.details());
-			// }
+		var timeout = Gmod.SysTime() + CONNECT_TIMEOUT;
+		while (!socketActive && Gmod.SysTime() < timeout) {
+			start();
+		}
+		if (!socketActive) {
+			trace("Could not connect to server!!");
+			throw "Failed to connect to server";
 		}
 		TimerLib.Create("report-profling", 3, 0, () -> {
 			DebugLoopProfile.report();

@@ -1,5 +1,7 @@
 package gmdebug.dap;
 
+import haxe.Timer;
+import js.node.Timers;
 import gmdebug.dap.clients.ClientStorage;
 import gmdebug.Util.recurseCopy;
 import gmdebug.dap.Validate;
@@ -66,6 +68,7 @@ typedef Programs = {
 		clients = new ClientStorage(readGmodBuffer);
 		requestRouter = new RequestRouter(this,clients,prevRequests);
 		Node.process.on("uncaughtException", uncaughtException);
+		Node.process.on("SIGTRM", shutdown);
 		Sys.setCwd(HxPath.directory(HxPath.directory(Sys.programPath())));
 		checkPrograms();
 		shouldAutoConnect = false;
@@ -78,7 +81,8 @@ typedef Programs = {
 			serverFolderResult.sendError(req,this);
 			return;
 		}
-		serverFolder = args.serverFolder;
+		final serverSlash = HxPath.addTrailingSlash(args.serverFolder);
+		serverFolder = serverSlash;
 		var programPath = switch (args.programPath) {
 			case null:
 				req.composeFail("Gmdebug requires the property \"programPath\" to be specified when launching.", {
@@ -107,7 +111,7 @@ typedef Programs = {
 		var childProcess = new LaunchProcess(programPath,this,args.programArgs);
 		if (args.noDebug) {
 			dapMode = LAUNCH(childProcess);
-			serverFolder = HxPath.addTrailingSlash(req.arguments.serverFolder);
+			serverFolder = HxPath.addTrailingSlash(args.serverFolder);
 			final comp = (req : LaunchRequest).compose(launch,{});
 			comp.send(this);
 			return;
@@ -123,11 +127,10 @@ typedef Programs = {
 			}
 			clientFolder = HxPath.addTrailingSlash(clientFolder);
 		}
-		final serverSlash = HxPath.addTrailingSlash(req.arguments.serverFolder);
-		serverFolder = serverSlash;
 		setClientLocation(clientFolder);
 		dapMode = LAUNCH(childProcess);
 		startServer(req);
+		
 	}
 
 	function copyLuaFiles(serverFolder:String) {
@@ -162,7 +165,8 @@ typedef Programs = {
 		final resp = attachReq.compose(attach);
 		resp.send(this);
 		try {
-			pokeServerNamedPipes();
+			pokeServerTimeout();
+			startPokeClients();
 		} catch (e) {
 			shutdown();
 			throw e;
@@ -183,24 +187,23 @@ typedef Programs = {
 	function uncaughtException(err:js.lib.Error, origin) {
 		trace(err.message);
 		trace(err.stack);
-		this.shutdown();
+		// Timer.delay(() -> this.shutdown(), 2000);
 	}
 
-	@:async function playerAddedMessage(x:GMPlayerAddedMessage) {
-		var success = false;
-		if (clientLocation != null) {
-			try {
-				@:await playerTry(clientLocation, x.playerID, x.name).eager();
-				success = true;
-			} catch (e) {
-				trace('could not aquire in $clientLocation');
-			}	
-		}
-		return success;
+	function pokeClients() {
+		
+		playerTry(clientLocation).handle((out) -> {
+			switch (out) {
+				case Success(_):
+				
+				case Failure(err):
+					trace(err);
+			}
+		});
 	}
 
-	@:async function playerTry(clientLoc:String, gmodID:Int, playerName:String) {
-		final cl = @:await clients.newClient(clientLoc,gmodID,playerName);
+	@:async function playerTry(clientLoc:String) {
+		final cl = @:await clients.newClient(clientLoc);
 		clients.sendClient(cl.clID,new ComposedGmDebugMessage(clientID, {id: cl.clID}));
 		new ComposedEvent(thread, {
 			threadId: cl.clID,
@@ -240,7 +243,6 @@ typedef Programs = {
 		final port = sp[1];
 		if (Sys.systemName() == "Linux") {
 			js.node.ChildProcess.spawn('xdg-open steam://connect/$ip:$port', {shell: true});
-
 		} else {
 			js.node.ChildProcess.spawn('start steam://connect/$ip:$port', {shell: true});
 		}
@@ -249,28 +251,28 @@ typedef Programs = {
 	function processCustomMessages(x:GmDebugMessage<Dynamic>) {
 		switch (x.msg) {
 			case playerAdded:
-				playerAddedMessage(cast x.body).handle((out) -> {
-					switch (out) {
-						case Success(true):
-							trace("Whater a sucess");
-						case Success(false):
-							trace("Could not add a new player...");
-						case Failure(fail):
-							throw fail;
-					}
-				});
+				//add name, when connect :)
+				// playerAddedMessage(cast x.body).handle((out) -> {
+				// 	switch (out) {
+				// 		case Success(true):
+				// 			trace("Whater a sucess");
+				// 		case Success(false):
+				// 			trace("Could not add a new player...");
+				// 		case Failure(fail):
+				// 			throw fail;
+				// 	}
+				// });
 			case playerRemoved:
-				playerRemovedMessage(cast x.body);
+				// playerRemovedMessage(cast x.body);
 			case serverInfo:
 				serverInfoMessage(cast x.body);
 			case clientID | intialInfo:
-				
 				throw "Wrong direction..?";
 				
 		}
 	}
 
-	@:await function pokeServerNamedPipes() {
+	@:await function pokeServerTimeout() {
 		@:await Promise.retry(clients.newServer.bind(serverFolder),(data) -> {
 			return if (data.elapsed > SERVER_TIMEOUT * 1000) {
 				new Error(Timeout,"Poke serverNamedPipes timed out");
@@ -285,17 +287,15 @@ typedef Programs = {
 			case LAUNCH(_):
 				clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: serverFolder, dapMode: Launch}));
 		}
-		
 	}
 
-	function makeFifosIfNotExist(input:String, output:String) {
-		if (!FileSystem.exists(input) && !FileSystem.exists(output)) {
-			js.node.ChildProcess.execSync('mkfifo $input');
-			js.node.ChildProcess.execSync('mkfifo $output');
-			Fs.chmodSync(input, "744");
-			Fs.chmodSync(output, "722");
-		};
+	function startPokeClients() {
+		if (clientLocation != null) {
+			Timers.setInterval(pokeClients,500);
+		}
 	}
+
+	
 
 	function readGmodBuffer(jsBuf:Buffer, clientNo:Int) {
 		final messages = bytesProcessor.process(jsBuf, clientNo);
@@ -330,18 +330,31 @@ typedef Programs = {
 	}
 
 	override public function shutdown() {
-		switch (dapMode) {
-			case LAUNCH(child):
-				child.write("quit\n");
-				child.kill();
-			default:
-		}
+		// trace("why?");
+		// switch (dapMode) {
+		// 	case LAUNCH(child):
+		// 		child.write("quit\n");
+		// 		child.kill();
+		// 	default:
+		// }
 		clients.disconnectAll();
 		final dir = HxPath.join([serverFolder,"addons","debugee"]);
-		if (Fs.existsSync(dir)) {
-			(cast Fs.rmdirSync : (a:String,b:Dynamic) -> Void)(dir,{recursive : true});
+		trace(dir);
+		try {
+			if (Fs.existsSync(dir)) {
+				untyped Fs.rmSync(dir,{recursive : true, force : true});
+				// (cast Fs.rmdirSync : (a:String,b:Dynamic) -> Void)(dir,{recursive : true});
+			}
+		} catch (e) {
+			trace(e);
 		}
 		
+		// trace("What");
+		super.shutdown();
+		// Timer.delay(delayshut,2500);
+	}
+
+	function delayshut() {
 		super.shutdown();
 	}
 
