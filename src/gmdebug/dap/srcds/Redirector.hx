@@ -1,11 +1,13 @@
 package gmdebug.dap.srcds;
 
 
+import ffi_napi.Callback;
 import sys.FileSystem;
 import node.worker_threads.Worker;
 import haxe.Int64;
 import js.Syntax;
 import js.lib.Object;
+import global.Buffer;
 import js.Node;
 import ref_array_di.TypedArray;
 import ref_napi.Type_;
@@ -15,18 +17,45 @@ using Lambda;
 import RefNapi.refType;
 import RefNapi.types as rtypes;
 
+typedef BufInt = haxe.extern.EitherType<global.Buffer,Int>;
+typedef BufBool = haxe.extern.EitherType<global.Buffer,Bool>;
+ 
 
 private extern class Kernel32 {
     function CreateFileMappingA(...rest:Dynamic):global.Buffer;
     function CreateEventA(...rest:Dynamic):global.Buffer;
-    function MapViewOfFile(map_file:global.Buffer,dwDesiredAccess:Int,dwFileOffsetHigh:global.Buffer,
-        dwFileOffsetLow:global.Buffer,dwNumberOfBytesToMap:Int):global.Buffer;
+    function MapViewOfFile(map_file:global.Buffer,dwDesiredAccess:BufInt,dwFileOffsetHigh:global.Buffer,
+        dwFileOffsetLow:global.Buffer,dwNumberOfBytesToMap:BufInt):global.Buffer;
     function UnmapViewOfFile(map_file:TypedArray<Int>):Void;
     function SetEvent(handle:global.Buffer):Bool;
-    function WaitForSingleObject(event:Int,timeout:Int):Int;
-    function CreateProcessA(...rest:global.Buffer):Bool;
+    function WaitForSingleObject(event:BufInt,timeout:Int):Int;
+    function CreateProcessA(lpApplicationName:global.Buffer,lpCommandLine:Buffer,lpProcessAttributes:SecurityInfo,lpThreadAttributes:SecurityInfo,bInheritHandles:BufBool,dwCreationFlags:BufInt,lpEnvironment:Buffer,lpCurrentDirectory:Buffer,lpStartupInfo:Buffer,lpProcessInformation:Buffer):Bool;
     function WaitForMultipleObjects(nCount:Int,lpHandles:global.Buffer,bWaitAll:Bool,dwMilliseconds:Int):Int;
+    function SetConsoleCtrlHandler(...rest:global.Buffer):Bool;
+    function CloseHandle(handle:global.Buffer):Void;
+    function TerminateProcess(hProcess:global.Buffer,uExitCode:Int):Bool;
 }
+
+private extern class Lib {
+    function memset(dst:global.Buffer,val:BufInt,size:BufInt):global.Buffer;
+}
+
+extern class ProcessInfo extends global.Buffer {
+    var hProcess:global.Buffer;
+}
+
+extern class SecurityInfo extends global.Buffer {
+    var nLength:BufInt;
+    var lpSecurityDescriptor:global.Buffer;
+    var bSecuritHandle:BufBool;
+}
+
+extern class StartupInfo extends global.Buffer {
+    var cb : BufInt;
+}
+// typedef ProcessInfo = global.Buffer & {
+//     hProcess : global.Buffer
+// }
 
 class Redirector {
 
@@ -87,9 +116,11 @@ class Redirector {
     static final intBuf = ArrayType.call(rtypes.int,3);
     static final uintBuf = ArrayType.call(rtypes.uint);
 
+    // static final callback = Callback.call_([])
+
     static final voidBuf = ArrayType.call(refType(rtypes.void));
 
-    static final K32:Kernel32 = cast new Library("kernel32", {
+    public static final K32:Kernel32 = cast new Library("kernel32", {
         untyped {
             CreateFileMappingA : [HANDLE,[HANDLE,refType(SECURITY_ATTR),rtypes.ulong,rtypes.ulong,rtypes.ulong,rtypes.CString]],
             CreateEventA : [HANDLE,[refType(SECURITY_ATTR),rtypes.bool,rtypes.bool,rtypes.CString]],
@@ -104,11 +135,14 @@ class Redirector {
                 refType(PROCESS_INFO)
             ]],
             GetLastError : [DWORD,[]],
-            WaitForMultipleObjects : [DWORD,[DWORD,voidBuf,rtypes.bool,DWORD]]
+            SetConsoleCtrlHandler : [rtypes.bool,[refType(rtypes.void),rtypes.bool]],
+            WaitForMultipleObjects : [DWORD,[DWORD,voidBuf,rtypes.bool,DWORD]],
+            CloseHandle : [rtypes.void,[refType(rtypes.void)]],
+            TerminateProcess : [rtypes.bool,[refType(rtypes.void),rtypes.uint]]
         }
     });
 
-    static final lib = cast new Library("ucrtbase", {
+    static final lib:Lib = cast new Library("ucrtbase", {
         untyped {
             memset : [refType(rtypes.void),[refType(rtypes.void),rtypes.int,rtypes.size_t]]
         }
@@ -121,7 +155,7 @@ class Redirector {
     
     final event_child_send:global.Buffer;
 
-    final processInfo:global.Buffer = cast PROCESS_INFO.call();
+    final processInfo:ProcessInfo = cast PROCESS_INFO.call();
 
     //so this is the power... of javashit programmers......
     static function bufferAtAddress(address:Int64):global.Buffer {
@@ -149,16 +183,27 @@ class Redirector {
         map_file = K32.CreateFileMappingA(point,securityAttr.ref(),0x04,0,65536,NULL);
         trace(map_file.address());
         if (RefNapi.isNull(map_file)) {
-            throw "NOOOO";
+            throw "Could not create file mapping";
         }
         event_parent_send = K32.CreateEventA(securityAttr.ref(),false,false,RefNapi.NULL);
         if (RefNapi.isNull(event_parent_send)) {
-            throw "Nooo 2";
+            throw "Could not create parent send event";
         }
         event_child_send = K32.CreateEventA(securityAttr.ref(),false,false,NULL);
         if (RefNapi.isNull(event_child_send)) {
-            throw "NOOO!! 3";
+            throw "Could not create child send event";
         }
+    }
+
+    public function Destroy() {
+        
+        K32.CloseHandle(map_file);
+        K32.CloseHandle(event_parent_send);
+        K32.CloseHandle(event_child_send);
+        K32.TerminateProcess(processInfo.hProcess,1);
+        // K32.WaitForSingleObject(processInfo.hProcess,0xFFFFFFFF);
+        lib.memset(processInfo.ref(),0,cast PROCESS_INFO.size);
+
     }
 
     public function Start(program:String,args:Array<String>) {
@@ -171,16 +216,15 @@ class Redirector {
         if (!haxe.io.Path.isAbsolute(program)) {
             throw "Absolute paths only.";
         }
-        final si:global.Buffer = cast STARTUP_INFO.call();
-        untyped lib.memset(si.ref(),0,STARTUP_INFO.size);
-        untyped si.cb = STARTUP_INFO.size;
+        final si:StartupInfo = cast STARTUP_INFO.call();
+        lib.memset(si.ref(),0,cast STARTUP_INFO.size);
+        si.cb = cast STARTUP_INFO.size;
         final mf = map_file.address();
         final eps = event_parent_send.address();     
         final ecs = event_child_send.address();
         final argString = args.join(" ");
         final command = RefNapi.allocCString('$program -HFILE $mf -HPARENT $eps -HCHILD $ecs $argString');
-        var result = K32.CreateProcessA(null,command,null,null,cast true,cast 16,null,null,si.ref(),
-        processInfo.ref());
+        var result = K32.CreateProcessA(null,command,null,null,true,16,null,null,si.ref(),processInfo.ref());
         if (!result) throw "Good luck debugging this, asshole";
     }
 
@@ -205,7 +249,7 @@ class Redirector {
         final output = if (pBuf[0] == 1) {
             RefNapi.readCString(pBuf.buffer.reinterpretUntilZeros(rtypes.char.size),rtypes.int.size);
         } else {
-            "gay";
+            "_";
         }
         ReleaseMappedBuffer(cast pBuf);
         //unlock
@@ -287,7 +331,7 @@ class Redirector {
         
         final waitForEvents:TypedArray<global.Buffer> = voidBuf.call(2);
         waitForEvents[0] = event_child_send;
-        waitForEvents[1] = untyped processInfo.hProcess;
+        waitForEvents[1] = processInfo.hProcess;
         final waitResult = K32.WaitForMultipleObjects(2,cast waitForEvents,false,0xFFFFFFF);
         if (waitResult == WAIT_OBJECT_0 + 1) {
             trace("Process ended");

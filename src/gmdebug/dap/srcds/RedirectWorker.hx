@@ -1,11 +1,15 @@
 package gmdebug.dap.srcds;
 
+import js.node.Process;
+import ffi_napi.Callback;
 import global.Buffer;
 import js.node.Timers;
 import node.worker_threads.Worker;
 import js.Node;
 using StringTools;
 using Lambda;
+import RefNapi.types as rtypes;
+
 class RedirectWorker {
 
     static final CON_LINE_LENGTH = 80;
@@ -50,11 +54,25 @@ class RedirectWorker {
         });
     }
 
+    static var red:Redirector;
+
+    static function handleDeth(...rest) {
+        trace("deth handled");
+        canLoop = false;
+        red.Destroy();
+        return false;
+    }
+
+    static var canLoop = true;
+
     public static function main() {
         final r = new Redirector();
+        red = r;
         trace(Node.process.argv);
         r.Start(Node.process.argv[2],Node.process.argv.slice(3));
         var bJustStarted = false;
+        
+        Redirector.K32.SetConsoleCtrlHandler(Callback.call_(rtypes.bool,[rtypes.ulong],handleDeth),cast true);
         var outputBuffer:Array<String> = [];
         final oldOutput:Array<String> = [];
         function loop() {
@@ -150,9 +168,18 @@ class RedirectWorker {
             HandleCommandLineDisplay(r,screenSize);
         }
         function mainLoop() {
-            loop();
-            Timers.setImmediate(mainLoop);
+            try {               
+                loop();
+            } catch (e) {
+                canLoop = false;
+                trace(e);
+                return;
+            }
+            if (canLoop) {
+                Timers.setImmediate(mainLoop);
+            }
         }
         mainLoop();
+        // Node.process.exit(0);
     }
 }
