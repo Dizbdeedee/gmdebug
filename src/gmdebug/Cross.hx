@@ -16,67 +16,64 @@ import haxe.Json;
 import haxe.io.Input;
 import haxe.io.Path as HxPath;
 
-class Cross {
-	public static final FOLDER = "gmdebug";
+final FOLDER = "gmdebug";
 
-	public static final CLIENT_READY = HxPath.join([FOLDER,"clientready.dat"]);
+final CLIENT_READY = HxPath.join([FOLDER,"clientready.dat"]);
 
-	public static final INPUT = HxPath.join([FOLDER, "in.dat"]);
+final INPUT = HxPath.join([FOLDER, "in.dat"]);
 
-	public static final OUTPUT = HxPath.join([FOLDER, "out.dat"]);
+final OUTPUT = HxPath.join([FOLDER, "out.dat"]);
 
-	public static final READY = HxPath.join([FOLDER, "ready.dat"]);
+final READY = HxPath.join([FOLDER, "ready.dat"]);
 
-	public static final CHECK = HxPath.join([FOLDER, "check.dat"]);
+final DATA = "data";
 
-	public static final DATA = "data";
+final JIT = HxPath.join([FOLDER, "jitchoice.txt"]);
 
-	public static final JIT = HxPath.join([FOLDER, "jitchoice.txt"]);
-
-	@:nullSafety(Off)
-	public static function readHeader(x:Input) {
-		var raw_content = x.readLine();
-		var skip = 0;
-		var onlySkipped = true;
-		for (i in 0...raw_content.length) {
-			if (raw_content.charCodeAt(i) == 4) {
-				skip++;
-			} else {
-				onlySkipped = false;
-				break;
-			}
+@:nullSafety(Off)
+function readHeader(x:Input) {
+	var raw_content = x.readLine();
+	var skip = 0;
+	var onlySkipped = true;
+	for (i in 0...raw_content.length) {
+		if (raw_content.charCodeAt(i) == 4) {
+			skip++;
+		} else {
+			onlySkipped = false;
+			break;
 		}
-		#if lua
-		if (onlySkipped) { // only happens on lua
-			return null;
-		}
-		#end
-		if (skip > 0) {
-			// skipped x
-			raw_content = raw_content.substr(skip);
-		}
-		var content_length = Std.parseInt(@:nullSafety(Off) raw_content.substr(15));
-		
-		final garbage = x.readLine();
-		#if (lua && jsonDump)
-		FileLib.Append(HxPath.join([FOLDER,"log.txt"]),raw_content + garbage + ';$content_length;');
-		#end
-		return content_length;
 	}
-
-	@:nullSafety(Off)
-	public static function recvMessage(x:Input):MessageResult {
-		var len = readHeader(x);
-		if (len == null) {
-			return ACK;
-		}
-		var dyn = x.readString(len, UTF8); // argh
-		#if (lua && jsonDump)
-		FileLib.Append(HxPath.join([FOLDER,"log.txt"]),dyn);
-		#end
-		return MESSAGE(Json.parse(dyn));
+	#if lua
+	if (onlySkipped) { // only happens on lua
+		return null;
 	}
+	#end
+	if (skip > 0) {
+		// skipped x
+		raw_content = raw_content.substr(skip);
+	}
+	var content_length = Std.parseInt(@:nullSafety(Off) raw_content.substr(15));
+	
+	final garbage = x.readLine();
+	#if (lua && jsonDump)
+	FileLib.Append(HxPath.join([FOLDER,"log.txt"]),raw_content + garbage + ';$content_length;');
+	#end
+	return content_length;
 }
+
+@:nullSafety(Off)
+function recvMessage(x:Input):MessageResult {
+	var len = readHeader(x);
+	if (len == null) {
+		return ACK;
+	}
+	var dyn = x.readString(len, UTF8); // argh
+	#if (lua && jsonDump)
+	FileLib.Append(HxPath.join([FOLDER,"log.txt"]),dyn);
+	#end
+	return MESSAGE(Json.parse(dyn));
+}
+
 
 enum CommMethod {
 	Pipe;
