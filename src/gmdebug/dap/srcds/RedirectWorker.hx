@@ -184,7 +184,7 @@ class RedirectWorker {
                 canLoop = false;
             }
             if (canLoop) {
-                Timers.setImmediate(mainLoop);
+                Timers.setTimeout(mainLoop,25);
             } else {
                 trace("Bugger off please");
                 r.Destroy();

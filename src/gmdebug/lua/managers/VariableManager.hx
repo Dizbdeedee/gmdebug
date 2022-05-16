@@ -39,7 +39,7 @@ class VariableManager {
 		var novalue = addv.novalue;
 		var ty = Gmod.type(val);
 		var id = Gmod.TypeID(val);
-		var stringReplace = switch (Lua.type(val)) {
+		var stringReplace = switch (ty) {
 			case "table":
 				"table";
 			case "string":

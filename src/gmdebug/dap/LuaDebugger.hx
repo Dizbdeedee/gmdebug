@@ -191,8 +191,7 @@ typedef Programs = {
 	function uncaughtException(err:js.lib.Error, origin) {
 		trace(err.message);
 		trace(err.stack);
-		shutdown();
-		// Timer.delay(() -> this.shutdown(), 2000);
+		// shutdown();
 	}
 
 	function pokeClients() {
@@ -215,6 +214,7 @@ typedef Programs = {
 			threadId: cl.clID,
 			reason: Started
 		}).send(this);
+		trace(cl.clID);
 		setupPlayer(cl.clID);
 		return Noise;
 	}
@@ -248,7 +248,7 @@ typedef Programs = {
 		}
 		final port = sp[1];
 		if (Sys.systemName() == "Linux") {
-			js.node.ChildProcess.spawn('xdg-open steam://connect/$ip:$port', {shell: true});
+			js.node.ChildProcess.spawn('xdg-open steam://connect/$ip:$port', {shell: true}); //FIXME client injection. malicious ect. ect.
 		} else {
 			js.node.ChildProcess.spawn('start steam://connect/$ip:$port', {shell: true});
 		}
@@ -312,8 +312,6 @@ typedef Programs = {
 		}
 	}
 
-	
-
 	function readGmodBuffer(jsBuf:Buffer, clientNo:Int) {
 		final messages = bytesProcessor.process(jsBuf, clientNo);
 		for (msg in messages) {
@@ -347,7 +345,6 @@ typedef Programs = {
 	}
 
 	override public function shutdown() {
-		// trace("shutdown attempted");
 		shutdownActive = true;
 		switch (dapMode) {
 			case LAUNCH(child = {active : true}):

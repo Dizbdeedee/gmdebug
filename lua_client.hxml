@@ -1,18 +1,4 @@
--cp src
+lua.hxml
 -D client
--lib gmodhaxe
--lib safety
--lib tink_json
--lib profiler
-
--D noGenInit
--D addonName=debugee
--D analyzer-optimize
-
-# -D gmodAddonFolder=/home/steam/.steam/SteamApps/common/GarrysModDS/garrysmod/addons/
--D lua-ver=5.1
--dce full
---macro gmod.helpers.macros.InitMacro.init()
---cmd haxe -lib gmodhaxe --run gmod.helpers.macros.PostCompileMacro
 -main gmdebug.lua.Start
--lua out/lua/debugee_cl.lua
+-lua /dev/null

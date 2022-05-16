@@ -55,8 +55,7 @@ function readHeader(x:Input) {
 		raw_content = raw_content.substr(skip);
 	}
 	var content_length = Std.parseInt(@:nullSafety(Off) raw_content.substr(15));
-	
-	final garbage = x.readLine();
+	x.readLine();
 	#if (lua && jsonDump)
 	FileLib.Append(HxPath.join([FOLDER,"log.txt"]),raw_content + garbage + ';$content_length;');
 	#end

@@ -20,7 +20,8 @@ typedef InitDebugLoop = {
 	bm : BreakpointManager,
 	sc : SourceContainer,
 	fbm : FunctionBreakpointManager,
-	debugee : Debugee
+	debugee : Debugee,
+	exceptions : Exceptions
 }
 
 class DebugLoop {
@@ -71,6 +72,8 @@ class DebugLoop {
 
 	static var sc:Null<SourceContainer>;
 
+	static var exceptions:Null<Exceptions>;
+
 	static var debugee:Debugee;
 
 	static var fbm:Null<FunctionBreakpointManager>;
@@ -80,6 +83,7 @@ class DebugLoop {
 		sc = initDebugLoop.sc;
 		debugee = initDebugLoop.debugee;
 		fbm = initDebugLoop.fbm;
+		exceptions = initDebugLoop.exceptions;
 	}
 
 	inline static function nextCallStop(sinfo:SourceInfo, bp:Map<Int, Dynamic>) {
@@ -357,7 +361,7 @@ class DebugLoop {
 			tmp;
 		}
 		DebugLoopProfile.profile("step");
-		if (Exceptions.exceptFuncs != null && func != null && Exceptions.exceptFuncs.exists(func))
+		@:privateAccess if (exceptions.exceptFuncs != null && func != null && exceptions.exceptFuncs.exists(func))
 			return;
 		final stepping = debug_step(cur, func, currentLine);
 		DebugLoopProfile.profile("getbptable");

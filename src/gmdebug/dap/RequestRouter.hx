@@ -59,7 +59,6 @@ class RequestRouter {
 			case setBreakpoints:
 				prevRequests.update(req);
 				clients.sendAll(req);	
-			// h_setBreakpoints(req);
 			case setExceptionBreakpoints:
 				prevRequests.update(req);
 				clients.sendAll(req);

@@ -4,15 +4,19 @@ import gmod.libs.DebugLib;
 import gmdebug.composer.ComposedEvent;
 
 typedef InitHStackTrace = {
-	debugee : Debugee
+	debugee : Debugee,
+	exceptions : Exceptions
 }
 
 class HStackTrace implements IHandler<StackTraceRequest> {
 
 	final debugee:Debugee;
 
+	final exceptions:Exceptions;
+
 	public function new(init:InitHStackTrace) {
 		debugee = init.debugee;
+		exceptions = init.exceptions;
 	}
 
 	public function handle(x:StackTraceRequest):HandlerResponse {
@@ -122,7 +126,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 					endColumn = 99999;
 			}
 			hint = Normal;
-			if (info.func != null && Exceptions.isExcepted(info.func)) {
+			if (info.func != null && exceptions.isExcepted(info.func)) {
 				line = 0;
 				path = null;
 				column = 0;

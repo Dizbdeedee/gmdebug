@@ -10,8 +10,6 @@ class FunctionBreakpointManager  {
 
 	public function new() {}
 
-	
-
 	public function bpSet(x:Function) {
 		return functionBP.exists(x);
 	}

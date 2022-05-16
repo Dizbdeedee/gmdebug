@@ -19,17 +19,17 @@ class HSetExceptionBreakpoints implements IHandler<SetExceptionBreakpointsReques
 		for (filter in x.arguments.unsafe().filters) {
 			switch (filter) {
 				case gamemode:
-					Exceptions.hookGamemodeHooks();
+					// Exceptions.hookGamemodeHooks();
 					gamemodeSet = true;
 				case entities:
-					Exceptions.hookEntityHooks();
+					// Exceptions.hookEntityHooks();
 					entitiesSet = true;
 			}
 		}
 		if (!gamemodeSet)
-			Exceptions.unhookGamemodeHooks();
+			// Exceptions.unhookGamemodeHooks();
 		if (!entitiesSet)
-			Exceptions.unhookEntityHooks();
+			// Exceptions.unhookEntityHooks();
 		debugee.sendMessage(resp);
 		return WAIT;
 	}

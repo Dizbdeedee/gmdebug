@@ -1,0 +1,17 @@
+-cp src
+-lib gmodhaxe
+-lib safety
+-lib tink_json
+-lib tink_core
+-lib profiler
+-D gmddebug
+-D addonName=debugee
+-D analyzer-optimize
+-D noGenInit
+-D haxeJSON
+-D lua-ver=5.1
+--resource src/gmdebug/lua/include/CountReturns.lua@CountReturns
+--resource src/gmdebug/lua/include/TestExcept.lua@TestExcept
+-dce full
+--macro gmod.helpers.macros.InitMacro.init()
+--cmd haxe -lib gmodhaxe --run gmod.helpers.macros.PostCompileMacro

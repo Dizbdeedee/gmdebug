@@ -112,6 +112,8 @@ class Debugee {
 
 	final hc:Null<HandlerContainer>;
 
+	final exceptions:Null<Exceptions>;
+
 	final bm:Null<BreakpointManager>;
 
 	final fbm:Null<FunctionBreakpointManager>;
@@ -159,8 +161,10 @@ class Debugee {
 			new PipeSocket(generateLocations(checkFreeSlots()));
 		} catch (e) {
 			trace(e);
+			Logger.log("No free locations");
 			return false;
 		}
+		Logger.log("We made it");
 		trace("Connected to server...");
 		socketActive = true;
 		sendMessage(new ComposedEvent(initialized));
@@ -178,7 +182,7 @@ class Debugee {
 			return false;
 		}
 		DebugHook.addHook(DebugLoop.debugloop, "c");
-		Exceptions.tryHooks();
+		exceptions.hooks();
 		G.__gmdebugTraceback = traceback;
 		HookLib.Add(ShutDown,"debugee-shutdown",() -> {
 			shutdown();
@@ -221,21 +225,21 @@ class Debugee {
 
 		// 	}).send();
 		// });
-		HookLib.Add(PlayerDisconnected, "gmdebug-byeplayer", (ply) -> {
-			sendMessage(new ComposedGmDebugMessage(playerRemoved, {
-				playerID: ply.UserID()
-			}));
-		});
-		for (ply in PlayerLib.GetAll()) {
-			sendMessage(new ComposedGmDebugMessage(playerAdded, {
-				name: ply.Name(),
-				playerID: ply.UserID()
-			}));
-		}
+		// HookLib.Add(PlayerDisconnected, "gmdebug-byeplayer", (ply) -> {
+		// 	sendMessage(new ComposedGmDebugMessage(playerRemoved, {
+		// 		playerID: ply.UserID()
+		// 	}));
+		// });
+		// for (ply in PlayerLib.GetAll()) {
+		// 	sendMessage(new ComposedGmDebugMessage(playerAdded, {
+		// 		name: ply.Name(),
+		// 		playerID: ply.UserID()
+		// 	}));
+		// }
 	}
 	#end
 
-	function traceback(err:Any) {
+	public function traceback(err:Any) {
 		final _err = err;
 		if (pollActive) return err;
 		if (checkIgnoreError(err))
@@ -303,6 +307,7 @@ class Debugee {
 	}
 
 	public function new() {
+		Logger.init();
 		DebugHook.addHook();
 		if (G.previousSocket != null) {
 			G.previousSocket.close();
@@ -323,18 +328,21 @@ class Debugee {
 		bm = new BreakpointManager({
 			debugee: this 
 		});
+		exceptions = new Exceptions(this);
 		fbm = new FunctionBreakpointManager();
 		hc = new HandlerContainer({
 			vm : vm,
 			debugee: this,
 			fbm : fbm,
-			bm : bm
+			bm : bm,
+			exceptions: exceptions
 		});
 		DebugLoop.init({
 			bm: bm,
 			debugee: this,
 			fbm: fbm,
-			sc: sc
+			sc: sc,
+			exceptions: exceptions
 		});
 		#if server
 		GameLib.ConsoleCommand("sv_timeout 999999\n");
@@ -407,8 +415,8 @@ class Debugee {
 		socket = null;
 		socketActive = false;
 		trace("Debugging aborted");
-		Exceptions.unhookGamemodeHooks();
-		Exceptions.unhookEntityHooks();
+		// Exceptions.unhookGamemodeHooks();
+		// Exceptions.unhookEntityHooks();
 	}
 
 	function startLoop() {

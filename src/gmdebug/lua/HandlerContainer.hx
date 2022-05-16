@@ -20,7 +20,8 @@ typedef InitHandlerContainer = {
 	vm : VariableManager,
 	bm : BreakpointManager,
 	fbm : FunctionBreakpointManager,
-	debugee : Debugee
+	debugee : Debugee,
+	exceptions : Exceptions
 }
 
 class HandlerContainer {
