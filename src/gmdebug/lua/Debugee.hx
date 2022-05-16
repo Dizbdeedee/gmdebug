@@ -255,7 +255,7 @@ class Debugee {
 			}
 			switch (chooseHandler(msg)) {
 				case DISCONNECT:
-					abortDebugee();
+					shutdown();
 				case WAIT | CONTINUE | CONFIG_DONE:
 			}
 		} catch (e:haxe.Exception) {
@@ -371,7 +371,7 @@ class Debugee {
 	}
 	#end
 
-	function abortDebugee() {
+	function shutdown() {
 		DebugHook.addHook();
 		socket.run((sock) -> {
 			sock.close();
@@ -401,7 +401,7 @@ class Debugee {
 			switch (chooseHandler(msg)) {
 				case WAIT | CONTINUE:
 				case DISCONNECT:
-					abortDebugee();
+					shutdown();
 					success = false;
 					break;
 				case CONFIG_DONE:
@@ -429,7 +429,7 @@ class Debugee {
 				case CONTINUE:
 					break;
 				case DISCONNECT:
-					abortDebugee();
+					shutdown();
 					break;
 			}
 		}
