@@ -2,3 +2,5 @@ node_modules
 *.vsix
 lib
 dogfood.sh
+generated
+bin
