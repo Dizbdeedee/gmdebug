@@ -22,12 +22,21 @@ typedef PipeSocketLocations = {
 	
 typedef ReadFunc = (buf:js.node.Buffer) -> Void;
 
+private typedef MakeLinksWin = {
+	debugee_input : String,
+	debugee_output : String,
+	pipe_input : String,
+	pipe_output : String
+}
+
 @:await
 class PipeSocket {
 
 	static final WIN_PIPE_NAME_IN = "\\\\.\\pipe\\gmdebugin";
 
 	static final WIN_PIPE_NAME_OUT = "\\\\.\\pipe\\gmdebugout";
+
+	static var nextWinPipeNo = 0;
 
     var writeS:Socket;
 
@@ -63,12 +72,20 @@ class PipeSocket {
 
 	@:async public function aquireWindows() {
 		trace("Waiting for windows socket");
+		final pipeNo = nextWinPipeNo++;
 		final serverIn = Net.createServer();
-		serverIn.listen(WIN_PIPE_NAME_IN);
+		final pipeInName = '$WIN_PIPE_NAME_IN$pipeNo';
+		serverIn.listen(pipeInName);
 		final serverOut = Net.createServer();
-		serverOut.listen(WIN_PIPE_NAME_OUT);
+		final pipeOutName = '$WIN_PIPE_NAME_OUT$pipeNo';
+		serverOut.listen(pipeOutName);
 		trace("Making links...");
-		@:await makeLinksWindows(locs.debugee_input, locs.debugee_output).eager();
+		@:await makeLinksWindows({
+			debugee_input :	locs.debugee_input,
+			debugee_output : locs.debugee_output,
+			pipe_input : pipeInName,
+			pipe_output : pipeOutName
+		}).eager();
 		sys.io.File.saveContent(locs.ready,"");
 		final sockets = @:await aquireWindowsSocket(serverIn,serverOut);
 		trace("Servers created");
@@ -92,8 +109,6 @@ class PipeSocket {
 		trace("Aquired socket...");
 		return Noise;
 	}
-
-	
 
 	function makeFifos(input:String, output:String) {
 
@@ -119,10 +134,10 @@ class PipeSocket {
 	}
 
 
-	function makeLinksWindows(debugee_input:String,debugee_output:String):Promise<Noise> {
-		final inpPath = js.node.Path.normalize(debugee_input);
-		final outPath = js.node.Path.normalize(debugee_output);
-		final cmd = 'mklink "$inpPath" "$WIN_PIPE_NAME_IN" && mklink "$outPath" "$WIN_PIPE_NAME_OUT"';
+	function makeLinksWindows(args:MakeLinksWin):Promise<Noise> {
+		final inpPath = js.node.Path.normalize(args.debugee_input);
+		final outPath = js.node.Path.normalize(args.debugee_output);
+		final cmd = 'mklink "$inpPath" "${args.pipe_input}" && mklink "$outPath" "${args.pipe_output}"';
 		return if (!FileSystem.exists(inpPath) && !FileSystem.exists(outPath)) {
 			try {
 				ChildProcess.execSync(cmd);
