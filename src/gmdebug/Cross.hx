@@ -16,21 +16,21 @@ import haxe.Json;
 import haxe.io.Input;
 import haxe.io.Path as HxPath;
 
-final FOLDER = "gmdebug";
+final PATH_FOLDER = "gmdebug";
 
-final CLIENT_READY = "clientready.dat";
+final PATH_CLIENT_PATH_READY = "clientready.dat";
 
-final INPUT = "in.dat";
+final PATH_INPUT = "in.dat";
 
-final OUTPUT = "out.dat";
+final PATH_OUTPUT = "out.dat";
 
-final READY = "ready.dat";
+final PATH_READY = "ready.dat";
 
-final DATA = "data";
+final PATH_DATA = "data";
 
-final AQUIRED = "aquired.dat";
+final PATH_AQUIRED = "aquired.dat";
 
-final JIT = HxPath.join([FOLDER, "jitchoice.txt"]);
+final JIT = HxPath.join([PATH_FOLDER, "jitchoice.txt"]);
 
 @:nullSafety(Off)
 function readHeader(x:Input) {
@@ -57,7 +57,7 @@ function readHeader(x:Input) {
 	var content_length = Std.parseInt(@:nullSafety(Off) raw_content.substr(15));
 	x.readLine();
 	#if (lua && jsonDump)
-	FileLib.Append(HxPath.join([FOLDER,"log.txt"]),raw_content + garbage + ';$content_length;');
+	FileLib.Append(HxPath.join([PATH_FOLDER,"log.txt"]),raw_content + garbage + ';$content_length;');
 	#end
 	return content_length;
 }
@@ -70,7 +70,7 @@ function recvMessage(x:Input):MessageResult {
 	}
 	var dyn = x.readString(len, UTF8); // argh
 	#if (lua && jsonDump)
-	FileLib.Append(HxPath.join([FOLDER,"log.txt"]),dyn);
+	FileLib.Append(HxPath.join([PATH_FOLDER,"log.txt"]),dyn);
 	#end
 	return MESSAGE(Json.parse(dyn));
 }

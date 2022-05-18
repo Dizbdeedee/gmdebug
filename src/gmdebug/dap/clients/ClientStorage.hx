@@ -53,7 +53,7 @@ class ClientStorage {
 	function status(loc:String):ConnectionStatus {
 		return if (!FileSystem.exists(loc)) {
 			NOT_AVALIABLE;
-		} else if (FileSystem.exists(join([loc,AQUIRED]))) {
+		} else if (FileSystem.exists(join([loc,PATH_AQUIRED]))) {
 			TAKEN;
 		} else {
 			AVALIABLE;
@@ -61,17 +61,17 @@ class ClientStorage {
 	}
 
 	function getFreeFolder(loc:String):String {
-		switch (status(join([loc,DATA,FOLDER]))) {
+		switch (status(join([loc,PATH_DATA,PATH_FOLDER]))) {
 			case AVALIABLE:
-				return join([loc,DATA,FOLDER]);
+				return join([loc,PATH_DATA,PATH_FOLDER]);
 			case NOT_AVALIABLE:
 				throw new Error("No free connections");
 			case TAKEN:
 		}
 		for (i in 1...127) {
-			switch (status(join([loc,DATA,'$FOLDER$i']))) {
+			switch (status(join([loc,PATH_DATA,'$PATH_FOLDER$i']))) {
 				case AVALIABLE:
-					return join([loc,DATA,'$FOLDER$i']);
+					return join([loc,PATH_DATA,'$PATH_FOLDER$i']);
 				case NOT_AVALIABLE:
 					throw new Error('No free connections $i');
 				case TAKEN:
@@ -82,12 +82,12 @@ class ClientStorage {
 
 	function generateSocketLocations(chosenFolder:String):PipeSocketLocations {
 		return {
-			debugee_output : join([chosenFolder,OUTPUT]),
-			debugee_input : join([chosenFolder,INPUT]),
-			ready : join([chosenFolder,READY]),
-			client_ready : join([chosenFolder,CLIENT_READY]),
+			debugee_output : join([chosenFolder,PATH_OUTPUT]),
+			debugee_input : join([chosenFolder,PATH_INPUT]),
+			ready : join([chosenFolder,PATH_READY]),
+			client_ready : join([chosenFolder,PATH_CLIENT_PATH_READY]),
 			folder : chosenFolder,
-			aquired : join([chosenFolder,AQUIRED])
+			aquired : join([chosenFolder,PATH_AQUIRED])
 		};
 	}
 

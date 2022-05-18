@@ -1,6 +1,6 @@
 package gmdebug.lua.io;
 
-import gmdebug.Cross.AQUIRED;
+import gmdebug.Cross.PATH_AQUIRED;
 import haxe.io.Encoding;
 import lua.lib.luasocket.socket.TcpClient;
 import haxe.io.Bytes;
@@ -22,17 +22,17 @@ typedef PipeLocations = {
 
 enum AquireProcess {
 	WAITING_FOR_CONNECTION;
-	WAITING_FOR_INPUT_EXIST;
-	WAITING_FOR_INPUT_OPEN;
-	WAITING_FOR_OUTPUT;
+	WAITING_FOR_PATH_INPUT_EXIST;
+	WAITING_FOR_PATH_INPUT_OPEN;
+	WAITING_FOR_PATH_OUTPUT;
 	AQUIRED;
 }
 
 class PipeSocket implements DebugIO {
 
-	public final input:PipeInput;
+	public var input:PipeInput;
 
-	public final output:PipeOutput;
+	public var output:PipeOutput;
 
 	final locs:PipeLocations;
 	
@@ -45,7 +45,7 @@ class PipeSocket implements DebugIO {
 		
 	}
 
-	public function aquire() {
+	public function aquire():AquireProcess {
 		if (!FileLib.Exists(locs.ready, DATA)) {
 			return WAITING_FOR_CONNECTION;
 		}
@@ -62,7 +62,7 @@ class PipeSocket implements DebugIO {
 		output.writeString("\004"); //mark ready for writing...
 		FileLib.Delete(locs.ready);
 		FileLib.Delete(locs.client_ready);
-		FileLib.Write(join([locs.folder,AQUIRED]),"");
+		// FileLib.Write(join([locs.folder,AQUIRED]),"");
 		return AQUIRED;
 	}
 
@@ -86,13 +86,13 @@ class PipeInput extends Input {
 		locs = _locs;
 	}
 
-	public function aquire() {
+	public function aquire():AquireProcess {
 		if (!FileLib.Exists(locs.input, DATA)) {
-			return WAITING_FOR_INPUT;
+			return WAITING_FOR_PATH_INPUT_EXIST;
 		}
 		final f = FileLib.Open(locs.input, FileOpenMode.bin_read, DATA);
 		if (f == null)
-			return WAITING_FOR_INPUT;
+			return WAITING_FOR_PATH_INPUT_OPEN;
 		file = f;
 		return AQUIRED;
 	}
@@ -123,7 +123,7 @@ class PipeOutput extends Output {
 		//DO NOT CHECK FOR EXISTS HERE
 		final f = FileLib.Open(locs.output, FileOpenMode.write, DATA);
 		if (f == null)
-			return WAITING_FOR_OUTPUT;
+			return WAITING_FOR_PATH_OUTPUT;
 		file = f;
 		return AQUIRED;
 	}

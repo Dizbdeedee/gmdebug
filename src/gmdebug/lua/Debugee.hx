@@ -124,7 +124,7 @@ class Debugee {
 	function freeFolder(folder:String):Bool {
 		return if (!FileLib.Exists(folder,DATA)) {
 			true;
-		} else if (!FileLib.Exists(join([folder,AQUIRED]),DATA)) {
+		} else if (!FileLib.Exists(join([folder,PATH_AQUIRED]),DATA)) {
 			true;
 		} else {
 			false;
@@ -132,12 +132,12 @@ class Debugee {
 	}
 
 	function checkFreeSlots():String {
-		if (freeFolder(FOLDER)) {
-			return FOLDER;
+		if (freeFolder(PATH_FOLDER)) {
+			return PATH_FOLDER;
 		}
 		for (i in 1...127) {
-			if (freeFolder('$FOLDER$i')) {
-				return '$FOLDER$i';
+			if (freeFolder('$PATH_FOLDER$i')) {
+				return '$PATH_FOLDER$i';
 			}
 		}
 		throw "Can't find a free folder to claim";
@@ -147,24 +147,24 @@ class Debugee {
 		FileLib.CreateDir(folder);
 		return {
 			folder : folder,
-			client_ready: join([folder,CLIENT_READY]),
-			output: join([folder,OUTPUT]),
-			input: join([folder,INPUT]),
-			ready: join([folder,READY])
+			client_ready: join([folder,PATH_CLIENT_PATH_READY]),
+			output: join([folder,PATH_OUTPUT]),
+			input: join([folder,PATH_INPUT]),
+			ready: join([folder,PATH_READY])
 		}
 	}
 
-	var aquiringSocket;
+	var aquiringSocket:PipeSocket;
 
 	public function start() {
 		if (socketActive)
 			return false;
 		if (aquiringSocket == null) {
 			aquiringSocket = new PipeSocket(generateLocations(checkFreeSlots()));
-		}
+		}		
 		final result = aquiringSocket.aquire();
 		if (result != AQUIRED) {
-			Logger.log(result);
+			Logger.log('Aquire $result');
 			return false;
 		}
 		Logger.log("We made it");
