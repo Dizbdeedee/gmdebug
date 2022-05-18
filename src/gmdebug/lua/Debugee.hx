@@ -154,14 +154,17 @@ class Debugee {
 		}
 	}
 
+	var aquiringSocket;
+
 	public function start() {
 		if (socketActive)
 			return false;
-
-		socket = try {
-			new PipeSocket(generateLocations(checkFreeSlots()));
-		} catch (e) {
-			Logger.log(e);
+		if (aquiringSocket == null) {
+			aquiringSocket = new PipeSocket(generateLocations(checkFreeSlots()));
+		}
+		final result = aquiringSocket.aquire();
+		if (result != AQUIRED) {
+			Logger.log(result);
 			return false;
 		}
 		Logger.log("We made it");

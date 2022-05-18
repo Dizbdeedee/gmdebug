@@ -20,6 +20,14 @@ typedef PipeLocations = {
 	output : String
 }
 
+enum AquireProcess {
+	WAITING_FOR_CONNECTION;
+	WAITING_FOR_INPUT_EXIST;
+	WAITING_FOR_INPUT_OPEN;
+	WAITING_FOR_OUTPUT;
+	AQUIRED;
+}
+
 class PipeSocket implements DebugIO {
 
 	public final input:PipeInput;
@@ -34,15 +42,28 @@ class PipeSocket implements DebugIO {
 			FileLib.CreateDir(locs.folder);
 		}
 		FileLib.Write(locs.client_ready,"");
+		
+	}
+
+	public function aquire() {
 		if (!FileLib.Exists(locs.ready, DATA)) {
-			throw "Other process is not ready.";
+			return WAITING_FOR_CONNECTION;
 		}
 		input = new PipeInput(locs);
 		output = new PipeOutput(locs);
+		final inputAq = input.aquire();
+		if (inputAq != AQUIRED) {
+			return inputAq;
+		}
+		final outputAq = output.aquire();
+		if (outputAq != AQUIRED) {
+			return outputAq;
+		}
 		output.writeString("\004"); //mark ready for writing...
 		FileLib.Delete(locs.ready);
 		FileLib.Delete(locs.client_ready);
 		FileLib.Write(join([locs.folder,AQUIRED]),"");
+		return AQUIRED;
 	}
 
 	public function close() {
@@ -58,20 +79,22 @@ class PipeSocket implements DebugIO {
 }
 
 class PipeInput extends Input {
-	final file:File;
+	var file:File;
 	final locs:PipeLocations;
 
 	public function new(_locs:PipeLocations) {
 		locs = _locs;
-		trace("Input exists");
+	}
+
+	public function aquire() {
 		if (!FileLib.Exists(locs.input, DATA)) {
-			throw "Input pipe does not exist";
+			return WAITING_FOR_INPUT;
 		}
-		trace("input open");
 		final f = FileLib.Open(locs.input, FileOpenMode.bin_read, DATA);
 		if (f == null)
-			throw "Cannot open Input pipe for reading";
+			return WAITING_FOR_INPUT;
 		file = f;
+		return AQUIRED;
 	}
 
 	override function readByte():Int {
@@ -89,19 +112,20 @@ class PipeInput extends Input {
 
 class PipeOutput extends Output {
 
-	final file:File;
+	var file:File;
 	final locs:PipeLocations;
 
 	public function new(_locs:PipeLocations) {
 		locs = _locs;
-		// if (!FileLib.Exists(Cross.OUTPUT,DATA)) { IT HANGS HERE :)
-		//     throw "Output pipe does not exist";
-		// }
-		trace("output open");
+	}
+
+	public function aquire() {
+		//DO NOT CHECK FOR EXISTS HERE
 		final f = FileLib.Open(locs.output, FileOpenMode.write, DATA);
 		if (f == null)
-			throw "Cannot open output pipe for reading";
+			return WAITING_FOR_OUTPUT;
 		file = f;
+		return AQUIRED;
 	}
 
 	override function close() {
