@@ -349,7 +349,7 @@ class DebugLoop {
 	public static function debugloop(cur:HookState, currentLine:Int) {
 		if (debugee.pollActive || debugee.tracebackActive)
 			return;
-		debug_checkBlownStack(cur);
+		// debug_checkBlownStack(cur);
 		DebugLoopProfile.profile("getinfo", true);
 		final func = DebugLib.getinfo(DebugHook.DEBUG_OFFSET, 'f').func;
 		final result = sc.sourceCache.get(func);

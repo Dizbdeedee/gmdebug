@@ -389,8 +389,6 @@ typedef Programs = {
 			default:
 				trace('Sent message type ${message.type} from dap. Not a request: not handling');				
 		}
-	
-	
 	}
 }
 

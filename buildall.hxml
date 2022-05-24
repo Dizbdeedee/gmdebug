@@ -15,5 +15,3 @@ lua_server.hxml
 --next
 
 lua_client.hxml
-
-# --cmd dogfood.bat

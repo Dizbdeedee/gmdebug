@@ -108,6 +108,7 @@ class ClientStorage {
 		final client = new Client(pipesocket,clID);
 		clients.push(client);
 		trace("client created");
+		// gmodIDMap.set(gmodID,client);
 		return client;
 	}
 
