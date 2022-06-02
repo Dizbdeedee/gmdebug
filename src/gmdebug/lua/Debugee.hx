@@ -167,6 +167,7 @@ class Debugee {
 			Logger.log('Aquire $result');
 			return false;
 		}
+		socket = aquiringSocket;
 		Logger.log("We made it");
 		trace("GMDEBUG SUCCESSFULLY CONNECTED");
 		socketActive = true;

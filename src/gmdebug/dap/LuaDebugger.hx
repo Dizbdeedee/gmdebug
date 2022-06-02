@@ -302,7 +302,9 @@ typedef Programs = {
 	function startPokeClients() {
 		if (clientLocation != null) {
 			poking = true;		
+			trace("Poking the client");
 			pokeClients();
+
 		}
 	}
 
