@@ -31,21 +31,9 @@ typedef Programs = {
 
 	static final SERVER_TIMEOUT = 15; //thanks peanut brain
 
-	public final commMethod:CommMethod;
-
 	public var dapMode:DapMode;
 
-	public var serverFolder:String;
-
-	public var programs:Programs;
-
-	public var shouldAutoConnect:Bool;
-
-	public var requestArguments:Null<GmDebugLaunchRequestArguments>;
-
 	var requestRouter:RequestRouter;
-
-	var clientLocation:String;
 
 	var bytesProcessor:BytesProcessor;
 
@@ -55,19 +43,14 @@ typedef Programs = {
 
 	var workspaceFolder:String;
 
+	public var initBundle:InitBundle;
+
 	public var shutdownActive(default,null):Bool;
 
 	public function new(?x, ?y, _workspaceFolder:String) {
 		super(x, y);
-		clientLocation = null;
-		serverFolder = null;
 		dapMode = ATTACH;
-		commMethod = Pipe;
-		programs = {
-			xdotool : false
-		}
 		workspaceFolder = _workspaceFolder;
-		requestArguments = null;
 		bytesProcessor = new BytesProcessor();
 		prevRequests = new PreviousRequests();
 		clients = new ClientStorage(readGmodBuffer);
@@ -78,83 +61,31 @@ typedef Programs = {
 		shutdownActive = false;
 		Sys.setCwd(HxPath.directory(HxPath.directory(Sys.programPath())));
 		checkPrograms();
-		shouldAutoConnect = false;
 	}
 
 	public function initFromRequest(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments) {
-		final serverFolderResult = validateServerFolder(args.serverFolder);
-		requestArguments = args;
-		if (serverFolderResult != None) {
-			serverFolderResult.sendError(req,this);
-			return;
-		}
-		if (!args.nodebugClient && args.clientFolder == null) {
-			
-			req.composeFail({
-				id: 2,
-				format: "If you wish to debug clients, you must specify clientFolder first, or add the option nodebugClient into your launch options",
-			}).send(this);
-			return;
-		}
-		if (!args.noCopy && args.addonName == null || args.addonFolderBase == null) {
-			req.composeFail({
-				id: 2,
-				format: "If you wish to copy your addon to the server on debug, specify both addonName and addonFolderBase or add the option noCopy into your launch options",
-			}).send(this);
-		}
-		final serverSlash = HxPath.addTrailingSlash(args.serverFolder);
-		serverFolder = serverSlash;
-		var programPath = switch (args.programPath) {
-			case null:
-				req.composeFail({
-					id: 2,
-					format: "Gmdebug requires the property \"programPath\" to be specified when launching",
-				}).send(this);
-				return;
-			case "auto":
-				if (Sys.systemName() == "Windows") {
-					'$serverFolder/../srcds.exe';
-				} else {
-					'$serverFolder/../srcds_run';
+		switch (InitBundle.initBundle(req,args,this)) {
+			case Success(_initBundle):
+				initBundle = _initBundle;
+				var childProcess = new LaunchProcess(initBundle.programPath,this,initBundle.programArgs);
+				if (args.noDebug) {
+					dapMode = LAUNCH(childProcess);
+					final comp = (req : LaunchRequest).compose(launch,{});
+					comp.send(this);
+					return;
 				}
-			case path:
-				path;
-		}
-		if (!HxPath.isAbsolute(programPath)) {
-			programPath = HxPath.join([serverFolder,programPath]);
-		}
-		final programPathResult = validateProgramPath(programPath);
-		if (programPathResult != None) {
-			programPathResult.sendError(req,this);
-			return;
-		}
-		shouldAutoConnect = args.autoConnectLocalGmodClient.or(false);
-		var childProcess = new LaunchProcess(programPath,this,args.programArgs);
-		if (args.noDebug) {
-			dapMode = LAUNCH(childProcess);
-			serverFolder = HxPath.addTrailingSlash(args.serverFolder);
-			final comp = (req : LaunchRequest).compose(launch,{});
-			comp.send(this);
-			return;
-		}
-		generateInitFiles(serverFolder);
-		copyGmDebugLuaFiles(serverFolder);
-		if (!args.noCopy) {
-			copyProjectFiles(args.addonFolderBase,args.addonName);
-		}
-		var clientFolder = args.clientFolder;
-		if (clientFolder != null) {
-			final clientFolderResult = validateClientFolder(clientFolder);
-			if (clientFolderResult != None) {
-				clientFolderResult.sendError(req,this);
-				return;
-			}
-			clientFolder = HxPath.addTrailingSlash(clientFolder);
-		}
-		setClientLocation(clientFolder);
-		dapMode = LAUNCH(childProcess);
-		startServer(req);
-		
+				generateInitFiles(initBundle.serverFolder);
+				copyGmDebugLuaFiles(initBundle.serverFolder);
+				if (!args.noCopy) {
+					copyProjectFiles(args.addonFolderBase,args.addonName);
+				}
+				dapMode = LAUNCH(childProcess);
+				startServer(req);
+			case Failure(e):
+				trace(e);
+				throw "Couldn't create initBundle";
+
+		};
 	}
 
 	function copyGmDebugLuaFiles(serverFolder:String) {
@@ -164,7 +95,7 @@ typedef Programs = {
 
 	function copyProjectFiles(relative:String,addonName:String) {
 		final luaAddon = HxPath.join([workspaceFolder,relative]);
-		final destination = HxPath.join([serverFolder,"addons",addonName]);
+		final destination = HxPath.join([initBundle.serverFolder,"addons",addonName]);
 		if (!Fs.existsSync(destination)) {
 			Fs.mkdirSync(destination);
 		}
@@ -212,7 +143,7 @@ typedef Programs = {
 		if (Sys.systemName() != "Linux") return;
 		try {
 			ChildProcess.execSync("xdotool --help");
-			programs.xdotool = true;
+			initBundle.programs.xdotool = true;
 		} catch (e) {
 			trace("Xdotool not found");
 			trace(e.toString());
@@ -227,7 +158,7 @@ typedef Programs = {
 
 	function pokeClients() {
 		if (!poking || shutdownActive) return;
-		playerTry(clientLocation).handle((out) -> {
+		playerTry(initBundle.clientLocation).handle((out) -> {
 			switch (out) {
 				case Success(_):
 
@@ -251,7 +182,7 @@ typedef Programs = {
 	}
 
 	function setupPlayer(clientID:Int) {
-		clients.sendClient(clientID, new ComposedGmDebugMessage(intialInfo, {location: serverFolder,dapMode : Launch}));
+		clients.sendClient(clientID, new ComposedGmDebugMessage(intialInfo, {location: initBundle.serverFolder,dapMode : Launch}));
 		clients.sendClient(clientID, new ComposedGmDebugMessage(GmMsgType.clientID, {id: clientID}));
 		prevRequests.get(setBreakpoints).run((msg) -> clients.sendClient(clientID,msg));
 		prevRequests.get(setExceptionBreakpoints).run((msg) -> clients.sendClient(clientID,msg));
@@ -275,7 +206,7 @@ typedef Programs = {
 			sp[0];
 		}
 		final port = sp[1];
-		if (requestArguments.clients == 1) {
+		if (initBundle.requestArguments.clients == 1) {
 			if (Sys.systemName() == "Linux") {
 				js.node.ChildProcess.spawn('xdg-open steam://connect/$ip:$port', {shell: true}); //FIXME client injection. malicious ect. ect.
 			} else {
@@ -283,15 +214,15 @@ typedef Programs = {
 			}
 		}
 		//TODO: proton
-		if (!requestArguments.noDebug && requestArguments.clients > 1) {
-			for (_ in 0...requestArguments.clients) {
+		if (!initBundle.requestArguments.noDebug && initBundle.requestArguments.clients > 1) {
+			for (_ in 0...initBundle.requestArguments.clients) {
 				openMultirun(ip,port);
 			}
 		}
 	}
 
 	function openMultirun(ip:String,port:String) {
-		final hl2 = HxPath.join([requestArguments.clientFolder,"..","hl2.exe"]);
+		final hl2 = HxPath.join([initBundle.requestArguments.clientFolder,"..","hl2.exe"]);
 		trace('$hl2 ${Fs.existsSync(hl2);}');
 		js.node.ChildProcess.spawn('"$hl2" -multirun -noconsole +sv_lan 1 +connect $ip:$port',{shell : true});
 	}
@@ -321,7 +252,7 @@ typedef Programs = {
 	}
 
 	@:await function pokeServerTimeout() {
-		@:await Promise.retry(clients.newServer.bind(serverFolder),(data) -> {
+		@:await Promise.retry(clients.newServer.bind(initBundle.serverFolder),(data) -> {
 			return if (data.elapsed > SERVER_TIMEOUT * 1000) {
 				new Error(Timeout,"Poke serverNamedPipes timed out");
 			} else {
@@ -331,9 +262,9 @@ typedef Programs = {
 		clients.sendServer(new ComposedGmDebugMessage(clientID, {id: 0}));
 		switch (dapMode) {
 			case ATTACH:
-				clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: serverFolder, dapMode: Attach}));
+				clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: initBundle.serverFolder, dapMode: Attach}));
 			case LAUNCH(_):
-				clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: serverFolder, dapMode: Launch}));
+				clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: initBundle.serverFolder, dapMode: Launch}));
 		}
 	}
 	
@@ -343,7 +274,7 @@ typedef Programs = {
 	var poking:Bool;
 
 	function startPokeClients() {
-		if (clientLocation != null) {
+		if (initBundle.clientLocation != null) {
 			poking = true;		
 			trace("Poking the client");
 			pokeClients();
@@ -400,17 +331,12 @@ typedef Programs = {
 		sendEvent(new ComposedEvent(terminated, {}));
 		sendEvent(new ComposedEvent(exited,{exitCode: 0}));
 		clients.disconnectAll();
-		final dir = HxPath.join([serverFolder,"addons","debugee"]);
+		final dir = HxPath.join([initBundle.serverFolder,"addons","debugee"]);
 		if (Fs.existsSync(dir)) {
 			untyped Fs.rmSync(dir,{recursive : true, force : true});
 		}
 		trace("Final shutdown active");
 		super.shutdown();
-	}
-
-
-	public function setClientLocation(a:String) {
-		return clientLocation = a;
 	}
 
 	public override function handleMessage(message:ProtocolMessage) {
