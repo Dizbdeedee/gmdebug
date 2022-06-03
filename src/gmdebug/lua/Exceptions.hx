@@ -40,7 +40,7 @@ class Exceptions {
     public function new(_debugee:Debugee) {
         debugee = _debugee;
         exceptFuncs.setWeakKeyValuesM();
-        // WeakTools.setGCMethod(cast this,__gc);
+        WeakTools.setGCMethod(cast this,__gc);
     }
 
     public function hooks() {
