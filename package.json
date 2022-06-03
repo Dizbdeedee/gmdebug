@@ -46,7 +46,8 @@
 						"required": [
 							"serverFolder",
 							"programPath",
-							"programArgs"
+							"programArgs",
+							"addonFolderName"
 						],
 						"properties": {
 							"serverFolder": {
@@ -73,10 +74,30 @@
 									"1"
 								]
 							},
-							"autoConnectLocalGmodClient": {
+							"nodebugClient": {
 								"type": "bool",
-								"description": "For convinence, when the server has launched you can have your steam account autoconnect to it",
+								"description": "More of a reminder that to debug clients, you need to specify clientFolder. If you set clients to 1 without this, gmdebug will not run",
 								"default": true
+							},
+							"clients": {
+								"type": "number",
+								"description": "Number of clients to autolaunch",
+								"default": 1
+							},
+							"noCopy": {
+								"type": "bool",
+								"description": "Add to disable copying your addon, and make addonFolderBase and addonName not required",
+								"default": true
+							},
+							"addonFolderBase": {
+								"type": "string",
+								"description": "Copy everything inside specifed folder to addons/{addonName} (which you must also specify)",
+								"default": "./"
+							},
+							"addonName": {
+								"type": "string",
+								"description": "The name of the addon folder when copied into the server garrysmod/addons folder",
+								"default": "really_cool_addon"
 							}
 						}
 					}
@@ -95,7 +116,11 @@
 							"+sv_lan",
 							"1"
 						],
-						"autoConnectLocalGmodClient": true
+						"nodebugClient" : true,
+						"clients" : 1,
+						"addonName": "really_cool_addon",
+						"addonFolderBase": "./"
+						
 						
 					}
 				],
@@ -109,7 +134,10 @@
 							"name": "gmdebug : Launch server",
 							"serverFolder": "/path_to_server_from_root/garrysmod",
 							"programPath": "auto",
-							"autoConnectLocalGmodClient": true
+							"nodebugClient" : true,
+							"clients" : 1,
+							"addonName": "really_cool_addon",
+							"addonFolderBase": "./"
 						}
 					}
 				]

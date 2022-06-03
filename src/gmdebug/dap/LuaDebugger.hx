@@ -53,9 +53,11 @@ typedef Programs = {
 
 	var clients:ClientStorage;
 
+	var workspaceFolder:String;
+
 	public var shutdownActive(default,null):Bool;
 
-	public function new(?x, ?y) {
+	public function new(?x, ?y, _workspaceFolder:String) {
 		super(x, y);
 		clientLocation = null;
 		serverFolder = null;
@@ -64,6 +66,7 @@ typedef Programs = {
 		programs = {
 			xdotool : false
 		}
+		workspaceFolder = _workspaceFolder;
 		requestArguments = null;
 		bytesProcessor = new BytesProcessor();
 		prevRequests = new PreviousRequests();
@@ -85,11 +88,25 @@ typedef Programs = {
 			serverFolderResult.sendError(req,this);
 			return;
 		}
+		if (!args.nodebugClient && args.clientFolder == null) {
+			
+			req.composeFail({
+				id: 2,
+				format: "If you wish to debug clients, you must specify clientFolder first, or add the option nodebugClient into your launch options",
+			}).send(this);
+			return;
+		}
+		if (!args.noCopy && args.addonName == null || args.addonFolderBase == null) {
+			req.composeFail({
+				id: 2,
+				format: "If you wish to copy your addon to the server on debug, specify both addonName and addonFolderBase or add the option noCopy into your launch options",
+			}).send(this);
+		}
 		final serverSlash = HxPath.addTrailingSlash(args.serverFolder);
 		serverFolder = serverSlash;
 		var programPath = switch (args.programPath) {
 			case null:
-				req.composeFail("Gmdebug requires the property \"programPath\" to be specified when launching.", {
+				req.composeFail({
 					id: 2,
 					format: "Gmdebug requires the property \"programPath\" to be specified when launching",
 				}).send(this);
@@ -121,7 +138,10 @@ typedef Programs = {
 			return;
 		}
 		generateInitFiles(serverFolder);
-		copyLuaFiles(serverFolder);
+		copyGmDebugLuaFiles(serverFolder);
+		if (!args.noCopy) {
+			copyProjectFiles(args.addonFolderBase,args.addonName);
+		}
 		var clientFolder = args.clientFolder;
 		if (clientFolder != null) {
 			final clientFolderResult = validateClientFolder(clientFolder);
@@ -137,10 +157,21 @@ typedef Programs = {
 		
 	}
 
-	function copyLuaFiles(serverFolder:String) {
+	function copyGmDebugLuaFiles(serverFolder:String) {
 		final addonFolder = HxPath.join([serverFolder, "addons"]);
 		recurseCopy('generated',addonFolder,(_) -> true);
 	}
+
+	function copyProjectFiles(relative:String,addonName:String) {
+		final luaAddon = HxPath.join([workspaceFolder,relative]);
+		final destination = HxPath.join([serverFolder,"addons",addonName]);
+		if (!Fs.existsSync(destination)) {
+			Fs.mkdirSync(destination);
+		}
+		recurseCopy(luaAddon,destination,(file -> {trace(file); return file.charAt(0) != ".";}));
+	}
+
+	
 
 	function generateInitFiles(serverFolder:String) {
 		final initFile = HxPath.join([serverFolder,"lua","includes","init.lua"]);
@@ -170,7 +201,7 @@ typedef Programs = {
 		resp.send(this);
 		try {
 			pokeServerTimeout();
-			startPokeClients();
+			// startPokeClients();
 		} catch (e) {
 			shutdown();
 			throw e;
@@ -237,9 +268,6 @@ typedef Programs = {
 	}
 
 	function serverInfoMessage(x:GMServerInfoMessage) {
-		if (!requestArguments.autoConnectLocalGmodClient) {
-			return;
-		}
 		final sp = x.ip.split(":");
 		final ip = if (x.isLan) {
 			gmdebug.lib.js.Ip.address();
@@ -247,11 +275,25 @@ typedef Programs = {
 			sp[0];
 		}
 		final port = sp[1];
-		if (Sys.systemName() == "Linux") {
-			js.node.ChildProcess.spawn('xdg-open steam://connect/$ip:$port', {shell: true}); //FIXME client injection. malicious ect. ect.
-		} else {
-			js.node.ChildProcess.spawn('start steam://connect/$ip:$port', {shell: true});
+		if (requestArguments.clients == 1) {
+			if (Sys.systemName() == "Linux") {
+				js.node.ChildProcess.spawn('xdg-open steam://connect/$ip:$port', {shell: true}); //FIXME client injection. malicious ect. ect.
+			} else {
+				js.node.ChildProcess.spawn('start steam://connect/$ip:$port', {shell: true});
+			}
 		}
+		//TODO: proton
+		if (!requestArguments.noDebug && requestArguments.clients > 1) {
+			for (_ in 0...requestArguments.clients) {
+				openMultirun(ip,port);
+			}
+		}
+	}
+
+	function openMultirun(ip:String,port:String) {
+		final hl2 = HxPath.join([requestArguments.clientFolder,"..","hl2.exe"]);
+		trace('$hl2 ${Fs.existsSync(hl2);}');
+		js.node.ChildProcess.spawn('"$hl2" -multirun -noconsole +sv_lan 1 +connect $ip:$port',{shell : true});
 	}
 
 	function processCustomMessages(x:GmDebugMessage<Dynamic>) {
@@ -294,6 +336,7 @@ typedef Programs = {
 				clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: serverFolder, dapMode: Launch}));
 		}
 	}
+	
 
 	var pokeClientCancel:Timeout;
 
@@ -381,7 +424,7 @@ typedef Programs = {
 				} catch (e) {
 					trace('Failed to handle message ${e.toString()}');
 					trace(e.stack);
-					final fail = (cast message : Request<Dynamic>).composeFail(e.message,{
+					final fail = (cast message : Request<Dynamic>).composeFail({
 						id: 15,
 						format: e.toString()
 					});

@@ -1,23 +1,36 @@
 package gmdebug.dap;
-typedef InitBundle {
-    serverFolderResult : String,
-    requestArguments : String,
-    serverFolder : String,
-    programPath : String,
-    p
-}
 class InitBundle {
-
-
 
     function new() {
 
     }
 
+	public var dapMode:DapMode;
+
+	public var serverFolder:String;
+
+	public var programs:Programs;
+
+	public var shouldAutoConnect:Bool;
+
+	public var requestArguments:Null<GmDebugLaunchRequestArguments>;
+
+	var requestRouter:RequestRouter;
+
+	var clientLocation:String;
+
+	var bytesProcessor:BytesProcessor;
+
+	var prevRequests:PreviousRequests;
+
+	var clients:ClientStorage;
+
+	var workspaceFolder:String;
+
     public static function initBundle(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments):Result<InitBundle> {
         final initBundle = new InitBundle();
         final serverFolderResult = validateServerFolder(args.serverFolder);
-		requestArguments = args;
+		initBundlerequestArguments = args;
 		if (serverFolderResult != None) {
 			serverFolderResult.sendError(req,this);
 			return;

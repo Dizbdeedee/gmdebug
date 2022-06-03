@@ -93,5 +93,27 @@ typedef GmDebugLaunchRequestArguments = LaunchRequestArguments &
 	/**
 		Should the dap automatically connect your steam instance to the server?
 	**/
-	?autoConnectLocalGmodClient : Bool
+	?autoConnectLocalGmodClient : Bool,
+
+	/**
+		Number of clients. Set to >1 to enable multirun
+	**/
+	?clients:Int,
+
+	/**
+		Friendly friend reminder for friends
+	**/
+	?nodebugClient:Bool,
+
+	/**
+		Copy everything inside specifed folder to addons/{addonName} (also a parameter)
+	**/
+	?addonFolderBase:String,
+
+	/**Give it a name...**/
+	?addonName:String,
+
+	/**Ect. ect.**/
+	?noCopy:Bool
+
 }

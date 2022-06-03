@@ -160,8 +160,7 @@ class RequestRouter {
 	}
 
 	function h_attach(req:GmDebugAttachRequest) {
-		req.composeFail("Gmdebug does not currently support attach requests",
-		{
+		req.composeFail({
 			id : 15,
 			format : "Gmdebug does not currently support attach requests"
 		}).send(luaDebug);

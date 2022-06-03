@@ -102,7 +102,9 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 		trace('expr : $expr');
 		final resp:ComposedProtocolMessage = switch (Util.compileString(expr, "GmDebug")) {
 			case Error(err):
-				evalReq.composeFail(translateEvalError(err));
+				evalReq.composeFail({
+					id : 50, //TODO dur
+					format : translateEvalError(err)});
 			case Success(func):
 				if (fid != null) {
 					final eval = createEvalEnvironment(fid.getValue().actualFrame + 2);
@@ -110,7 +112,9 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 				}
 				switch (Util.runCompiledFunction(func)) {
 					case Error(err):
-						evalReq.composeFail(translateEvalError(err));
+						evalReq.composeFail({
+							id: 51, //TODO hurr
+							format : translateEvalError(err)});
 					case Success(result):
 						final item = variableManager.genvar({
 							name: "",

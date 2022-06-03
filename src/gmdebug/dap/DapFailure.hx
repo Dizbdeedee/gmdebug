@@ -13,7 +13,7 @@ class DapFailureTools {
 	public static function sendError(opt:haxe.ds.Option<DapFailure>,req:Request<Dynamic>,luaDebug:LuaDebugger) {
 		return switch (opt) {
 			case Some(err):
-				req.composeFail(err.message,{
+				req.composeFail({
 					id : err.id,
 					format : err.message
 				}).send(luaDebug);
