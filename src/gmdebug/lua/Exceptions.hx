@@ -27,21 +27,6 @@ typedef ReplaceStorage = {
     ?effectslib_register : Function
 }
 
-@:multiReturn
-private extern class Dur {
-    var a:Int;
-    var b:Int;
-    var c:Int;
-    var d:Int;
-    var e:Int;
-    var f:Int;
-    var g:Int;
-    var h:Int;
-    var i:Int;
-    var j:Int;
-    var k:Int;
-}
-
 class Exceptions {
 
     final exceptFuncs:ObjectMap<Dynamic,Dynamic> = new ObjectMap();

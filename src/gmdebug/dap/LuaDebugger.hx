@@ -27,11 +27,16 @@ using Lambda;
 typedef Programs = {
 	xdotool : Bool
 }
+
 @:keep @:await class LuaDebugger extends DebugSession {
 
 	static final SERVER_TIMEOUT = 15; //thanks peanut brain
 
 	public var dapMode:DapMode;
+
+	public var initBundle:InitBundle;
+
+	public var shutdownActive(default,null):Bool;
 
 	var requestRouter:RequestRouter;
 
@@ -43,9 +48,9 @@ typedef Programs = {
 
 	var workspaceFolder:String;
 
-	public var initBundle:InitBundle;
+	var pokeClientCancel:Timeout;
 
-	public var shutdownActive(default,null):Bool;
+	var poking:Bool;
 
 	public function new(?x, ?y, _workspaceFolder:String) {
 		super(x, y);
@@ -101,8 +106,6 @@ typedef Programs = {
 		}
 		recurseCopy(luaAddon,destination,(file -> {trace(file); return file.charAt(0) != ".";}));
 	}
-
-	
 
 	function generateInitFiles(serverFolder:String) {
 		final initFile = HxPath.join([serverFolder,"lua","includes","init.lua"]);
@@ -222,7 +225,7 @@ typedef Programs = {
 	}
 
 	function openMultirun(ip:String,port:String) {
-		final hl2 = HxPath.join([initBundle.requestArguments.clientFolder,"..","hl2.exe"]);
+		final hl2 = HxPath.join([initBundle.clientLocation,"..","hl2.exe"]);
 		trace('$hl2 ${Fs.existsSync(hl2);}');
 		js.node.ChildProcess.spawn('"$hl2" -multirun -noconsole +sv_lan 1 +connect $ip:$port',{shell : true});
 	}
@@ -267,11 +270,6 @@ typedef Programs = {
 				clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: initBundle.serverFolder, dapMode: Launch}));
 		}
 	}
-	
-
-	var pokeClientCancel:Timeout;
-
-	var poking:Bool;
 
 	function startPokeClients() {
 		if (initBundle.clientLocation != null) {
@@ -320,7 +318,7 @@ typedef Programs = {
 		}
 	}
 
-	override public function shutdown() {
+	public override function shutdown() {
 		shutdownActive = true;
 		switch (dapMode) {
 			case LAUNCH(child = {active : true}):
