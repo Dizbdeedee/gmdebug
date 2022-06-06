@@ -13,6 +13,7 @@ import js.node.Buffer;
 import gmdebug.Cross;
 
 using Lambda;
+using tink.CoreApi;
 
 typedef ClientID = Int;
 
@@ -23,6 +24,14 @@ enum ConnectionStatus {
 	TAKEN;
 	NOT_AVALIABLE;
 }
+
+enum SlotStatus {
+	TAKEN(ps:PipeSocket);
+	AQUIRING(ps:PipeSocket);
+	AVALIABLE;
+}
+
+final MAX_FOLDER_LEN = 127;
 //DebugeeStorage
 @:await
 class ClientStorage {
@@ -30,6 +39,10 @@ class ClientStorage {
 	static final SERVER_ID = 0;
 
 	final clients:Array<BaseConnected> = [];
+
+	final clientSlots:Array<SlotStatus> = [for (_ in 0...MAX_FOLDER_LEN) AVALIABLE];
+
+	final serverSlots:Array<SlotStatus> = [for (_ in 0...MAX_FOLDER_LEN) AVALIABLE];
 	
 	final readFunc:ReadWithClientID;
 
@@ -53,7 +66,7 @@ class ClientStorage {
 	function status(loc:String):ConnectionStatus {
 		return if (!FileSystem.exists(loc)) {
 			NOT_AVALIABLE;
-		} else if (FileSystem.exists(join([loc,PATH_AQUIRED]))) {
+		} else if (FileSystem.exists(join([loc,PATH_CONNECTION]))) {
 			TAKEN;
 		} else {
 			AVALIABLE;
@@ -68,7 +81,7 @@ class ClientStorage {
 				throw new Error("No free connections");
 			case TAKEN:
 		}
-		for (i in 1...127) {
+		for (i in 1...MAX_FOLDER_LEN) {
 			switch (status(join([loc,PATH_DATA,'$PATH_FOLDER$i']))) {
 				case AVALIABLE:
 					return join([loc,PATH_DATA,'$PATH_FOLDER$i']);
@@ -79,46 +92,100 @@ class ClientStorage {
 		}
 		throw new Error('Exhasted all possible connections');
 	}
+	
+	function getFreeFolderS(loc:String):Array<String> {
+		final results = [];
+		for (i in 0...MAX_FOLDER_LEN) {
+			var append = '$i';
+			if (i == 0) append = "";
+			switch (status(join([loc,PATH_DATA,'$PATH_FOLDER$append']))) {
+				case AVALIABLE:
+					results.push(join([loc,PATH_DATA,'$PATH_FOLDER$append']));
+				case NOT_AVALIABLE:
+					break;
+				case TAKEN:
+					results.push(null);
+			}
+		}
+		return results;
+	}
+	
+	function findAquiresInProgress(loc:String,slots:Array<SlotStatus>) {
+		final folders = getFreeFolderS(loc);
+		final aqs:Array<Promise<PipeSocket>> = [];
+		for (i in 0...slots.length) {
+			switch ([slots[i],folders[i]]) {
+				case [AVALIABLE,x] if (x != null):
+					slots[i] = AQUIRING(new PipeSocket(generatePipeLocations(folders[i])));
+				case [AQUIRING(ps),_]:
+					aqs.push(ps.aquire());
+				default:
+			}
+		}
+		return aqs;
+	}
 
-	function generateSocketLocations(chosenFolder:String):PipeSocketLocations {
+	public function continueAquires(locs:String):Future<Array<Client>> {
+		return Future.irreversible((done) -> {
+			final pms = findAquiresInProgress(locs,clientSlots);
+			Future.inSequence(pms).handle(results -> {
+				var newClients = [];
+				for (result in results) {
+					switch (result) {
+						case Success(socket):
+							final clID = clients.length; 
+							final client = new Client(socket,clID);
+							clients.push(client);
+							socket.assignRead((buf) -> readFunc(buf,clID));
+							socket.beginConnection();
+							newClients.push(client);
+						case Failure(err):
+							trace(err);
+					}
+				}
+				done(newClients);
+			});
+		});
+	}
+
+	public function continueAquireServer(serverLoc:String):Promise<Server> {
+		return Future.irreversible((done) -> {
+			final pms = findAquiresInProgress(serverLoc,serverSlots);
+			Future.inSequence(pms).handle(results -> {
+				var server = null;
+				for (result in results) {
+					switch (result) {
+						case Success(socket):
+							final clID = SERVER_ID; 
+							final client = new Server(socket,clID);
+							clients.push(client);
+							socket.assignRead((buf) -> readFunc(buf,clID));
+							socket.beginConnection();
+							server = client;
+							break;
+						case Failure(err):
+							// trace(err);
+					}
+				}
+				trace('The thing $server');
+				if (server != null) done(Success(server));
+				done(Failure(new Error("Not happenin now")));
+				
+			});
+			
+		});
+	}
+
+	function generateSocketLocations(chosenFolder:String):PipeLocations {
 		return {
-			debugee_output : join([chosenFolder,PATH_OUTPUT]),
-			debugee_input : join([chosenFolder,PATH_INPUT]),
-			ready : join([chosenFolder,PATH_READY]),
+			output : join([chosenFolder,PATH_OUTPUT]),
+			input : join([chosenFolder,PATH_INPUT]),
+			connect : join([chosenFolder,PATH_CONNECTION]),
 			client_ready : join([chosenFolder,PATH_CLIENT_PATH_READY]),
 			folder : chosenFolder,
-			aquired : join([chosenFolder,PATH_AQUIRED])
+			client_ack : join([chosenFolder,PATH_CLIENT_ACK]),
+			pipes_ready: join([chosenFolder,gmdebug.Cross.PATH_PIPES_READY])
 		};
-	}
-
-	@:async function makePipeSocket(loc:String,id:Int) {
-		final chosenFolder = getFreeFolder(loc);
-		final ps = new PipeSocket(generateSocketLocations(chosenFolder),
-			(buf:Buffer) -> readFunc(buf,id)
-		);
-		@:await ps.aquire().eager();
-		trace("mega aquired");
-		return ps;
-	}
-
-
-	@:async public function newClient(clientLoc:String) {
-		final clID = clients.length; 
-		final pipesocket = @:await makePipeSocket(clientLoc,clID);
-		final client = new Client(pipesocket,clID);
-		clients.push(client);
-		trace("client created");
-		// gmodIDMap.set(gmodID,client);
-		return client;
-	}
-
-	@:async public function newServer(serverLoc:String) {
-		final clID = SERVER_ID;
-		final pipesocket = @:await makePipeSocket(serverLoc,clID);
-		trace("Server created");
-		final server = new Server(pipesocket, clID);
-		clients[SERVER_ID] = server;
-		return server;
 	}
 
 	function get(id:Int) {

@@ -124,7 +124,7 @@ class Debugee {
 	function freeFolder(folder:String):Bool {
 		return if (!FileLib.Exists(folder,DATA)) {
 			true;
-		} else if (!FileLib.Exists(join([folder,PATH_AQUIRED]),DATA)) {
+		} else if (!FileLib.Exists(join([folder,PATH_CLIENT_PATH_READY]),DATA)) {
 			true;
 		} else {
 			false;
@@ -145,13 +145,7 @@ class Debugee {
 
 	function generateLocations(folder:String):PipeLocations {
 		FileLib.CreateDir(folder);
-		return {
-			folder : folder,
-			client_ready: join([folder,PATH_CLIENT_PATH_READY]),
-			output: join([folder,PATH_OUTPUT]),
-			input: join([folder,PATH_INPUT]),
-			ready: join([folder,PATH_READY])
-		}
+		return generatePipeLocations(folder);
 	}
 
 	var aquiringSocket:PipeSocket;
@@ -164,14 +158,17 @@ class Debugee {
 		}		
 		final result = aquiringSocket.aquire();
 		if (result != AQUIRED) {
+			// trace('Aquire $result');
 			Logger.log('Aquire $result');
 			return false;
 		}
 		socket = aquiringSocket;
 		Logger.log("We made it");
 		trace("GMDEBUG SUCCESSFULLY CONNECTED");
+		trace("Won");
 		socketActive = true;
 		sendMessage(new ComposedEvent(initialized));
+		trace("Two");
 		#if debugdump
 		FileLib.CreateDir("gmdebugdump");
 		Gmod.collectgarbage("collect");
@@ -359,6 +356,8 @@ class Debugee {
 		if (!socketActive) {
 			trace("GMDEBUG FAILED TO CONNECT");
 			Logger.log("GMDEBUG FAILED TO CONNECT");
+			aquiringSocket.close();
+			shutdown();
 			throw "Failed to connect to server";
 		}
 		Logger.log("GMDEBUG CONNECTED SUCCESSFULLY");

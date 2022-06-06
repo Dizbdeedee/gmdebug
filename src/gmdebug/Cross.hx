@@ -18,19 +18,43 @@ import haxe.io.Path as HxPath;
 
 final PATH_FOLDER = "gmdebug";
 
-final PATH_CLIENT_PATH_READY = "clientready.dat";
+final PATH_CLIENT_PATH_READY = "client_waiting.dat";
+
+final PATH_CLIENT_ACK = "client_ack.dat";
 
 final PATH_INPUT = "in.dat";
 
 final PATH_OUTPUT = "out.dat";
 
-final PATH_READY = "ready.dat";
+final PATH_CONNECTION = "connect.dat";
+
+final PATH_PIPES_READY = "pipes_ready.dat";
 
 final PATH_DATA = "data";
 
-final PATH_AQUIRED = "aquired.dat";
-
 final JIT = HxPath.join([PATH_FOLDER, "jitchoice.txt"]);
+
+typedef PipeLocations = {
+	folder : String,
+	client_ready : String,
+	connect : String,
+	pipes_ready : String,
+	input : String,
+	output : String,
+	client_ack : String
+}
+
+function generatePipeLocations(folder:String) {
+	return {
+		folder : folder,
+		client_ready: HxPath.join([folder,PATH_CLIENT_PATH_READY]),
+		output: HxPath.join([folder,PATH_OUTPUT]),
+		input: HxPath.join([folder,PATH_INPUT]),
+		pipes_ready: HxPath.join([folder,PATH_PIPES_READY]),
+		client_ack : HxPath.join([folder,PATH_CLIENT_ACK]),
+		connect: HxPath.join([folder,PATH_CONNECTION])
+	}
+}
 
 @:nullSafety(Off)
 function readHeader(x:Input) {

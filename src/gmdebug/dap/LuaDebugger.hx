@@ -135,7 +135,7 @@ typedef Programs = {
 		resp.send(this);
 		try {
 			pokeServerTimeout();
-			// startPokeClients();
+			startPokeClients();
 		} catch (e) {
 			shutdown();
 			throw e;
@@ -161,28 +161,30 @@ typedef Programs = {
 
 	function pokeClients() {
 		if (!poking || shutdownActive) return;
-		playerTry(initBundle.clientLocation).handle((out) -> {
-			switch (out) {
-				case Success(_):
-
-				case Failure(err):
-					trace(err);
+		clients.continueAquires(initBundle.clientLocation).handle((newclients) -> {
+			for (newClient in newclients) {
+				clients.sendClient(newClient.clID,new ComposedGmDebugMessage(clientID, {id: newClient.clID}));
+				new ComposedEvent(thread, {
+					threadId: newClient.clID,
+					reason: Started
+				}).send(this);
+				setupPlayer(newClient.clID);
 			}
-			Timers.setTimeout(pokeClients,1500);
+			Timers.setTimeout(pokeClients,1000);
 		});
 	}
 
-	@:async function playerTry(clientLoc:String) {
-		final cl = @:await clients.newClient(clientLoc);
-		clients.sendClient(cl.clID,new ComposedGmDebugMessage(clientID, {id: cl.clID}));
-		new ComposedEvent(thread, {
-			threadId: cl.clID,
-			reason: Started
-		}).send(this);
-		trace(cl.clID);
-		setupPlayer(cl.clID);
-		return Noise;
-	}
+	// @:async function playerTry(clientLoc:String) {
+	// 	final cl = @:await clients.newClient(clientLoc);
+	// 	clients.sendClient(cl.clID,new ComposedGmDebugMessage(clientID, {id: cl.clID}));
+	// 	new ComposedEvent(thread, {
+	// 		threadId: cl.clID,
+	// 		reason: Started
+	// 	}).send(this);
+	// 	trace(cl.clID);
+	// 	setupPlayer(cl.clID);
+	// 	return Noise;
+	// }
 
 	function setupPlayer(clientID:Int) {
 		clients.sendClient(clientID, new ComposedGmDebugMessage(intialInfo, {location: initBundle.serverFolder,dapMode : Launch}));
@@ -255,7 +257,7 @@ typedef Programs = {
 	}
 
 	@:await function pokeServerTimeout() {
-		@:await Promise.retry(clients.newServer.bind(initBundle.serverFolder),(data) -> {
+		@:await Promise.retry(clients.continueAquireServer.bind(initBundle.serverFolder),(data) -> {
 			return if (data.elapsed > SERVER_TIMEOUT * 1000) {
 				new Error(Timeout,"Poke serverNamedPipes timed out");
 			} else {
@@ -319,6 +321,7 @@ typedef Programs = {
 	}
 
 	public override function shutdown() {
+		
 		shutdownActive = true;
 		switch (dapMode) {
 			case LAUNCH(child = {active : true}):
