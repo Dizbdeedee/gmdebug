@@ -66,7 +66,7 @@ class ClientStorage {
 	function status(loc:String):ConnectionStatus {
 		return if (!FileSystem.exists(loc)) {
 			NOT_AVALIABLE;
-		} else if (FileSystem.exists(join([loc,PATH_CONNECTION]))) {
+		} else if (FileSystem.exists(join([loc,PATH_CONNECTION_IN_PROGRESS])) || FileSystem.exists(join([loc,PATH_CONNECTION_AQUIRED]))) {
 			TAKEN;
 		} else {
 			AVALIABLE;
@@ -174,18 +174,6 @@ class ClientStorage {
 			});
 			
 		});
-	}
-
-	function generateSocketLocations(chosenFolder:String):PipeLocations {
-		return {
-			output : join([chosenFolder,PATH_OUTPUT]),
-			input : join([chosenFolder,PATH_INPUT]),
-			connect : join([chosenFolder,PATH_CONNECTION]),
-			client_ready : join([chosenFolder,PATH_CLIENT_PATH_READY]),
-			folder : chosenFolder,
-			client_ack : join([chosenFolder,PATH_CLIENT_ACK]),
-			pipes_ready: join([chosenFolder,gmdebug.Cross.PATH_PIPES_READY])
-		};
 	}
 
 	function get(id:Int) {

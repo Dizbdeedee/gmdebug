@@ -84,6 +84,7 @@ class PipeSocket {
 		
 		if (!isReady()) return Promise.reject(new Error('Client not ready yet...'));
 		connStatus = CLIENT_NOT_ACK;
+		sys.io.File.saveContent(locs.connection_in_progress,"");
 		sys.io.File.saveContent(locs.connect,"");
 		if (!isAck()) return Promise.reject(new Error("Client not acknowledging us..."));
 		connStatus = MAKING_LINKS;

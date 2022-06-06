@@ -124,7 +124,11 @@ class Debugee {
 	function freeFolder(folder:String):Bool {
 		return if (!FileLib.Exists(folder,DATA)) {
 			true;
-		} else if (!FileLib.Exists(join([folder,PATH_CLIENT_PATH_READY]),DATA)) {
+		} else if (!FileLib.Exists(join([folder,PATH_CLIENT_READY]),DATA)
+		&& !FileLib.Exists(join([folder,PATH_CONNECTION_AQUIRED]),DATA)
+		&& !FileLib.Exists(join([folder,PATH_CONNECTION_IN_PROGRESS]),DATA)
+		
+		) {
 			true;
 		} else {
 			false;

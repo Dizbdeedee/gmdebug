@@ -1,5 +1,6 @@
 package gmdebug.lua.io;
 
+import gmod.helpers.WeakTools;
 import gmdebug.Cross.PipeLocations;
 import haxe.io.Encoding;
 import lua.lib.luasocket.socket.TcpClient;
@@ -36,6 +37,7 @@ class PipeSocket implements DebugIO {
 			FileLib.CreateDir(locs.folder);
 		}
 		FileLib.Write(locs.client_ready,"");
+		WeakTools.setGCMethod(cast this,__gc);
 		
 	}
 
@@ -88,7 +90,10 @@ class PipeSocket implements DebugIO {
 		output.writeString("\004"); //mark ready for writing...
 		FileLib.Delete(locs.pipes_ready);
 		FileLib.Delete(locs.client_ready);
+		FileLib.Delete(locs.connection_in_progress);
 		process = AQUIRED;
+		FileLib.Write(locs.connection_aquired,"");
+
 		// FileLib.Write(join([locs.folder,AQUIRED]),"");
 		return AQUIRED;
 	}
@@ -102,6 +107,10 @@ class PipeSocket implements DebugIO {
 			FileLib.Delete('${locs.folder}/$file');
 		}
 		FileLib.Delete(locs.folder);
+	}
+	
+	function __gc() {
+		close();
 	}
 }
 

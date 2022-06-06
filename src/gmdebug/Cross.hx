@@ -18,7 +18,7 @@ import haxe.io.Path as HxPath;
 
 final PATH_FOLDER = "gmdebug";
 
-final PATH_CLIENT_PATH_READY = "client_waiting.dat";
+final PATH_CLIENT_READY = "client_waiting.dat";
 
 final PATH_CLIENT_ACK = "client_ack.dat";
 
@@ -29,6 +29,10 @@ final PATH_OUTPUT = "out.dat";
 final PATH_CONNECTION = "connect.dat";
 
 final PATH_PIPES_READY = "pipes_ready.dat";
+
+final PATH_CONNECTION_IN_PROGRESS = "connection_progress.dat";
+
+final PATH_CONNECTION_AQUIRED = "connection_aquired.dat";
 
 final PATH_DATA = "data";
 
@@ -41,18 +45,22 @@ typedef PipeLocations = {
 	pipes_ready : String,
 	input : String,
 	output : String,
-	client_ack : String
+	client_ack : String,
+	connection_in_progress : String,
+	connection_aquired : String
 }
 
 function generatePipeLocations(folder:String) {
 	return {
 		folder : folder,
-		client_ready: HxPath.join([folder,PATH_CLIENT_PATH_READY]),
+		client_ready: HxPath.join([folder,PATH_CLIENT_READY]),
 		output: HxPath.join([folder,PATH_OUTPUT]),
 		input: HxPath.join([folder,PATH_INPUT]),
 		pipes_ready: HxPath.join([folder,PATH_PIPES_READY]),
 		client_ack : HxPath.join([folder,PATH_CLIENT_ACK]),
-		connect: HxPath.join([folder,PATH_CONNECTION])
+		connect: HxPath.join([folder,PATH_CONNECTION]),
+		connection_in_progress: HxPath.join([folder,PATH_CONNECTION_IN_PROGRESS]),
+		connection_aquired: HxPath.join([folder,PATH_CONNECTION_AQUIRED])
 	}
 }
 
