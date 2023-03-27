@@ -1,18 +1,4 @@
--cp src
+lua.hxml
 -D server
--lib gmodhaxe
--lib safety
--lib tink_json
--lib tink_core
--lib profiler
--D gmddebug
--D addonName=debugee
--D analyzer-optimize
--D generateLuaInit
--D haxeJSON
--D lua-ver=5.1
--dce full
---macro gmod.helpers.macros.InitMacro.init()
---cmd haxe -lib gmodhaxe --run gmod.helpers.macros.PostCompileMacro
--main gmdebug.lua.Debugee
+-main gmdebug.lua.Start
 -lua /dev/null

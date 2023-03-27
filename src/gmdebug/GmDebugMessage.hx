@@ -1,5 +1,10 @@
 package gmdebug;
 
+#if lua
+import gmdebug.lib.lua.Protocol;
+#elseif js
+import vscode.debugProtocol.DebugProtocol;
+#end
 typedef GmDebugMessage<T> = ProtocolMessage & {
 	// type : String,
 	msg:GmMsgType<T>,
@@ -64,9 +69,9 @@ typedef GmDebugBaseRequestArguments = {
 	serverFolder:String,
 
 	/**
-		The paths to client(s) "garrysmod" folder. Must be fully qualified.
+		The path to client "garrysmod" folder. Must be fully qualified.
 	**/
-	?clientFolders:Array<String>
+	?clientFolder:String
 }
 
 typedef GmDebugAttachRequestArguments = AttachRequestArguments & GmDebugBaseRequestArguments;
@@ -88,5 +93,27 @@ typedef GmDebugLaunchRequestArguments = LaunchRequestArguments &
 	/**
 		Should the dap automatically connect your steam instance to the server?
 	**/
-	?autoConnectLocalGmodClient : Bool
+	?autoConnectLocalGmodClient : Bool,
+
+	/**
+		Number of clients. Set to >1 to enable multirun
+	**/
+	?clients:Int,
+
+	/**
+		Friendly friend reminder for friends
+	**/
+	?nodebugClient:Bool,
+
+	/**
+		Copy everything inside specifed folder to addons/{addonName} (also a parameter)
+	**/
+	?addonFolderBase:String,
+
+	/**Give it a name...**/
+	?addonName:String,
+
+	/**Ect. ect.**/
+	?noCopy:Bool
+
 }

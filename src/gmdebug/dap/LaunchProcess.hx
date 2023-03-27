@@ -1,5 +1,13 @@
 package gmdebug.dap;
 
+import gmdebug.dap.srcds.RedirectIntegrated;
+import js.node.stream.Readable;
+import js.node.stream.Writable;
+import js.node.stream.Writable.IWritable;
+import js.node.stream.Readable.IReadable;
+import node.worker_threads.Worker;
+import gmdebug.dap.srcds.RedirectWorker;
+import ffi_napi.Library;
 import js.Node;
 import js.node.Buffer;
 import gmdebug.composer.ComposedEvent;
@@ -7,8 +15,21 @@ import gmdebug.composer.ComposedEvent;
 using StringTools;
 
 class LaunchProcess {
+	
+	static final EXTRA_ARGS = "+sv_lan 1 +sv_hibernate_think 1 +sv_allowcslua 1";
+	
+	static final EXTRA_ARGS_WINDOWS = "-console";
 
     var childProcess:js.node.child_process.ChildProcess;
+	var worker:Worker;
+
+	var unworker:RedirectIntegrated;
+
+	var stdout:IReadable;
+	var stderr:IReadable;
+	var stdin:IWritable;
+
+	public var active(default,null) = true;
 
     public function new(programPath:String,luaDebug:LuaDebugger,?programArgs:Array<String>) {
         programArgs = programArgs.or([]);
@@ -16,25 +37,24 @@ class LaunchProcess {
 		for (arg in programArgs) {
 			argString += arg + " ";
 		}
-        childProcess = js.node.ChildProcess.spawn('script -c \'$programPath -norestart $argString +sv_lan 1 +sv_hibernate_think 1\' /dev/null', {
+		if (Sys.systemName() == "Linux") {
+			setupLinux(programPath,luaDebug,argString);	
+		} else {
+			setupWindows(programPath,luaDebug,argString);
+		}
+		
+    }
+
+	function setupLinux(programPath,luaDebug,argString) {
+		childProcess = js.node.ChildProcess.spawn('script -c \'$programPath -norestart $argString +sv_lan 1 +sv_hibernate_think 1\' /dev/null', {
 			cwd: haxe.io.Path.directory(programPath),
 			env: Node.process.env,
 			shell: true
 		});
-		childProcess.stdout.on("data", (str:Buffer) -> {
-			new ComposedEvent(output, {
-				category: Stdout,
-				output: str.toString().replace("\r", ""),
-				data: null
-			}).send(luaDebug);
-		});
-		childProcess.stderr.on("data", (str:Buffer) -> {
-			new ComposedEvent(output, {
-				category: Stdout,
-				output: str.toString(),
-				data: null
-			}).send(luaDebug);
-		});
+		stdin = childProcess.stdin;
+		stdout = childProcess.stdout;
+		stderr = childProcess.stderr;
+		attachOutput(luaDebug);
 		childProcess.on("error", (err) -> {
 			new ComposedEvent(output, {
 				category: Stderr,
@@ -48,16 +68,101 @@ class LaunchProcess {
 			luaDebug.shutdown();
 			return;
 		});
-    }
+		
+	}
+
+	function attachOutput(luaDebug:LuaDebugger) {
+		stdout.on(Data, (str:Buffer) -> {
+			if (luaDebug.shutdownActive) return;
+			new ComposedEvent(output, {
+				category: Stdout,
+				output: str.toString().replace("\r", ""),
+				data: null
+			}).send(luaDebug);
+		});
+		if (stderr == null) return;
+		stderr.on(Data, (str:Buffer) -> {
+			new ComposedEvent(output, {
+				category: Stdout,
+				output: str.toString(),
+				data: null
+			}).send(luaDebug);
+		});
+	}
+
+	function setupWindows(programPath,luaDebug:LuaDebugger,argString) {
+		
+		#if AAAAAAAAARGH
+		unworker = new RedirectIntegrated(() -> {
+			luaDebug.shutdown();
+		});
+		unworker.start(programPath,[EXTRA_ARGS_WINDOWS,argString,EXTRA_ARGS]);
+		stdin = unworker.stdin;
+		stdout = unworker.stdout;
+		// stderr = cast worker.stderr;
+		#elseif worker
+		worker = RedirectWorker.makeWorker(programPath,[EXTRA_ARGS_WINDOWS,argString,EXTRA_ARGS]);
+		worker.on("error", (err) -> {
+			new ComposedEvent(output, {
+				category: Stderr,
+				output: err.message + "\n" + err.stack,
+				data: null
+			}).send(luaDebug);
+			trace("worker error///");
+			trace(err.message);
+			trace(err.stack);
+			trace("worker error end///");
+			luaDebug.shutdown();
+			return;
+		});
+		worker.on('exit',(err) -> {
+			luaDebug.shutdown();
+		});
+		stdin = cast worker.stdin;
+		stdout = cast worker.stdout;
+		stderr = cast worker.stderr;
+		#else
+		childProcess = RedirectWorker.makeChildProcess(programPath,[EXTRA_ARGS_WINDOWS,argString,EXTRA_ARGS]);
+		childProcess.on("error", (err) -> {
+			active = false;
+			new ComposedEvent(output, {
+				category: Stderr,
+				output: err.message + "\n" + err.stack,
+				data: null
+			}).send(luaDebug);
+			trace("Child process error///");
+			trace(err.message);
+			trace(err.stack);
+			trace("Child process error end///");
+			luaDebug.shutdown();
+			return;
+		});
+		childProcess.on("exit", (_) -> {
+			active = false;
+			trace("EXIIIIIIIIIIIITED");
+			luaDebug.shutdown();
+		});
+
+		stdin = childProcess.stdin;
+		stdout = childProcess.stdout;
+		stderr = childProcess.stderr;
+		#end
+		attachOutput(luaDebug);
+	}
 
     public function write(chunk:Dynamic) {
-        childProcess.stdin.write(chunk);
-
+        stdin.write(chunk);
     }
 
     public function kill() {
-        childProcess.kill();
+		if (childProcess != null) {
+			childProcess.kill();
+		}
+		if (worker != null) {
+			worker.terminate();
+		}
+		if (unworker != null) {
+			unworker.kill();
+		}
     }
-
-    //read?
 }

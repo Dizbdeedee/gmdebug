@@ -1,0 +1,4 @@
+{
+    "compilerOptions": {"types": ["node"]},
+    "typeAcquisition": {"enable": true,"include": ["node"]}
+}

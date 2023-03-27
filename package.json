@@ -1,20 +1,33 @@
 {
 	"name": "gmdebug",
 	"description": "gmod debugger using dap",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"publisher": "ponobodod",
-	"repository": {"type": "github","url": "https://github.com/ponobodod/gmdebug"},
+	"repository": {
+		"type": "github",
+		"url": "https://github.com/ponobodod/gmdebug"
+	},
 	"dependencies": {
+		"@raygun-nickj/mmap-io": "^1.3.0",
+		"@types/ffi-napi": "^4.0.4",
+		"@types/node": "^16.9.1",
+		"@types/ref-array-di": "^1.2.3",
+		"ffi-napi": "^4.0.3",
 		"ip": "^1.1.5",
+		"node-gyp": "^8.2.0",
+		"ref-array-di": "^1.2.2",
+		"ref-struct-di": "^1.1.1",
+		"sudo-prompt": "9.2.1",
 		"vscode-debugadapter": "^1.41.0",
-		"vscode-debugprotocol": "^1.41.0"
+		"vscode-debugprotocol": "^1.41.0",
+		"win32-api": "^9.6.0"
 	},
 	"engines": {
 		"vscode": "^1.34.0"
 	},
 	"main": "./bin/extension.js",
 	"activationEvents": [
-		"onDebug"	
+		"onDebug"
 	],
 	"contributes": {
 		"breakpoints": [
@@ -29,28 +42,12 @@
 				"program": "./bin/main.js",
 				"runtime": "node",
 				"configurationAttributes": {
-					"attach": {
-						"required": [
-							"serverFolder"
-						],
-						"properties": {
-							"serverFolder": {
-								"type": "string",
-								"description": "The path to your garry's mod server (the garrysmod folder specifically)",
-								"default": "/path_to_server_from_root/garrysmod"
-							},
-							"clientFolders": {
-								"type": "array",
-								"description": "The path to the client connecting to the server you wish to debug."
-								
-							}
-						}
-					},
-					"launch" : {
+					"launch": {
 						"required": [
 							"serverFolder",
 							"programPath",
-							"programArgs"
+							"programArgs",
+							"addonFolderName"
 						],
 						"properties": {
 							"serverFolder": {
@@ -58,45 +55,73 @@
 								"description": "The path to your garry's mod server (the garrysmod folder specifically)",
 								"default": "/path_to_server_from_root/garrysmod"
 							},
-							"clientFolders": {
-								"type": "array",
+							"clientFolder": {
+								"type": "string",
 								"description": "The path to the client connecting to the server you wish to debug."
-								
 							},
-							"programPath" : {
+							"programPath": {
 								"type": "string",
 								"description": "The path to your server executable/config, or 'auto' to find and run the default server executable (srcds_run)",
-								"default" : "auto"
+								"default": "auto"
 							},
-							"programArgs" : {
+							"programArgs": {
 								"type": "array",
 								"description": "Arguments to launch server. Fill out if using the option 'auto' for programPath",
-								"default": ["+map","gm_flatgrass","+sv_lan","1"]
-
+								"default": [
+									"+map",
+									"gm_flatgrass",
+									"+sv_lan",
+									"1"
+								]
 							},
-							"autoConnectLocalGmodClient" : {
+							"nodebugClient": {
 								"type": "bool",
-								"description": "For convinence, when the server has launched you can have your steam account autoconnect to it",
+								"description": "More of a reminder that to debug clients, you need to specify clientFolder. If you set clients to 1 without this, gmdebug will not run",
 								"default": true
+							},
+							"clients": {
+								"type": "number",
+								"description": "Number of clients to autolaunch",
+								"default": 1
+							},
+							"noCopy": {
+								"type": "bool",
+								"description": "Add to disable copying your addon, and make addonFolderBase and addonName not required",
+								"default": true
+							},
+							"addonFolderBase": {
+								"type": "string",
+								"description": "Copy everything inside specifed folder to addons/{addonName} (which you must also specify)",
+								"default": "./"
+							},
+							"addonName": {
+								"type": "string",
+								"description": "The name of the addon folder when copied into the server garrysmod/addons folder",
+								"default": "really_cool_addon"
 							}
-							
-
 						}
-
 					}
 				},
 				"initialConfigurations": [
 					{
-						"label": "gmdebug: Launch server",
-						"description": "Launch your garry's mod server.",
-						"body": {
-							"type": "gmdebug",
-							"request": "launch",
-							"name": "gmdebug : Launch server",
-							"serverFolder": "/path_to_server_from_root/garrysmod",
-							"programPath": "auto",
-							"autoConnectLocalGmodClient" : true
-						}
+						
+						"type": "gmdebug",
+						"request": "launch",
+						"name": "gmdebug : Launch server",
+						"serverFolder": "/path_to_server_from_root/garrysmod",
+						"programPath": "auto",
+						"programArgs" : [
+							"+map",
+							"gm_flatgrass",
+							"+sv_lan",
+							"1"
+						],
+						"nodebugClient" : true,
+						"clients" : 1,
+						"addonName": "really_cool_addon",
+						"addonFolderBase": "./"
+						
+						
 					}
 				],
 				"configurationSnippets": [
@@ -109,11 +134,17 @@
 							"name": "gmdebug : Launch server",
 							"serverFolder": "/path_to_server_from_root/garrysmod",
 							"programPath": "auto",
-							"autoConnectLocalGmodClient" : true
+							"nodebugClient" : true,
+							"clients" : 1,
+							"addonName": "really_cool_addon",
+							"addonFolderBase": "./"
 						}
 					}
 				]
 			}
 		]
+	},
+	"devDependencies": {
+		"dts2hx": "^0.16.0"
 	}
 }

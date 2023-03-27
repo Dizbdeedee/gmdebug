@@ -7,13 +7,21 @@ import haxe.Constraints.Function;
 import lua.Table;
 import gmod.libs.DebugLib;
 
+typedef InitOutputter = {
+	vm : VariableManager,
+	debugee : Debugee
+}
+
 class Outputter {
 	var ignoreTrace:Bool = false;
 	
-	var vm:VariableManager;
+	final vm:VariableManager;
 
-	public function new(vm:VariableManager) {
-		this.vm = vm;
+	final debugee:Debugee;
+
+	public function new(initOutputter:InitOutputter) {
+		vm = initOutputter.vm;
+		debugee = initOutputter.debugee;
 	}
 
 	public function hookprint() {
@@ -25,7 +33,7 @@ class Outputter {
 	}
 
 	function shouldForward() {
-		return Debugee.dapMode == Attach;
+		return debugee.dapMode == Attach;
 	}
 
 	public function sendOutput(cat:OutputEventCategory,out:String) {
@@ -35,11 +43,11 @@ class Outputter {
 		};
 		final event = new ComposedEvent(EventString.output, body);
 		final js = tink.Json.stringify((cast event : OutputEvent));
-		event.sendtink(js);
+		debugee.send(js);
 	} 
 
 	function output(cat:OutputEventCategory, print:Bool, vargs:Table<Int, Dynamic>) {
-		if (ignoreTrace || Debugee.socket == null)
+		if (ignoreTrace || debugee.socket == null)
 			return;
 		ignoreTrace = true;
 		var out:String = "";
@@ -76,14 +84,14 @@ class Outputter {
 				final pth = @:nullSafety(Off) lineInfo.source.split("/");
 				body.source = {
 					name: pth[pth.length - 1],
-					path: Debugee.normalPath(lineInfo.source),
+					path: debugee.normalPath(lineInfo.source),
 				};
 				body.line = lineInfo.currentline;
 			}
 		}
 		final event = new ComposedEvent(EventString.output, body);
 		final js = tink.Json.stringify((cast event : OutputEvent));
-		event.sendtink(js);
+		debugee.send(js);
 		ignoreTrace = false;
 	}
 }

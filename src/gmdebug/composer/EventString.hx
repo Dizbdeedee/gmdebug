@@ -1,5 +1,11 @@
 package gmdebug.composer;
 
+#if lua
+import gmdebug.lib.lua.Protocol;
+#elseif js
+import vscode.debugProtocol.DebugProtocol;
+#end
+
 enum abstract EventString<T:Event<Dynamic>>(String) from String to String {
 	var stopped:EventString<StoppedEvent>;
 	var output:EventString<OutputEvent>;

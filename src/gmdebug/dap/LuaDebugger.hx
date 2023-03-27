@@ -1,60 +1,44 @@
 package gmdebug.dap;
 
+import haxe.Timer;
+import js.node.Timers;
+import gmdebug.dap.clients.ClientStorage;
+import gmdebug.Util.recurseCopy;
+import gmdebug.dap.Validate;
 import js.Node;
-import js.Syntax;
-import js.node.Process;
-import haxe.ValueException;
 import sys.FileSystem;
-import js.node.ChildProcess;
 import gmdebug.composer.*;
-import js.node.util.Promisify;
 import js.node.Fs;
 import vscode.debugProtocol.DebugProtocol;
-import js.node.net.Server;
-import haxe.io.Output;
-import haxe.io.BytesInput;
-import haxe.io.BufferInput;
 import js.node.Buffer;
-import haxe.io.Bytes;
-import haxe.Json;
 import haxe.io.Path as HxPath;
 import js.node.net.Socket;
-import js.node.Net;
 import vscode.debugAdapter.DebugSession;
 import gmdebug.Cross;
-
+using gmdebug.dap.DapFailure;
+import js.node.ChildProcess;
 using tink.CoreApi;
 using gmdebug.composer.ComposeTools;
 
 import gmdebug.GmDebugMessage;
-import haxe.io.Path;
-import js.node.child_process.ChildProcess;
-import js.node.ChildProcess as NCP;
 
 using Lambda;
 
 typedef Programs = {
 	xdotool : Bool
 }
+
 @:keep @:await class LuaDebugger extends DebugSession {
 
-	public final commMethod:CommMethod;
-
-	public var clientFiles:Array<ClientFiles>;
+	static final SERVER_TIMEOUT = 15; //thanks peanut brain
 
 	public var dapMode:DapMode;
 
-	public var serverFolder:String;
+	public var initBundle:InitBundle;
 
-	public var clientsTaken:Map<Int, Bool>;
-
-	public var programs:Programs;
-
-	public var shouldAutoConnect:Bool;
+	public var shutdownActive(default,null):Bool;
 
 	var requestRouter:RequestRouter;
-
-	var clientLocations:Array<String>;
 
 	var bytesProcessor:BytesProcessor;
 
@@ -62,71 +46,148 @@ typedef Programs = {
 
 	var clients:ClientStorage;
 
-	public function new(?x, ?y) {
+	var workspaceFolder:String;
+
+	var pokeClientCancel:Timeout;
+
+	var poking:Bool;
+
+	public function new(?x, ?y, _workspaceFolder:String) {
 		super(x, y);
-		clientLocations = [];
-		serverFolder = null;
-		clientsTaken = [];
 		dapMode = ATTACH;
-		commMethod = Pipe;
-		programs = {
-			xdotool : false
-		}
+		workspaceFolder = _workspaceFolder;
 		bytesProcessor = new BytesProcessor();
 		prevRequests = new PreviousRequests();
 		clients = new ClientStorage(readGmodBuffer);
 		requestRouter = new RequestRouter(this,clients,prevRequests);
+		poking = false;
 		Node.process.on("uncaughtException", uncaughtException);
+		Node.process.on("SIGTRM", shutdown);
+		shutdownActive = false;
+		Sys.setCwd(HxPath.directory(HxPath.directory(Sys.programPath())));
 		checkPrograms();
-		shouldAutoConnect = false;
+	}
+
+	public function initFromRequest(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments) {
+		switch (InitBundle.initBundle(req,args,this)) {
+			case Success(_initBundle):
+				initBundle = _initBundle;
+				var childProcess = new LaunchProcess(initBundle.programPath,this,initBundle.programArgs);
+				if (args.noDebug) {
+					dapMode = LAUNCH(childProcess);
+					final comp = (req : LaunchRequest).compose(launch,{});
+					comp.send(this);
+					return;
+				}
+				generateInitFiles(initBundle.serverFolder);
+				copyGmDebugLuaFiles(initBundle.serverFolder);
+				if (!args.noCopy) {
+					copyProjectFiles(args.addonFolderBase,args.addonName);
+				}
+				dapMode = LAUNCH(childProcess);
+				startServer(req);
+			case Failure(e):
+				trace(e);
+				throw "Couldn't create initBundle";
+
+		};
+	}
+
+	function copyGmDebugLuaFiles(serverFolder:String) {
+		final addonFolder = HxPath.join([serverFolder, "addons"]);
+		recurseCopy('generated',addonFolder,(_) -> true);
+	}
+
+	function copyProjectFiles(relative:String,addonName:String) {
+		final luaAddon = HxPath.join([workspaceFolder,relative]);
+		final destination = HxPath.join([initBundle.serverFolder,"addons",addonName]);
+		if (!Fs.existsSync(destination)) {
+			Fs.mkdirSync(destination);
+		}
+		recurseCopy(luaAddon,destination,(file -> {trace(file); return file.charAt(0) != ".";}));
+	}
+
+	function generateInitFiles(serverFolder:String) {
+		final initFile = HxPath.join([serverFolder,"lua","includes","init.lua"]);
+		final backupFile = HxPath.join(["generated","debugee","lua","includes","init_backup.lua"]);
+		final initContents = if (FileSystem.exists(initFile)) {
+			sys.io.File.getContent(initFile);
+		} else if (FileSystem.exists(backupFile)) {
+			sys.io.File.getContent(backupFile);
+		} else {
+			throw "Could not find real, or backup file >=(";
+		}
+		final appendFile = HxPath.join(["generated","debugee","lua","includes","init_attach.lua"]);
+		final appendContents = if (FileSystem.exists(appendFile)) {
+			sys.io.File.getContent(appendFile);
+		} else {
+			throw "Could not find append file...";
+		}
+		final ourInitFile = HxPath.join(["generated","debugee","lua","includes","init.lua"]);
+		sys.io.File.saveContent(ourInitFile,initContents + appendContents);
+	}
+	
+	/**
+	 * Async start server. Respond to attach request when attached.
+	**/
+	function startServer(attachReq:Request<Dynamic>) {
+		final resp = attachReq.compose(attach);
+		resp.send(this);
+		try {
+			pokeServerTimeout();
+			startPokeClients();
+		} catch (e) {
+			shutdown();
+			throw e;
+		}		
 	}
 
 	function checkPrograms() {
+		if (Sys.systemName() != "Linux") return;
 		try {
-			NCP.execSync("xdotool");
-			programs.xdotool = true;
+			ChildProcess.execSync("xdotool --help");
+			initBundle.programs.xdotool = true;
 		} catch (e) {
 			trace("Xdotool not found");
+			trace(e.toString());
 		}
 	}
 
 	function uncaughtException(err:js.lib.Error, origin) {
 		trace(err.message);
 		trace(err.stack);
-		this.shutdown();
+		// shutdown();
 	}
 
-	@:async function playerAddedMessage(x:GMPlayerAddedMessage) {
-		var success = false;
-		for (ind => loc in clientLocations) {
-			if (!clientsTaken.exists(ind)) {
-				try {
-					@:await playerTry(loc, x.playerID, x.name).eager();
-					
-					success = true;
-					break;
-				} catch (e) {
-					trace('could not aquire in $loc');
-				}	
+	function pokeClients() {
+		if (!poking || shutdownActive) return;
+		clients.continueAquires(initBundle.clientLocation).handle((newclients) -> {
+			for (newClient in newclients) {
+				clients.sendClient(newClient.clID,new ComposedGmDebugMessage(clientID, {id: newClient.clID}));
+				new ComposedEvent(thread, {
+					threadId: newClient.clID,
+					reason: Started
+				}).send(this);
+				setupPlayer(newClient.clID);
 			}
-		}
-		return success;
+			Timers.setTimeout(pokeClients,1000);
+		});
 	}
 
-	@:async function playerTry(clientLoc:String, gmodID:Int, playerName:String) {
-		final cl = @:await clients.newClient(clientLoc,gmodID,playerName);
-		// clients.sendClient(cl.clID,new ComposedGmDebugMessage(clientID, {id: cl.clID}));
-		new ComposedEvent(thread, {
-			threadId: cl.clID,
-			reason: Started
-		}).send(this);
-		setupPlayer(cl.clID);
-		return Noise;
-		
-	}
+	// @:async function playerTry(clientLoc:String) {
+	// 	final cl = @:await clients.newClient(clientLoc);
+	// 	clients.sendClient(cl.clID,new ComposedGmDebugMessage(clientID, {id: cl.clID}));
+	// 	new ComposedEvent(thread, {
+	// 		threadId: cl.clID,
+	// 		reason: Started
+	// 	}).send(this);
+	// 	trace(cl.clID);
+	// 	setupPlayer(cl.clID);
+	// 	return Noise;
+	// }
 
 	function setupPlayer(clientID:Int) {
-		clients.sendClient(clientID, new ComposedGmDebugMessage(intialInfo, {location: serverFolder,dapMode : Launch}));
+		clients.sendClient(clientID, new ComposedGmDebugMessage(intialInfo, {location: initBundle.serverFolder,dapMode : Launch}));
 		clients.sendClient(clientID, new ComposedGmDebugMessage(GmMsgType.clientID, {id: clientID}));
 		prevRequests.get(setBreakpoints).run((msg) -> clients.sendClient(clientID,msg));
 		prevRequests.get(setExceptionBreakpoints).run((msg) -> clients.sendClient(clientID,msg));
@@ -140,13 +201,9 @@ typedef Programs = {
 			threadId: clients.getByGmodID(x.playerID).clID,
 			reason: Exited
 		}).send(this);
-		clientsTaken.remove(clients.getByGmodID(x.playerID).clID);
 	}
 
 	function serverInfoMessage(x:GMServerInfoMessage) {
-		if (!shouldAutoConnect) {
-			return;
-		}
 		final sp = x.ip.split(":");
 		final ip = if (x.isLan) {
 			gmdebug.lib.js.Ip.address();
@@ -154,52 +211,81 @@ typedef Programs = {
 			sp[0];
 		}
 		final port = sp[1];
-		js.node.ChildProcess.spawn('xdg-open steam://connect/$ip:$port', {shell: true});
+		if (initBundle.requestArguments.clients == 1) {
+			if (Sys.systemName() == "Linux") {
+				js.node.ChildProcess.spawn('xdg-open steam://connect/$ip:$port', {shell: true}); //FIXME client injection. malicious ect. ect.
+			} else {
+				js.node.ChildProcess.spawn('start steam://connect/$ip:$port', {shell: true});
+			}
+		}
+		//TODO: proton
+		if (!initBundle.requestArguments.noDebug && initBundle.requestArguments.clients > 1) {
+			for (_ in 0...initBundle.requestArguments.clients) {
+				openMultirun(ip,port);
+			}
+		}
+	}
+
+	function openMultirun(ip:String,port:String) {
+		final hl2 = HxPath.join([initBundle.clientLocation,"..","hl2.exe"]);
+		trace('$hl2 ${Fs.existsSync(hl2);}');
+		js.node.ChildProcess.spawn('"$hl2" -multirun -noconsole +sv_lan 1 +connect $ip:$port',{shell : true});
 	}
 
 	function processCustomMessages(x:GmDebugMessage<Dynamic>) {
-		trace("custom message");
 		switch (x.msg) {
 			case playerAdded:
-				playerAddedMessage(cast x.body).handle((out) -> {
-					switch (out) {
-						case Success(true):
-							trace("Whater a sucess");
-						case Success(false):
-							trace("Could not add a new player...");
-						case Failure(fail):
-							throw fail;
-					}
-				});
+				//add name, when connect :)
+				// playerAddedMessage(cast x.body).handle((out) -> {
+				// 	switch (out) {
+				// 		case Success(true):
+				// 			trace("Whater a sucess");
+				// 		case Success(false):
+				// 			trace("Could not add a new player...");
+				// 		case Failure(fail):
+				// 			throw fail;
+				// 	}
+				// });
 			case playerRemoved:
-				playerRemovedMessage(cast x.body);
+				// playerRemovedMessage(cast x.body);
 			case serverInfo:
 				serverInfoMessage(cast x.body);
 			case clientID | intialInfo:
-				throw "dur";
+				throw "Wrong direction..?";
+				
 		}
 	}
 
-
-	@:async function pokeServerNamedPipes(attachReq:GmDebugAttachRequest) {
-		@:await clients.newServer(attachReq.arguments.serverFolder).eager();
+	@:await function pokeServerTimeout() {
+		@:await Promise.retry(clients.continueAquireServer.bind(initBundle.serverFolder),(data) -> {
+			return if (data.elapsed > SERVER_TIMEOUT * 1000) {
+				new Error(Timeout,"Poke serverNamedPipes timed out");
+			} else {
+				Noise;
+			}
+		}).eager();
 		clients.sendServer(new ComposedGmDebugMessage(clientID, {id: 0}));
 		switch (dapMode) {
 			case ATTACH:
-				clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: serverFolder, dapMode: Attach}));
+				clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: initBundle.serverFolder, dapMode: Attach}));
 			case LAUNCH(_):
-				clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: serverFolder, dapMode: Launch}));
+				clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: initBundle.serverFolder, dapMode: Launch}));
 		}
-		return Noise;
 	}
 
-	function makeFifosIfNotExist(input:String, output:String) {
-		if (!FileSystem.exists(input) && !FileSystem.exists(output)) {
-			js.node.ChildProcess.execSync('mkfifo $input');
-			js.node.ChildProcess.execSync('mkfifo $output');
-			Fs.chmodSync(input, "744");
-			Fs.chmodSync(output, "722");
-		};
+	function startPokeClients() {
+		if (initBundle.clientLocation != null) {
+			poking = true;		
+			trace("Poking the client");
+			pokeClients();
+
+		}
+	}
+
+	function stopPokeClients() {
+		if (poking != null) {
+			poking = false;
+		}
 	}
 
 	function readGmodBuffer(jsBuf:Buffer, clientNo:Int) {
@@ -207,7 +293,6 @@ typedef Programs = {
 		for (msg in messages) {
 			processDebugeeMessage(msg, clientNo);
 		}
-		// messages.iter(processDebugeeMessage);
 		if (bytesProcessor.fillRequested) {
 			clients.sendAnyRaw(clientNo,"\004\r\n");
 		}
@@ -235,56 +320,46 @@ typedef Programs = {
 		}
 	}
 
-	override public function shutdown() {
+	public override function shutdown() {
+		
+		shutdownActive = true;
 		switch (dapMode) {
-			case LAUNCH(child):
+			case LAUNCH(child = {active : true}):
 				child.write("quit\n");
 				child.kill();
 			default:
 		}
+		sendEvent(new ComposedEvent(terminated, {}));
+		sendEvent(new ComposedEvent(exited,{exitCode: 0}));
 		clients.disconnectAll();
-		final dir = HxPath.join([serverFolder,"addons","debugee"]);
+		final dir = HxPath.join([initBundle.serverFolder,"addons","debugee"]);
 		if (Fs.existsSync(dir)) {
-			(cast Fs.rmdirSync : (a:String,b:Dynamic) -> Void)(dir,{recursive : true});
+			untyped Fs.rmSync(dir,{recursive : true, force : true});
 		}
-		
+		trace("Final shutdown active");
 		super.shutdown();
-	}
-
-	/**
-	 * Async start server. Respond to attach request when attached.
-	**/
-	public function startServer(attachReq:Request<Dynamic>) {
-		
-		pokeServerNamedPipes(attachReq).handle((out) -> {
-			switch (out) {
-				case Success(_):
-					trace("Attatch success");
-					final resp = attachReq.compose(attach);
-					resp.send(this);
-				case Failure(fail):
-					trace(fail.message);
-					final resp = attachReq.composeFail('attach fail ${fail.message}', {
-						id: 1,
-						format: 'Failed to attach to server ${fail.message}',
-					});
-					resp.send(this);
-			}
-		});
-		
-	}
-
-	public function setClientLocations(a:Array<String>) {
-		return clientLocations = a;
 	}
 
 	public override function handleMessage(message:ProtocolMessage) {
 		switch (message.type) {
 			case Request:
-				untyped trace('recieved request from client ${message.command}');
-				requestRouter.route(cast message);
+				final request:Request<Dynamic> = cast message;
+				trace('recieved request from client ${request.command}');
+				try {
+					requestRouter.route(cast message);
+
+				} catch (e) {
+					trace('Failed to handle message ${e.toString()}');
+					trace(e.stack);
+					final fail = (cast message : Request<Dynamic>).composeFail({
+						id: 15,
+						format: e.toString()
+					});
+					fail.send(this);
+					throw e;
+				}
 			default:
-				trace("not a request from client");
+				trace('Sent message type ${message.type} from dap. Not a request: not handling');				
 		}
 	}
 }
@@ -292,11 +367,6 @@ typedef Programs = {
 typedef FileSocket = {
 	readS:Socket,
 	writeS:Socket,
-}
-
-typedef ClientFiles = {
-	read:String,
-	write:String
 }
 
 enum DapMode {

@@ -1,11 +1,12 @@
 --times
 -D haxeJSON
 -D macro-times
-main.hxml
+
+extension.hxml
 
 --next
 
-extension.hxml
+redirect_worker.hxml
 
 --next
 

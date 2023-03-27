@@ -5,6 +5,10 @@ import haxe.Constraints.Function;
 
 using gmdebug.lua.GmodPath;
 
+typedef InitBreakpointManager = {
+	debugee : Debugee
+}
+
 class BreakpointManager {
 
 	var breakLocsCache:Map<GmodPath, Map<Int, Bool>> = [];
@@ -13,8 +17,10 @@ class BreakpointManager {
 
 	var bpID:Int = 0;
 
-	public function new() {
-		
+	final debugee:Debugee;
+	
+	public function new(initBreakpointManager:InitBreakpointManager) {
+		debugee = initBreakpointManager.debugee;
 	}
 
 	public function clearBreakpoints(source:String) {
@@ -22,7 +28,7 @@ class BreakpointManager {
 	}
 
 	inline function getRealPath(source:String):GmodPath {
-		return switch (Debugee.fullPathToGmod(source)) {
+		return switch (debugee.fullPathToGmod(source)) {
 			case Some(v):
 				v;
 			case None:
@@ -76,7 +82,7 @@ class BreakpointManager {
 	}
 
 	public function newBreakpoint(source:Source,bp:SourceBreakpoint):Breakpoint {
-		final status = switch (Debugee.fullPathToGmod(source.path)) { 
+		final status = switch (debugee.fullPathToGmod(source.path)) { 
 			case Some(v):
 				breakpointStatus(v,bp.line);
 			case None:

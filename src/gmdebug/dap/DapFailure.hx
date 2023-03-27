@@ -1,5 +1,10 @@
 package gmdebug.dap; 
 
+#if lua
+import gmdebug.lib.lua.Protocol;
+#elseif js
+import vscode.debugProtocol.DebugProtocol;
+#end
 using gmdebug.composer.ComposeTools;
 
 class DapFailureTools {
@@ -8,7 +13,7 @@ class DapFailureTools {
 	public static function sendError(opt:haxe.ds.Option<DapFailure>,req:Request<Dynamic>,luaDebug:LuaDebugger) {
 		return switch (opt) {
 			case Some(err):
-				req.composeFail(err.message,{
+				req.composeFail({
 					id : err.id,
 					format : err.message
 				}).send(luaDebug);
@@ -17,7 +22,7 @@ class DapFailureTools {
 				false;
 		}
 	}
-
+	
 	public inline static function noError(err:haxe.ds.Option<DapFailure>) {
 		return err == None;
 	}

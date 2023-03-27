@@ -16,26 +16,34 @@ import String;
 using Safety;
 using Lambda;
 
+typedef InitHandlerContainer = {
+	vm : VariableManager,
+	bm : BreakpointManager,
+	fbm : FunctionBreakpointManager,
+	debugee : Debugee,
+	exceptions : Exceptions
+}
+
 class HandlerContainer {
 
 	var handlerMap:haxe.ds.StringMap<IHandler<Request<Dynamic>>> = new haxe.ds.StringMap();
 
-	public function new(vm:VariableManager,bm:BreakpointManager,fbm:FunctionBreakpointManager) {
-		handlerMap.set("_continue", new HContinue(vm));
+	public function new(initHandlerContainer:InitHandlerContainer) {
+		handlerMap.set("_continue", new HContinue(initHandlerContainer));
 		handlerMap.set(disconnect, new HDisconnect());
-		handlerMap.set(stackTrace, new HStackTrace());
-		handlerMap.set(next, new HNext());
-		handlerMap.set(pause, new HPause());
-		handlerMap.set(stepIn, new HStepIn());
-		handlerMap.set(stepOut, new HStepOut());
-		handlerMap.set(variables, new HVariables(vm));
-		handlerMap.set(setBreakpoints,new HSetBreakpoints(bm));
-		handlerMap.set(setFunctionBreakpoints,new HSetFunctionBreakpoints(fbm));
-		handlerMap.set(setExceptionBreakpoints,new HSetExceptionBreakpoints());
-		handlerMap.set(evaluate,new HEvaluate(vm));
-		handlerMap.set(configurationDone,new HConfigurationDone());
-		handlerMap.set(scopes,new HScopes());
-		handlerMap.set(loadedSources,new HLoadedSources());		
+		handlerMap.set(stackTrace, new HStackTrace(initHandlerContainer));
+		handlerMap.set(next, new HNext(initHandlerContainer));
+		handlerMap.set(pause, new HPause(initHandlerContainer));
+		handlerMap.set(stepIn, new HStepIn(initHandlerContainer));
+		handlerMap.set(stepOut, new HStepOut(initHandlerContainer));
+		handlerMap.set(variables, new HVariables(initHandlerContainer));
+		handlerMap.set(setBreakpoints,new HSetBreakpoints(initHandlerContainer));
+		handlerMap.set(setFunctionBreakpoints,new HSetFunctionBreakpoints(initHandlerContainer));
+		handlerMap.set(setExceptionBreakpoints,new HSetExceptionBreakpoints(initHandlerContainer));
+		handlerMap.set(evaluate,new HEvaluate(initHandlerContainer));
+		handlerMap.set(configurationDone,new HConfigurationDone(initHandlerContainer));
+		handlerMap.set(scopes,new HScopes(initHandlerContainer));
+		handlerMap.set(loadedSources,new HLoadedSources(initHandlerContainer));		
 	}
 
 	public function handlers(req:Request<Dynamic>):HandlerResponse {

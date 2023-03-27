@@ -1,5 +1,11 @@
 package gmdebug.composer;
 
+#if lua
+import gmdebug.lib.lua.Protocol;
+#elseif js
+import vscode.debugProtocol.DebugProtocol;
+#end
+
 class ComposeTools {
 	/**
 		Compose a response
@@ -12,9 +18,9 @@ class ComposeTools {
 		return response;
 	}
 
-	public static function composeFail<X, Y>(req:Request<X>, ?rawerror:String, ?error:Message):ComposedResponse<Null<Message>> {
+	public static function composeFail<X, Y>(req:Request<X>, ?error:Message):ComposedResponse<Null<Message>> {
 		var response = new ComposedResponse(req, error);
-		response.message = rawerror;
+		response.message = error.format;
 		response.success = false;
 		return response;
 	}

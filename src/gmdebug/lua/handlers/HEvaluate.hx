@@ -1,5 +1,11 @@
 package gmdebug.lua.handlers;
 
+#if lua
+import gmdebug.lib.lua.Protocol;
+#elseif js
+import vscode.debugProtocol.DebugProtocol;
+#end
+
 import gmdebug.lua.managers.VariableManager;
 import lua.Lua;
 import lua.Table;
@@ -10,13 +16,20 @@ import gmdebug.composer.ComposedProtocolMessage;
 import lua.NativeStringTools;
 import gmdebug.lua.handlers.IHandler;
 
+typedef InitHEvaluate = {
+	vm : VariableManager,
+	debugee : Debugee
+}
+
 class HEvaluate implements IHandler<EvaluateRequest> {
-    
-    public function new(vm:VariableManager) {
-        variableManager = vm;
+	final variableManager:VariableManager;
+
+    final debugee:Debugee;
+    public function new(init:InitHEvaluate) {
+        variableManager = init.vm;
+		debugee = init.debugee;
     }
 
-	var variableManager:VariableManager;
 
 	public static inline function translateEvalError(err:String) {
 		return NativeStringTools.gsub(err, '^%[string %"X%"%]%:%d+%: ', "");
@@ -89,7 +102,9 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 		trace('expr : $expr');
 		final resp:ComposedProtocolMessage = switch (Util.compileString(expr, "GmDebug")) {
 			case Error(err):
-				evalReq.composeFail(translateEvalError(err));
+				evalReq.composeFail({
+					id : 50, //TODO dur
+					format : translateEvalError(err)});
 			case Success(func):
 				if (fid != null) {
 					final eval = createEvalEnvironment(fid.getValue().actualFrame + 2);
@@ -97,7 +112,9 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 				}
 				switch (Util.runCompiledFunction(func)) {
 					case Error(err):
-						evalReq.composeFail(translateEvalError(err));
+						evalReq.composeFail({
+							id: 51, //TODO hurr
+							format : translateEvalError(err)});
 					case Success(result):
 						final item = variableManager.genvar({
 							name: "",
@@ -110,7 +127,7 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 						});
 				}
 		}
-		resp.send();
+		debugee.sendMessage(resp);
 		return WAIT;
 	}
 }

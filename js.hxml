@@ -1,0 +1,19 @@
+#-D @raygun-nickj/mmap-io=1.3.0
+-cp lib/node
+-cp lib/ffi-napi
+-cp lib/ref-napi
+-cp lib/ref-struct-di
+-cp lib/sudo-prompt
+-cp lib/ref-array-di
+-lib hxnodejs
+-lib vscode-debugadapter
+-lib vscode
+-lib safety
+-lib tink_await
+-lib tink_io
+-cp src
+-D error_stack
+-D analyzer-optimize
+--dce=full
+-D js-es=6
+-D haxeJSON

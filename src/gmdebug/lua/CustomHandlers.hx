@@ -1,12 +1,24 @@
 package gmdebug.lua;
 
+import gmdebug.lua.util.Util.isLan;
 import gmdebug.composer.*;
 import gmod.libs.GameLib;
 import gmdebug.GmDebugMessage;
 import gmod.Gmod;
 
+
+typedef InitCustomHandlers = {
+	debugee : Debugee
+}
 class CustomHandlers {
-	public static function handle(x:GmDebugMessage<Dynamic>) {
+
+	final debugee:Debugee;
+
+	public function new(initCustomHandlers:InitCustomHandlers) {
+		debugee = initCustomHandlers.debugee;
+	}
+
+	public function handle(x:GmDebugMessage<Dynamic>) {
 		switch (x.msg) {
 			case clientID:
 				h_clientID(cast x);
@@ -17,27 +29,23 @@ class CustomHandlers {
 		}
 	}
 
-	static function h_clientID(x:GmDebugMessage<GMClientID>) {
+	function h_clientID(x:GmDebugMessage<GMClientID>) {
 		trace('recieved id ${x.body.id}');
-		Debugee.clientID = x.body.id;
+		debugee.clientID = x.body.id;
 	}
 
-	static function isLan() {
-		return Gmod.GetConVar("sv_lan").GetBool();
-	}
-
-	static function h_initalInfo(x:GmDebugMessage<GmDebugIntialInfo>) {
-		Debugee.dest = x.body.location;
+	function h_initalInfo(x:GmDebugMessage<GmDebugIntialInfo>) {
+		debugee.dest = x.body.location;
 		if (x.body.dapMode == Launch) {
 			#if server
-			new ComposedGmDebugMessage(serverInfo, {
+			debugee.sendMessage(new ComposedGmDebugMessage(serverInfo, {
 				ip: GameLib.GetIPAddress(),
 				isLan: isLan()
-			}).send();
+			}));
 			#end
-			Debugee.dapMode = Launch;
+			debugee.dapMode = Launch;
 		} else {
-			Debugee.dapMode = Attach;
+			debugee.dapMode = Attach;
 		}
 	}
 }

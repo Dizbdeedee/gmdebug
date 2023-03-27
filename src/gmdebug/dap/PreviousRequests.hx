@@ -2,6 +2,11 @@ package gmdebug.dap;
 
 import gmdebug.composer.RequestString.AnyRequest;
 
+#if lua
+import gmdebug.lib.lua.Protocol;
+#elseif js
+import vscode.debugProtocol.DebugProtocol;
+#end
 class PreviousRequests {
 
     var prevRequestMap:Map<String,Request<Dynamic>> = [];

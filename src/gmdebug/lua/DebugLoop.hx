@@ -10,14 +10,36 @@ import lua.Lua;
 import gmod.libs.DebugLib;
 import gmod.Gmod;
 import gmdebug.lua.managers.BreakpointManager;
-import gmdebug.lua.util.PrintTimer.print_time;
 
 using gmod.helpers.WeakTools;
 using Safety;
 using tink.CoreApi;
 using gmdebug.lua.GmodPath;
 
+typedef InitDebugLoop = {
+	bm : BreakpointManager,
+	sc : SourceContainer,
+	fbm : FunctionBreakpointManager,
+	debugee : Debugee,
+	exceptions : Exceptions
+}
+
 class DebugLoop {
+
+	static final STACK_LIMIT_PER_FUNC = 200;
+
+	static final STACK_LIMIT = 65450; //could dynamically check this..
+
+	static final STACK_DEBUG_TAIL = 500; //the stack can change up to this.. if not problems
+
+	static final STACK_DEBUG_RELIEF_OURFUNCS = STACK_LIMIT_PER_FUNC * 2;
+
+	static final STACK_DEBUG_RELIEF_TOLERANCE = STACK_LIMIT_PER_FUNC * 4;
+
+	static final STACK_DEBUG_LIMIT = STACK_LIMIT - STACK_DEBUG_RELIEF_OURFUNCS - STACK_DEBUG_RELIEF_TOLERANCE;
+	
+	static final STACK_DEBUG_RESET_TOLERANCE = STACK_LIMIT_PER_FUNC * 10;
+
 	static var lineInfoFuncCache:haxe.ds.ObjectMap<Function, Bool> = new haxe.ds.ObjectMap();
 
 	static var currentFunc:Null<haxe.Constraints.Function> = null;
@@ -46,31 +68,22 @@ class DebugLoop {
 
 	static var supressCheckStack:Option<Int> = None;
 
-	static final STACK_LIMIT_PER_FUNC = 200;
-
-	static final STACK_LIMIT = 65450; //could dynamically check this..
-
-	static final STACK_DEBUG_TAIL = 500; //the stack can change up to this.. if not problems
-
-	static final STACK_DEBUG_RELIEF_OURFUNCS = STACK_LIMIT_PER_FUNC * 2;
-
-	static final STACK_DEBUG_RELIEF_TOLERANCE = STACK_LIMIT_PER_FUNC * 4;
-
-	static final STACK_DEBUG_LIMIT = STACK_LIMIT - STACK_DEBUG_RELIEF_OURFUNCS - STACK_DEBUG_RELIEF_TOLERANCE;
-	
-	static final STACK_DEBUG_RESET_TOLERANCE = STACK_LIMIT_PER_FUNC * 10;
-
 	static var bm:Null<BreakpointManager>;
 
 	static var sc:Null<SourceContainer>;
 
+	static var exceptions:Null<Exceptions>;
+
+	static var debugee:Debugee;
+
 	static var fbm:Null<FunctionBreakpointManager>;
 
-
-	public static function init(bm:BreakpointManager,sc:SourceContainer,fbm:FunctionBreakpointManager) {
-		DebugLoop.bm = bm;
-		DebugLoop.sc = sc;
-		DebugLoop.fbm = fbm;
+	public static function init(initDebugLoop:InitDebugLoop) {
+		bm = initDebugLoop.bm;
+		sc = initDebugLoop.sc;
+		debugee = initDebugLoop.debugee;
+		fbm = initDebugLoop.fbm;
+		exceptions = initDebugLoop.exceptions;
 	}
 
 	inline static function nextCallStop(sinfo:SourceInfo, bp:Map<Int, Dynamic>) {
@@ -107,7 +120,7 @@ class DebugLoop {
 
 	static inline extern function currentStackHeight(func:Function) {
 		return if (func != prevFunc) {
-			prevStackHeight = Debugee.stackHeight;
+			prevStackHeight = debugee.stackHeight;
 			prevStackHeight;
 		} else {
 			prevStackHeight;
@@ -136,7 +149,7 @@ class DebugLoop {
 		switch (bm.getBreakpointForLine(sinfo.source.gPath(),line)) {
 			case null | {breakpointType : INACTIVE}:
 			case {breakpointType : NORMAL}:
-				Debugee.startHaltLoop(Breakpoint, StackConst.STEP_DEBUG_LOOP);
+				debugee.startHaltLoop(Breakpoint, StackConst.STEP_DEBUG_LOOP);
 			case {breakpointType : CONDITIONAL(condFunc), id : bpID}:
 				Gmod.setfenv(condFunc, HEvaluate.createEvalEnvironment(3 + DebugHook.HOOK_USED));
 				switch (Util.runCompiledFunction(condFunc)) {
@@ -152,10 +165,10 @@ class DebugLoop {
 						});
 						Lua.print('Conditional breakpoint in file ${sinfo.short_src}:${line} failed!');
 						Lua.print('Error: $message');
-						resp.send();
+						debugee.sendMessage(resp);
 					case Success(val):
 						if (val) {
-							Debugee.startHaltLoop(Breakpoint,  StackConst.STEP_DEBUG_LOOP);
+							debugee.startHaltLoop(Breakpoint,  StackConst.STEP_DEBUG_LOOP);
 						}
 				}
 		}
@@ -163,30 +176,30 @@ class DebugLoop {
 	}
 
 	static extern inline function debug_step(cur:HookState, func:Function, ?curLine:Int):Bool {
-		return switch Debugee.state {
+		return switch debugee.state {
 			case null: // otherwise lua dump. not good
 				false;
 			case WAIT:
 				false;
-			case STEP(target) if (target == null || Debugee.stackHeight <= target):
-				trace('stepped $target ${Debugee.stackHeight}');
-				Debugee.state = WAIT;
+			case STEP(target) if (target == null || debugee.stackHeight <= target):
+				trace('stepped $target ${debugee.stackHeight}');
+				debugee.state = WAIT;
 				disableLineStep();
-				Debugee.startHaltLoop(Step,  StackConst.STEP_DEBUG_LOOP);
+				debugee.startHaltLoop(Step,  StackConst.STEP_DEBUG_LOOP);
 				true;
 			case STEP(x):
 				true;
 			case OUT(outFunc, lowest,_) if (outFunc == func && curLine.unsafe() == lowest):
-				Debugee.state = WAIT;
+				debugee.state = WAIT;
 				Lua.print(outFunc, func);
 				disableLineStep();
-				Debugee.startHaltLoop(Step,  StackConst.STEP_DEBUG_LOOP);
+				debugee.startHaltLoop(Step,  StackConst.STEP_DEBUG_LOOP);
 				true;
-			case OUT(outFunc, _,tarHeight) if (outFunc != func && Debugee.stackHeight <= tarHeight):
-				Debugee.state = WAIT;
+			case OUT(outFunc, _,tarHeight) if (outFunc != func && debugee.stackHeight <= tarHeight):
+				debugee.state = WAIT;
 				Lua.print(outFunc, func);
 				disableLineStep();
-				Debugee.startHaltLoop(Step,  StackConst.STEP_DEBUG_LOOP);
+				debugee.startHaltLoop(Step,  StackConst.STEP_DEBUG_LOOP);
 				true;
 			case OUT(outFunc, _):
 				Lua.print(outFunc, func, curLine);
@@ -204,7 +217,7 @@ class DebugLoop {
 		// RUns on entry and exit
 		if (func != null && fbm != null && currentFunc == null) {
 			if (fbm.functionBP.exists(func)) {
-				Debugee.startHaltLoop(FunctionBreakpoint,  StackConst.STEP_DEBUG_LOOP);
+				debugee.startHaltLoop(FunctionBreakpoint,  StackConst.STEP_DEBUG_LOOP);
 			}
 			currentFunc = func;
 		}
@@ -317,7 +330,7 @@ class DebugLoop {
 				}
 				nextCheckStack = cast Math.max(Math.floor((STACK_DEBUG_LIMIT - locals) / STACK_LIMIT_PER_FUNC) - 1, 0);
 				if (nextCheckStack <= 5 && supressCheckStack == None) {
-					Debugee.startHaltLoop(Exception,  StackConst.STEP_DEBUG_LOOP, "Possible stack overflow detected...");
+					debugee.startHaltLoop(Exception,  StackConst.STEP_DEBUG_LOOP, "Possible stack overflow detected...");
 					supressCheckStack = Some(6);
 				}
 				switch (supressCheckStack) {
@@ -334,9 +347,9 @@ class DebugLoop {
 
 	// TODO if having inline breakpoints, only use instruction count when necessary (i.e when running the line to step through) also granuality ect.
 	public static function debugloop(cur:HookState, currentLine:Int) {
-		if (!Debugee.shouldDebug || Debugee.tracing)
+		if (debugee.pollActive || debugee.tracebackActive)
 			return;
-		debug_checkBlownStack(cur);
+		// debug_checkBlownStack(cur);
 		DebugLoopProfile.profile("getinfo", true);
 		final func = DebugLib.getinfo(DebugHook.DEBUG_OFFSET, 'f').func;
 		final result = sc.sourceCache.get(func);
@@ -348,7 +361,7 @@ class DebugLoop {
 			tmp;
 		}
 		DebugLoopProfile.profile("step");
-		if (Exceptions.exceptFuncs != null && func != null && Exceptions.exceptFuncs.exists(func))
+		@:privateAccess if (exceptions.exceptFuncs != null && func != null && exceptions.exceptFuncs.exists(func))
 			return;
 		final stepping = debug_step(cur, func, currentLine);
 		DebugLoopProfile.profile("getbptable");

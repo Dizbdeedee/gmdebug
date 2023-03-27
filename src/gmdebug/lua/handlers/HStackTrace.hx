@@ -3,30 +3,43 @@ package gmdebug.lua.handlers;
 import gmod.libs.DebugLib;
 import gmdebug.composer.ComposedEvent;
 
+typedef InitHStackTrace = {
+	debugee : Debugee,
+	exceptions : Exceptions
+}
+
 class HStackTrace implements IHandler<StackTraceRequest> {
-	public function new() {}
+
+	final debugee:Debugee;
+
+	final exceptions:Exceptions;
+
+	public function new(init:InitHStackTrace) {
+		debugee = init.debugee;
+		exceptions = init.exceptions;
+	}
 
 	public function handle(x:StackTraceRequest):HandlerResponse {
 		final args = x.arguments.unsafe();
-		if (!Debugee.inpauseloop) {
+		if (!debugee.pauseLoopActive) {
 			var response = x.compose(stackTrace, {
 				stackFrames: [],
 				totalFrames: 0
 			});
-			final js = tink.Json.stringify((cast response : StackTraceResponse)); // in pratical terms they're the same
-			response.sendtink(js);
-			new ComposedEvent(continued, {
-				threadId: Debugee.clientID,
+			final jsonStackTraceResp = tink.Json.stringify((cast response : StackTraceResponse)); // in pratical terms they're the same
+			debugee.send(jsonStackTraceResp);
+			debugee.sendMessage(new ComposedEvent(continued, {
+				threadId: debugee.clientID,
 				allThreadsContinued: false
-			}).send();
+			}));
 			return WAIT;
 		}
-		final len = DebugLoop.debug_stack_len() - Debugee.baseDepth;
+		final len = DebugLoop.debug_stack_len() - debugee.baseDepth;
 		final firstFrame = switch (args.startFrame) {
 			case null:
-				Debugee.baseDepth.sure();
+				debugee.baseDepth.sure();
 			case x:
-				x + Debugee.baseDepth.sure();
+				x + debugee.baseDepth.sure();
 		}
 		final lastFrame = switch (args.levels) {
 			case null | 0:
@@ -98,14 +111,14 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 					line = 0;
 					column = 0;
 				case [x,len] if ((len > 80 && i > 45 && (i - 5) < len - 40)):
-					path = Debugee.normalPath(x);
+					path = debugee.normalPath(x);
 					hint = Deemphasize;
 					line = info.currentline;
 					column = 1;
 					endLine = info.lastlinedefined;
 					endColumn = 99999;
 				case [x,_]:
-					path = Debugee.normalPath(x);
+					path = debugee.normalPath(x);
 					hint = null;
 					line = info.currentline;
 					column = 1;
@@ -113,7 +126,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 					endColumn = 99999;
 			}
 			hint = Normal;
-			if (info.func != null && Exceptions.isExcepted(info.func)) {
+			if (info.func != null && exceptions.isExcepted(info.func)) {
 				line = 0;
 				path = null;
 				column = 0;
@@ -123,7 +136,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 				hint = Normal;
 			}
 			var target:StackFrame = {
-				id: gmdebug.FrameID.encode(Debugee.clientID.sure(), i),
+				id: gmdebug.FrameID.encode(debugee.clientID.sure(), i),
 				name: name,
 				source: switch path {
 					case null:
@@ -151,8 +164,8 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 			stackFrames: stackFrames,
 			totalFrames: len
 		});
-		final js = tink.Json.stringify((cast response : StackTraceResponse)); // in pratical terms they're the same
-		response.sendtink(js);
+		final json = tink.Json.stringify((cast response : StackTraceResponse)); // in pratical terms they're the same
+		debugee.send(json);
 		return WAIT;
 	}
 }

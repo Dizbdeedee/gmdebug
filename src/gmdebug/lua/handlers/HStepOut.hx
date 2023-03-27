@@ -4,14 +4,22 @@ import gmod.libs.DebugLib;
 
 using Lambda;
 
+typedef InitHStepOut = {
+	debugee : Debugee
+}
 class HStepOut implements IHandler<StepOutRequest> {
-	public function new() {}
+	
+	final debugee:Debugee;
+	
+	public function new(initHStepOut:InitHStepOut) {
+		debugee = initHStepOut.debugee;
+	}
 
 	public function handle(stepOutReq:StepOutRequest):HandlerResponse {
-		var tarheight = Debugee.stepHeight - 1;
+		var tarheight = debugee.stepHeight - 1;
 		trace('stepOut ${tarheight < StackConst.MIN_HEIGHT} : $tarheight ${StackConst.MIN_HEIGHT}');
 		if (tarheight <= StackConst.MIN_HEIGHT) {
-			final info = DebugLib.getinfo(Debugee.baseDepth.unsafe() + 1, "fLSl");
+			final info = DebugLib.getinfo(debugee.baseDepth.unsafe() + 1, "fLSl");
 			final func = info.func;
 			trace('${info.source}');
             final activeLines = info.activelines;
@@ -23,13 +31,13 @@ class HStepOut implements IHandler<StepOutRequest> {
 				}
 			}, cast Math.POSITIVE_INFINITY);
 			trace('lowest $lowest');
-			Debugee.state = OUT(func, lowest - 1,tarheight + 1); //lowest - 1, as call hook starts on first line
+			debugee.state = OUT(func, lowest - 1,tarheight + 1); //lowest - 1, as call hook starts on first line
 		} else {
-			Debugee.state = STEP(tarheight);
+			debugee.state = STEP(tarheight);
 		}
 		DebugLoop.enableLineStep();
 		final stepoutResp = stepOutReq.compose(stepOut);
-		stepoutResp.send();
+		debugee.sendMessage(stepoutResp);
 		return CONTINUE;
 	}
 }
