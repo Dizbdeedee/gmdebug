@@ -10,16 +10,16 @@ using Lambda;
 using StringTools;
 function recurseCopy(curFolder:String,output:String,copyFilePred:(String) -> Bool) {
     for (name in FileSystem.readDirectory(curFolder)) {
-        var curFilePath = HxPath.join([curFolder,name]);
+        var curFile = HxPath.join([curFolder,name]);
         var otherFile = HxPath.join([output,name]);
-        if (FileSystem.isDirectory(curFilePath)) {
-            if (!copyFilePred(HxPath.withoutDirectory(curFilePath))) continue;
+        if (FileSystem.isDirectory(HxPath.join([curFolder,name]))) {
             FileSystem.createDirectory(otherFile);
-            recurseCopy(curFilePath,otherFile,copyFilePred);
+            recurseCopy(HxPath.join([curFolder,name]),HxPath.join([output,name]),copyFilePred);
         } else {
-            var curFileName = HxPath.withoutExtension(HxPath.withoutDirectory(curFilePath));
-            if (!copyFilePred(curFileName)) continue;
-            HxFile.copy(curFilePath,otherFile);
+            final curname = HxPath.withoutExtension(HxPath.withoutDirectory(curFile));
+            if (copyFilePred(curname)) {
+                HxFile.copy(curFile,otherFile);
+            }
         }
     }
 }

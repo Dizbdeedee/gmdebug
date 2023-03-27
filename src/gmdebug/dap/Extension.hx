@@ -1,8 +1,5 @@
 package gmdebug.dap;
 
-import vscode.WorkspaceFolder;
-import vscode.DebugConfiguration;
-import vscode.CancellationToken;
 import Vscode;
 import vscode.DebugAdapterExecutable;
 import vscode.DebugAdapterInlineImplementation;
@@ -30,8 +27,6 @@ class Extension {
 
 		final fact:DebugAdapterDescriptorFactory = new InlineDebugAdapterProvide();
 		context.subscriptions.push(Vscode.debug.registerDebugAdapterDescriptorFactory("gmdebug", fact));
-		final provider = new MockConfigurationProvider();
-		context.subscriptions.push(Vscode.debug.registerDebugConfigurationProvider('gmdebug', provider));
 	}
 
 	@:expose("deactivate")
@@ -52,28 +47,8 @@ private class DebugConfigProvider {
 private class InlineDebugAdapterProvide {
 	public function createDebugAdapterDescriptor(session:vscode.DebugSession,
 			?executable:DebugAdapterExecutable):ProviderResult<vscode.DebugAdapterDescriptor> {
-		return cast new DebugAdapterInlineImplementation(cast new LuaDebugger(null,null,session.workspaceFolder.uri.fsPath));
+		return cast new DebugAdapterInlineImplementation(cast new LuaDebugger());
 	}
 
 	public function new() {}
-}
-private class MockConfigurationProvider {
-
-	public function new() {}
-
-	public var provideDebugConfigurations = null;
- 
-	 public var resolveDebugConfigurationWithSubstitutedVariables = null;
-
-	/**
-	 * Massage a debug configuration just before a debug session is being launched,
-	 * e.g. add all missing attributes to the debug configuration.
-	 */
-	public function resolveDebugConfiguration(folder:Null<WorkspaceFolder>, debugConfiguration:DebugConfiguration,
-		?token:CancellationToken):ProviderResult<DebugConfiguration> {
-		trace('THE FOLDER $folder');
-		return debugConfiguration;
-
-	}
-	
 }

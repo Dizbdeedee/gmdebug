@@ -1,6 +1,4 @@
 node_modules
 *.vsix
-dogfood*
-generated/**/haxe_init.lua
-generated/**/haxe_cl_init.lua
-bin
+lib
+dogfood.sh

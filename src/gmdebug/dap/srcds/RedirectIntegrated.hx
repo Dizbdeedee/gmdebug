@@ -5,11 +5,12 @@ import js.node.Util;
 import js.node.Timers;
 import js.node.stream.Writable;
 import js.node.stream.Readable;
-import node.buffer.Buffer;
 import ffi_napi.Callback;
 import js.node.stream.Writable.IWritable;
 import js.node.stream.Readable.IReadable;
 import RefNapi.types as rtypes;
+import ref_napi.buffer.Buffer;
+
 using StringTools;
 
 

@@ -59,6 +59,7 @@ class RequestRouter {
 			case setBreakpoints:
 				prevRequests.update(req);
 				clients.sendAll(req);	
+			// h_setBreakpoints(req);
 			case setExceptionBreakpoints:
 				prevRequests.update(req);
 				clients.sendAll(req);
@@ -160,7 +161,8 @@ class RequestRouter {
 	}
 
 	function h_attach(req:GmDebugAttachRequest) {
-		req.composeFail({
+		req.composeFail("Gmdebug does not currently support attach requests",
+		{
 			id : 15,
 			format : "Gmdebug does not currently support attach requests"
 		}).send(luaDebug);

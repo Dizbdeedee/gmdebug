@@ -16,53 +16,21 @@ import haxe.Json;
 import haxe.io.Input;
 import haxe.io.Path as HxPath;
 
-final PATH_FOLDER = "gmdebug";
+final FOLDER = "gmdebug";
 
-final PATH_CLIENT_READY = "client_waiting.dat";
+final CLIENT_READY = "clientready.dat";
 
-final PATH_CLIENT_ACK = "client_ack.dat";
+final INPUT = "in.dat";
 
-final PATH_INPUT = "in.dat";
+final OUTPUT = "out.dat";
 
-final PATH_OUTPUT = "out.dat";
+final READY = "ready.dat";
 
-final PATH_CONNECTION = "connect.dat";
+final DATA = "data";
 
-final PATH_PIPES_READY = "pipes_ready.dat";
+final AQUIRED = "aquired.dat";
 
-final PATH_CONNECTION_IN_PROGRESS = "connection_progress.dat";
-
-final PATH_CONNECTION_AQUIRED = "connection_aquired.dat";
-
-final PATH_DATA = "data";
-
-final JIT = HxPath.join([PATH_FOLDER, "jitchoice.txt"]);
-
-typedef PipeLocations = {
-	folder : String,
-	client_ready : String,
-	connect : String,
-	pipes_ready : String,
-	input : String,
-	output : String,
-	client_ack : String,
-	connection_in_progress : String,
-	connection_aquired : String
-}
-
-function generatePipeLocations(folder:String) {
-	return {
-		folder : folder,
-		client_ready: HxPath.join([folder,PATH_CLIENT_READY]),
-		output: HxPath.join([folder,PATH_OUTPUT]),
-		input: HxPath.join([folder,PATH_INPUT]),
-		pipes_ready: HxPath.join([folder,PATH_PIPES_READY]),
-		client_ack : HxPath.join([folder,PATH_CLIENT_ACK]),
-		connect: HxPath.join([folder,PATH_CONNECTION]),
-		connection_in_progress: HxPath.join([folder,PATH_CONNECTION_IN_PROGRESS]),
-		connection_aquired: HxPath.join([folder,PATH_CONNECTION_AQUIRED])
-	}
-}
+final JIT = HxPath.join([FOLDER, "jitchoice.txt"]);
 
 @:nullSafety(Off)
 function readHeader(x:Input) {
@@ -87,9 +55,10 @@ function readHeader(x:Input) {
 		raw_content = raw_content.substr(skip);
 	}
 	var content_length = Std.parseInt(@:nullSafety(Off) raw_content.substr(15));
-	x.readLine();
+	
+	final garbage = x.readLine();
 	#if (lua && jsonDump)
-	FileLib.Append(HxPath.join([PATH_FOLDER,"log.txt"]),raw_content + garbage + ';$content_length;');
+	FileLib.Append(HxPath.join([FOLDER,"log.txt"]),raw_content + garbage + ';$content_length;');
 	#end
 	return content_length;
 }
@@ -102,7 +71,7 @@ function recvMessage(x:Input):MessageResult {
 	}
 	var dyn = x.readString(len, UTF8); // argh
 	#if (lua && jsonDump)
-	FileLib.Append(HxPath.join([PATH_FOLDER,"log.txt"]),dyn);
+	FileLib.Append(HxPath.join([FOLDER,"log.txt"]),dyn);
 	#end
 	return MESSAGE(Json.parse(dyn));
 }

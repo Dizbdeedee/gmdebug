@@ -10,6 +10,8 @@ import lua.Lua;
 import gmod.libs.DebugLib;
 import gmod.Gmod;
 import gmdebug.lua.managers.BreakpointManager;
+import gmdebug.lua.debugcontext.DebugContext.debugContext;
+import gmdebug.lua.debugcontext.DebugContext;
 
 using gmod.helpers.WeakTools;
 using Safety;
@@ -149,6 +151,7 @@ class DebugLoop {
 		switch (bm.getBreakpointForLine(sinfo.source.gPath(),line)) {
 			case null | {breakpointType : INACTIVE}:
 			case {breakpointType : NORMAL}:
+
 				debugee.startHaltLoop(Breakpoint, StackConst.STEP_DEBUG_LOOP);
 			case {breakpointType : CONDITIONAL(condFunc), id : bpID}:
 				Gmod.setfenv(condFunc, HEvaluate.createEvalEnvironment(3 + DebugHook.HOOK_USED));
@@ -217,7 +220,7 @@ class DebugLoop {
 		// RUns on entry and exit
 		if (func != null && fbm != null && currentFunc == null) {
 			if (fbm.functionBP.exists(func)) {
-				debugee.startHaltLoop(FunctionBreakpoint,  StackConst.STEP_DEBUG_LOOP);
+				DebugContext.debugContext(debugee.startHaltLoop(FunctionBreakpoint,  StackConst.STEP_DEBUG_LOOP));
 			}
 			currentFunc = func;
 		}
@@ -243,113 +246,12 @@ class DebugLoop {
 		return middle;
 	}
 
-	static extern inline function debug_local_len(stack:Int) {
-		var min:Int = 0;
-		var max:Int = STACK_LIMIT_PER_FUNC;
-		var middle:Int = Math.floor((max - min) / 2);
-		while (true) {
-			final local = DebugLib.getlocal(stack,middle);
-			if (local.a == null) {
-				max = middle;
-				middle = Math.floor((max - min) / 2) + min;
-			} else {
-				min = middle;
-				middle = Math.floor((max - min) / 2) + min;
-			}
-			if (middle == min) {
-				break;
-			}
-		}
-		return middle;
-	}
-
-	static extern inline function debug_local_len2(stack:Int) {
-		var locals = 0;
-		for (lindex in 1...STACK_LIMIT_PER_FUNC) {
-			final local = DebugLib.getlocal(stack,lindex);
-			if (local.a == null) {
-				break;
-			} else if (local.a.charAt(0) != '(') { //temporary variables do not count
-				locals++;
-			}
-		}
-		return locals;
-	}
-	
-	static extern inline function debug_countLocals(start:Int,end:Int) {
-		var locals = 0;
-		for (sindex in start...end) {
-			final stack = DebugLib.getinfo(sindex);
-			if (stack == null) {
-				break;
-			}
-			locals += debug_local_len2(sindex);
-			locals++; //off by one :)
-		}
-		return locals;
-	}
-
-	static extern inline function debug_above500(len:Int) {
-		final locals = if (previousLength != null) {
-			if (len < previousLength) {
-				//decrease tail size
-				var stackDiff = previousLength - len;
-				var localDiff = debug_countLocals(STACK_DEBUG_TAIL - stackDiff,STACK_DEBUG_TAIL);
-				tailLength -= stackDiff;
-				tailLocals -= localDiff;
-				tailLocals;
-			} else {
-				//increase tail size
-				var stackDiff = len - previousLength;
-				var localDiff = debug_countLocals(STACK_DEBUG_TAIL,STACK_DEBUG_TAIL + stackDiff);
-				tailLength += stackDiff;
-				tailLocals += localDiff;
-				tailLocals;
-				
-			}
-		} else {
-			var stackDiff = len - STACK_DEBUG_TAIL;
-			var localDiff = debug_countLocals(STACK_DEBUG_TAIL,STACK_DEBUG_TAIL + stackDiff);
-			tailLength = stackDiff;
-			tailLocals = localDiff;
-		}
-		previousLength = len;
-		return locals;
-	}
-
-	static extern inline function debug_checkBlownStack(cur:HookState) { 
-		if (cur == Call) {
-			
-			if (curCheckStack >= nextCheckStack) {
-				final len = debug_stack_len();
-				final locals = if (len > STACK_DEBUG_TAIL) {
-					debug_above500(len);
-				} else { 
-					previousLength = null;
-					debug_countLocals(1,STACK_DEBUG_TAIL);
-				}
-				nextCheckStack = cast Math.max(Math.floor((STACK_DEBUG_LIMIT - locals) / STACK_LIMIT_PER_FUNC) - 1, 0);
-				if (nextCheckStack <= 5 && supressCheckStack == None) {
-					debugee.startHaltLoop(Exception,  StackConst.STEP_DEBUG_LOOP, "Possible stack overflow detected...");
-					supressCheckStack = Some(6);
-				}
-				switch (supressCheckStack) {
-					case Some(x) if (nextCheckStack > x):
-						supressCheckStack = None;
-					default:
-				}
-				curCheckStack = 0;
-			} else {
-				curCheckStack++;
-			}
-		}
-	}
-
 	// TODO if having inline breakpoints, only use instruction count when necessary (i.e when running the line to step through) also granuality ect.
+	@:noCheck
 	public static function debugloop(cur:HookState, currentLine:Int) {
+		DebugContext.enterDebugContext();
 		if (debugee.pollActive || debugee.tracebackActive)
 			return;
-		// debug_checkBlownStack(cur);
 		DebugLoopProfile.profile("getinfo", true);
 		final func = DebugLib.getinfo(DebugHook.DEBUG_OFFSET, 'f').func;
 		final result = sc.sourceCache.get(func);

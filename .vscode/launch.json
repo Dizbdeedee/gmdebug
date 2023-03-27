@@ -5,6 +5,7 @@
     "version": "0.2.0",
     "configurations": [
     {
+        "preLaunchTask": "custom buildall",
         "args": [
             "--extensionDevelopmentPath=${workspaceFolder}"
         ],
@@ -12,11 +13,31 @@
         "outFiles": [
             "${workspaceFolder}/out/*.js"
         ],
-
+        
         // "preLaunchTask": "npm",
         "request": "launch",
         "runtimeExecutable": "${execPath}",
         "type": "extensionHost"
     },
+
+        {
+            "name": "Attach",
+            "port": 9229,
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/out/node/main.js"
+        }
     ]
 }

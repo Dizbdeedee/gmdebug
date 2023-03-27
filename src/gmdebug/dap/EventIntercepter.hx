@@ -22,7 +22,7 @@ class EventIntercepter {
 				outputEvent.body.output = prefix + outputEvent.body.output;
 			case stopped:
 				final stoppedEvent:StoppedEvent = cast ceptedEvent;
-				if (luaDebug.initBundle.programs.xdotool && stoppedEvent.body.threadId > 0) {
+				if (luaDebug.programs.xdotool && stoppedEvent.body.threadId > 0) {
 					trace("free my mousepointer please!!");
 					ChildProcess.execSync("setxkbmap -option grab:break_actions"); 
 					ChildProcess.execSync("xdotool key XF86Ungrab");

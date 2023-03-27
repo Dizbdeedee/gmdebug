@@ -18,9 +18,9 @@ class ComposeTools {
 		return response;
 	}
 
-	public static function composeFail<X, Y>(req:Request<X>, ?error:Message):ComposedResponse<Null<Message>> {
+	public static function composeFail<X, Y>(req:Request<X>, ?rawerror:String, ?error:Message):ComposedResponse<Null<Message>> {
 		var response = new ComposedResponse(req, error);
-		response.message = error.format;
+		response.message = rawerror;
 		response.success = false;
 		return response;
 	}

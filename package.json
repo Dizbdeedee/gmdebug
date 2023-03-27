@@ -14,7 +14,6 @@
 		"@types/ref-array-di": "^1.2.3",
 		"ffi-napi": "^4.0.3",
 		"ip": "^1.1.5",
-		"node-gyp": "^8.2.0",
 		"ref-array-di": "^1.2.2",
 		"ref-struct-di": "^1.1.1",
 		"sudo-prompt": "9.2.1",
@@ -46,8 +45,7 @@
 						"required": [
 							"serverFolder",
 							"programPath",
-							"programArgs",
-							"addonFolderName"
+							"programArgs"
 						],
 						"properties": {
 							"serverFolder": {
@@ -74,54 +72,26 @@
 									"1"
 								]
 							},
-							"nodebugClient": {
+							"autoConnectLocalGmodClient": {
 								"type": "bool",
-								"description": "More of a reminder that to debug clients, you need to specify clientFolder. If you set clients to 1 without this, gmdebug will not run",
+								"description": "For convinence, when the server has launched you can have your steam account autoconnect to it",
 								"default": true
-							},
-							"clients": {
-								"type": "number",
-								"description": "Number of clients to autolaunch",
-								"default": 1
-							},
-							"noCopy": {
-								"type": "bool",
-								"description": "Add to disable copying your addon, and make addonFolderBase and addonName not required",
-								"default": true
-							},
-							"addonFolderBase": {
-								"type": "string",
-								"description": "Copy everything inside specifed folder to addons/{addonName} (which you must also specify)",
-								"default": "./"
-							},
-							"addonName": {
-								"type": "string",
-								"description": "The name of the addon folder when copied into the server garrysmod/addons folder",
-								"default": "really_cool_addon"
 							}
 						}
 					}
 				},
 				"initialConfigurations": [
 					{
-						
-						"type": "gmdebug",
-						"request": "launch",
-						"name": "gmdebug : Launch server",
-						"serverFolder": "/path_to_server_from_root/garrysmod",
-						"programPath": "auto",
-						"programArgs" : [
-							"+map",
-							"gm_flatgrass",
-							"+sv_lan",
-							"1"
-						],
-						"nodebugClient" : true,
-						"clients" : 1,
-						"addonName": "really_cool_addon",
-						"addonFolderBase": "./"
-						
-						
+						"label": "gmdebug: Launch server",
+						"description": "Launch your garry's mod server.",
+						"body": {
+							"type": "gmdebug",
+							"request": "launch",
+							"name": "gmdebug : Launch server",
+							"serverFolder": "/path_to_server_from_root/garrysmod",
+							"programPath": "auto",
+							"autoConnectLocalGmodClient": true
+						}
 					}
 				],
 				"configurationSnippets": [
@@ -134,10 +104,7 @@
 							"name": "gmdebug : Launch server",
 							"serverFolder": "/path_to_server_from_root/garrysmod",
 							"programPath": "auto",
-							"nodebugClient" : true,
-							"clients" : 1,
-							"addonName": "really_cool_addon",
-							"addonFolderBase": "./"
+							"autoConnectLocalGmodClient": true
 						}
 					}
 				]
@@ -146,5 +113,9 @@
 	},
 	"devDependencies": {
 		"dts2hx": "^0.16.0"
+	},
+	"scripts": {
+		"preinstall": "npm install -g node-gyp",
+		"postinstall": "npx dts2hx --noLibWrap --output lib ffi-napi ref-napi ref-struct-di sudo-prompt ref-array-di && npx lix download"
 	}
 }

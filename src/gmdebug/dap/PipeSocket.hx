@@ -1,6 +1,5 @@
 package gmdebug.dap;
 
-import gmdebug.Cross.PipeLocations;
 import js.node.ChildProcess;
 import js.node.Net;
 import sys.FileSystem;
@@ -13,15 +12,13 @@ using tink.CoreApi;
 using StringTools;
 
 
-
 typedef PipeSocketLocations = {
 	folder : String,
 	aquired : String,
 	debugee_output:String, 
 	debugee_input:String,
 	ready:String,
-	client_ready:String,
-	client_ack:String
+	client_ready:String
 }
 
 	
@@ -32,13 +29,6 @@ private typedef MakeLinksWin = {
 	debugee_output : String,
 	pipe_input : String,
 	pipe_output : String
-}
-
-enum ConnStatus {
-	CLIENT_NOT_READY;
-	CLIENT_NOT_ACK;
-	MAKING_LINKS;
-
 }
 
 @:await
@@ -56,38 +46,26 @@ class PipeSocket {
 
     var readS:Socket;
 
-	final locs:PipeLocations;
+	final locs:PipeSocketLocations;
     
     var aquired:Bool = false;
 
-    var readFunc:ReadFunc;
-
-	var connStatus:ConnStatus = CLIENT_NOT_READY;
+    final readFunc:ReadFunc;
 
     //no async new functions
-    public function new(locs:PipeLocations) {
+    public function new(locs:PipeSocketLocations,readFunc:ReadFunc) {
 		this.locs = locs;
+        this.readFunc = readFunc;
 		
     }
 
 	public function isReady() {
 		trace("Checking readiness");
-		return connStatus != CLIENT_NOT_READY || FileSystem.exists(locs.client_ready);
+		return FileSystem.exists(locs.client_ready);
 	}
 
-	public function isAck() {
-		trace("Checking ack...");
-		return connStatus != CLIENT_NOT_ACK || FileSystem.exists(locs.client_ack);
-	}
-
-    public function aquire():Promise<PipeSocket> {
-		
-		if (!isReady()) return Promise.reject(new Error('Client not ready yet...'));
-		connStatus = CLIENT_NOT_ACK;
-		sys.io.File.saveContent(locs.connection_in_progress,"");
-		sys.io.File.saveContent(locs.connect,"");
-		if (!isAck()) return Promise.reject(new Error("Client not acknowledging us..."));
-		connStatus = MAKING_LINKS;
+    public function aquire():Promise<Noise> {
+		if (!isReady()) throw "Client not ready yet...";
 		trace("Client ready");
 		return if (Sys.systemName() == "Windows") {
 			aquireWindows();
@@ -95,16 +73,6 @@ class PipeSocket {
 			aquireLinux();
 		}
     }
-
-	public function assignRead(_readFunc:ReadFunc) {
-		readS.on(Data,_readFunc);
-		readFunc = _readFunc;
-	}
-
-	public function beginConnection() {
-		writeS.write("\004\r\n");
-		aquired = true;
-	}
 
 	@:async public function aquireWindows() {
 		trace("Waiting for windows socket");
@@ -118,29 +86,32 @@ class PipeSocket {
 		serverOut.listen(pipeOutName);
 		trace("Making links...");
 		@:await makeLinksWindows({
-			debugee_input :	locs.input,
-			debugee_output : locs.output,
+			debugee_input :	locs.debugee_input,
+			debugee_output : locs.debugee_output,
 			pipe_input : pipeInName,
 			pipe_output : pipeOutName
 		}).eager();
-		sys.io.File.saveContent(locs.pipes_ready,"");
+		sys.io.File.saveContent(locs.ready,"");
 		final sockets = @:await aquireWindowsSocket(serverIn,serverOut);
 		trace("Servers created");
 		writeS = sockets.sockIn;
 		readS = sockets.sockOut;
-		return this;
+		writeS.write("\004\r\n");
+		readS.on(Data,readFunc);
+		aquired = true;
+		return Noise;
 	}
 
 	@:async public function aquireLinux() {
-		makeFifos(locs.input, locs.output);
-		sys.io.File.saveContent(locs.pipes_ready,"");
-        readS = @:await aquireReadSocket(locs.output); 
-		writeS = @:await aquireWriteSocket(locs.input);
+		makeFifos(locs.debugee_input, locs.debugee_output);
+        readS = @:await aquireReadSocket(locs.debugee_output); 
+		writeS = @:await aquireWriteSocket(locs.debugee_input);
+		sys.io.File.saveContent(locs.ready, "");
 		writeS.write("\004\r\n");
-		// readS.on(Data,readFunc);
+		readS.on(Data,readFunc);
         aquired = true;
 		trace("Aquired socket...");
-		return this;
+		return Noise;
 	}
 
 	function makeFifos(input:String, output:String) {
@@ -180,8 +151,8 @@ class PipeSocket {
 					trace("Insufficient priveleges to make symbolic links. You can avoid this by switching to developer mode.");
 					sudoExec(cmd);
 				} else {
-					trace("Cannot make windows links... Unhandled error");
-					throw e;
+					trace(e);
+					new Error("nani");
 				}
 			}
 		} else {
@@ -220,7 +191,6 @@ class PipeSocket {
 
 
 	@:async function aquireWindowsSocket(serverIn:js.node.net.Server,serverOut:js.node.net.Server):{sockIn : Socket, sockOut : Socket} {
-		trace("AquireWindowsSock");
 		final socks = @:await Future.inParallel([getValidSocket(serverIn),getValidSocket(serverOut)]);
 		//TODO on end, kill
 		trace("We found the sock!");
@@ -247,26 +217,15 @@ class PipeSocket {
 		
         readS.end();
         writeS.end();
-		if (FileSystem.exists(locs.output)) {
-			FileSystem.deleteFile(locs.output);
+		if (FileSystem.exists(locs.debugee_output)) {
+			FileSystem.deleteFile(locs.debugee_output);
 		}
-		if (FileSystem.exists(locs.input)) {
-			FileSystem.deleteFile(locs.input);
+		if (FileSystem.exists(locs.debugee_input)) {
+			FileSystem.deleteFile(locs.debugee_input);
 		}
-		if (FileSystem.exists(locs.connect)) {
-			FileSystem.deleteFile(locs.connect);
+		if (FileSystem.exists(locs.aquired)) {
+			FileSystem.deleteFile(locs.aquired);
 		}
-		if (FileSystem.exists(locs.client_ack)) {
-			FileSystem.deleteFile(locs.client_ack);
-		}
-		if (FileSystem.exists(locs.client_ready)) {
-			FileSystem.deleteFile(locs.client_ready);
-		}
-		if (FileSystem.exists(locs.pipes_ready)) {
-			FileSystem.deleteFile(locs.pipes_ready);
-		}
-		FileSystem.deleteDirectory(locs.folder);
-		
     }
 
 }

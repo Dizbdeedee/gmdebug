@@ -124,11 +124,7 @@ class Debugee {
 	function freeFolder(folder:String):Bool {
 		return if (!FileLib.Exists(folder,DATA)) {
 			true;
-		} else if (!FileLib.Exists(join([folder,PATH_CLIENT_READY]),DATA)
-		&& !FileLib.Exists(join([folder,PATH_CONNECTION_AQUIRED]),DATA)
-		&& !FileLib.Exists(join([folder,PATH_CONNECTION_IN_PROGRESS]),DATA)
-		
-		) {
+		} else if (!FileLib.Exists(join([folder,AQUIRED]),DATA)) {
 			true;
 		} else {
 			false;
@@ -136,12 +132,12 @@ class Debugee {
 	}
 
 	function checkFreeSlots():String {
-		if (freeFolder(PATH_FOLDER)) {
-			return PATH_FOLDER;
+		if (freeFolder(FOLDER)) {
+			return FOLDER;
 		}
 		for (i in 1...127) {
-			if (freeFolder('$PATH_FOLDER$i')) {
-				return '$PATH_FOLDER$i';
+			if (freeFolder('$FOLDER$i')) {
+				return '$FOLDER$i';
 			}
 		}
 		throw "Can't find a free folder to claim";
@@ -149,30 +145,27 @@ class Debugee {
 
 	function generateLocations(folder:String):PipeLocations {
 		FileLib.CreateDir(folder);
-		return generatePipeLocations(folder);
+		return {
+			folder : folder,
+			client_ready: join([folder,CLIENT_READY]),
+			output: join([folder,OUTPUT]),
+			input: join([folder,INPUT]),
+			ready: join([folder,READY])
+		}
 	}
-
-	var aquiringSocket:PipeSocket;
 
 	public function start() {
 		if (socketActive)
 			return false;
-		if (aquiringSocket == null) {
-			aquiringSocket = new PipeSocket(generateLocations(checkFreeSlots()));
-		}		
-		final result = aquiringSocket.aquire();
-		if (result != AQUIRED) {
-			// trace('Aquire $result');
-			Logger.log('Aquire $result');
+		socket = try {
+			new PipeSocket(generateLocations(checkFreeSlots()));
+		} catch (e) {
+			trace(e);
 			return false;
 		}
-		socket = aquiringSocket;
-		Logger.log("We made it");
-		trace("GMDEBUG SUCCESSFULLY CONNECTED");
-		trace("Won");
+		trace("Connected to server...");
 		socketActive = true;
 		sendMessage(new ComposedEvent(initialized));
-		trace("Two");
 		#if debugdump
 		FileLib.CreateDir("gmdebugdump");
 		Gmod.collectgarbage("collect");
@@ -183,6 +176,7 @@ class Debugee {
 		sendMessage(new ComposedEvent(continued, {threadId: 0, allThreadsContinued: true}));
 		#end
 		if (!startLoop()) {
+			trace("Failed to setup debugger after timeout");
 			return false;
 		}
 		DebugHook.addHook(DebugLoop.debugloop, "c");
@@ -311,7 +305,6 @@ class Debugee {
 	}
 
 	public function new() {
-		Logger.init();
 		DebugHook.addHook();
 		if (G.previousSocket != null) {
 			G.previousSocket.close();
@@ -353,18 +346,15 @@ class Debugee {
 		#elseif client
 		Gmod.RunConsoleCommand("cl_timeout", 999999);
 		#end
+		trace("before socketactive");
 		var timeout = Gmod.SysTime() + CONNECT_TIMEOUT;
 		while (!socketActive && Gmod.SysTime() < timeout) {
 			start();
 		}
 		if (!socketActive) {
-			trace("GMDEBUG FAILED TO CONNECT");
-			Logger.log("GMDEBUG FAILED TO CONNECT");
-			aquiringSocket.close();
-			shutdown();
+			trace("Could not connect to server!!");
 			throw "Failed to connect to server";
 		}
-		Logger.log("GMDEBUG CONNECTED SUCCESSFULLY");
 		TimerLib.Create("report-profling", 3, 0, () -> {
 			DebugLoopProfile.report();
 		});
@@ -422,6 +412,8 @@ class Debugee {
 		socket = null;
 		socketActive = false;
 		trace("Debugging aborted");
+		// Exceptions.unhookGamemodeHooks();
+		// Exceptions.unhookEntityHooks();
 	}
 
 	function startLoop() {
