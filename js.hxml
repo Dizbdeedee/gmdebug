@@ -10,5 +10,5 @@
 -D error_stack
 -D analyzer-optimize
 --dce=full
--D js-es=5
 -D haxeJSON
+-D js-es=6

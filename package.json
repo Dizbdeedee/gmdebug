@@ -2,10 +2,10 @@
 	"name": "gmdebug",
 	"description": "gmod debugger using dap",
 	"version": "0.0.2",
-	"publisher": "ponobodod",
+	"publisher": "Dizbdeedee",
 	"repository": {
 		"type": "github",
-		"url": "https://github.com/ponobodod/gmdebug"
+		"url": "https://github.com/Dizbdeedee/gmdebug"
 	},
 	"dependencies": {
 		"@raygun-nickj/mmap-io": "^1.3.0",
