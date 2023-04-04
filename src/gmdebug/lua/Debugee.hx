@@ -1,5 +1,6 @@
 package gmdebug.lua;
 
+import gmdebug.lua.debugcontext.DebugContext;
 import haxe.Json;
 import gmod.libs.VguiLib;
 import gmdebug.lua.managers.BreakpointManager;
@@ -71,7 +72,7 @@ class Debugee {
 		return stackHeight - StackConst.STEP;
 	}
 
-	public var baseDepth:Null<Int>;
+	// public var baseDepth:Null<Int>;
 
 	public var recursiveGuard:RecursiveGuard = NONE;
 
@@ -249,11 +250,13 @@ class Debugee {
 		if (!hooksActive || !socketActive)
 			return _err;
 		tracebackActive = true;
+		DebugContext.enterDebugContext();
 		if (err is haxe.Exception) {
-			startHaltLoop(Exception,  StackConst.EXCEPT, (err : haxe.Exception).message);
+			DebugContext.debugContext({startHaltLoop(Exception, (err : haxe.Exception).message);});
 		} else {
-			startHaltLoop(Exception, StackConst.EXCEPT, Gmod.tostring(err));
+			DebugContext.debugContext({startHaltLoop(Exception, Gmod.tostring(err));});
 		}
+		DebugContext.exitDebugContext();
 		tracebackActive = false;
 		return DebugLib.traceback(err);
 	}
@@ -296,6 +299,12 @@ class Debugee {
 			switch (chooseHandler(msg)) {
 				case DISCONNECT:
 					shutdown();
+				case PAUSE(pauseReq):
+					var resp = pauseReq.compose(pause,{});
+					sendMessage(resp);
+					DebugContext.enterDebugContext();
+					DebugContext.debugContext({startHaltLoop(Pause);});
+					DebugContext.exitDebugContext();
 				case WAIT | CONTINUE | CONFIG_DONE:
 			}
 		} catch (e:haxe.Exception) {
@@ -377,19 +386,21 @@ class Debugee {
 		return x;
 	}
 
-	public function startHaltLoop(reason:StopReason, bd:Int, ?txt:String) {
+	public function startHaltLoop(reason:StopReason, ?txt:String) {
 		if (pauseLoopActive) return;
 		pauseLoopActive = true;
-		baseDepth = bd;
+		// baseDepth = bd;
 		final tstop:TStoppedEvent = {
 			threadId: clientID,
 			allThreadsStopped: false,
 			reason: reason,
 			text: txt
 		}
+		DebugContext.markNotReport();
 		sendMessage(new ComposedEvent(stopped, tstop));
+		DebugContext.markReport();
 		trace("HALT LOOP");
-		haltLoop();
+		DebugContext.debugContext({haltLoop();});
 	}
 
 	#if debugdump
@@ -421,6 +432,7 @@ class Debugee {
 		var success = false;
 		final timeoutTime = Gmod.SysTime() + TIMEOUT_CONFIG;
 		while (Gmod.SysTime() < timeoutTime) {
+			DebugContext.markNotReport();
 			final msg = switch (recvMessage()) {
 				case ACK | TIMEOUT:
 					continue;
@@ -429,8 +441,17 @@ class Debugee {
 				case ERROR(s):
 					throw s;
 			}
-			switch (chooseHandler(msg)) {
+			DebugContext.markReport();
+			var handlerResponse = DebugContext.debugContext({chooseHandler(msg);});
+			switch (handlerResponse) {
 				case WAIT | CONTINUE:
+				case PAUSE(pauseReq):
+					trace("Cannot pause right now!");
+					var resp = pauseReq.composeFail("Cannot pause in startloop");
+					sendMessage(resp);
+					shutdown();
+					success = false;
+					break;
 				case DISCONNECT:
 					shutdown();
 					success = false;
@@ -447,6 +468,7 @@ class Debugee {
 
 	function haltLoop() {
 		while (true) {
+			DebugContext.markNotReport();
 			final msg = switch (recvMessage()) {
 				case ACK | TIMEOUT:
 					continue;
@@ -455,8 +477,16 @@ class Debugee {
 				case ERROR(s):
 					throw s;
 			}
-			switch (chooseHandler(msg)) {
+			DebugContext.markReport();
+			var handlerResponse = DebugContext.debugContext({chooseHandler(msg);});
+			switch (handlerResponse) {
 				case WAIT | CONFIG_DONE:
+				case PAUSE(pauseReq):
+					trace("Cannot pause right now!");
+					var resp = pauseReq.composeFail("Cannot pause in startloop");
+					DebugContext.markNotReport();
+					sendMessage(resp);
+					DebugContext.markReport();
 				case CONTINUE:
 					break;
 				case DISCONNECT:
@@ -472,10 +502,10 @@ class Debugee {
 			case null:
 				throw "message sent to us had a null type";
 			case "gmdebug":
-				customHandlers.handle(cast incoming);
+				DebugContext.debugContext({customHandlers.handle(cast incoming);});
 				WAIT; // this is a safe option in all scenarios.
 			case MessageType.Request:
-				hc.handlers(cast incoming);
+				DebugContext.debugContext({hc.handlers(cast incoming);});
 			default:
 				throw "message sent to us had an unknown type";
 		}

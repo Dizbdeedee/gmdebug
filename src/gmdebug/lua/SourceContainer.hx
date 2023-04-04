@@ -72,10 +72,10 @@ class SourceContainer {
 
 	function infoToSource(info:SourceInfo):Null<Source> {
 		return switch (info.source) {
-			case "=[C]":
+			case src if (Util.isCSource(src)):
 				null;
-			case x:
-				final pathStr = debugee.normalPath(x);
+			case src:
+				final pathStr = debugee.normalPath(src);
 				final path = new HxPath(pathStr);
 				{
 					name: path.file,

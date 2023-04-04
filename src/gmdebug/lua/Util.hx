@@ -17,6 +17,13 @@ enum RunResult {
 }
 
 class Util {
+
+	static final CSOURCE = "=[C]";
+
+	public static inline function isCSource(source:String) {
+		return source == CSOURCE;
+	}
+
 	public static function compileString(eval:String, errorPrefix:String):CompileResult {
 		return switch (runCompiledFunction(Gmod.CompileString, eval, errorPrefix, false)) {
 			case Success(result) if (Lua.type(result) == "string"):

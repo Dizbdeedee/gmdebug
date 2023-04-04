@@ -17,7 +17,19 @@ class DebugContext {
     //not updated by descendstack
     static var compareLevel:Int = 0;
 
+    static var previousLevel:Int = 0;
+
+    static var report = true;
+
     public static var mappedHeights = new gmod.helpers.LuaArray<Int>();
+
+    public static inline function markReport() {
+        report = true;
+    }
+
+    public static inline function markNotReport() {
+        report = false;
+    }
 
     /**
         Automatically added to all functions, used to manually check/crash for unmarked contexts.
@@ -25,20 +37,24 @@ class DebugContext {
     **/
     public static inline function checkUnmarkedStack(?infos:haxe.PosInfos) {
         #if !release
-        switch (debugContextState) {
-            case NotDebug:
-            case InDebug:
+        switch [debugContextState,report] {
+            case [NotDebug,_]:
+            case [InDebug,true]:
                 if (currentLevel != compareLevel) {
                     //sneaky!
                     var _infos = infos;
-                    _infos.fileName = _infos.className + "/" + _infos.methodName;
-                    // haxe.Log.trace("MISSING STACK DESCENT HERE",_infos);
+                    if (report) {
+                        _infos.fileName = _infos.className + "/" + _infos.methodName;
+                        haxe.Log.trace("MISSING STACK DESCENT HERE",_infos);
+                    }
+                    
                     // haxe.Log.trace(DebugLib.traceback(),_infos);
-                    currentLevel++;
-                    compareLevel++;
+                    // currentLevel++;
+                    // compareLevel++;
                 } else {
                     compareLevel++;
                 }
+            default:
         }
         #end
     }
@@ -46,6 +62,8 @@ class DebugContext {
     public static macro function debugContext(funcCall);
 
     public static macro function enterDebugContext();
+    public static macro function enterDebugContextSet();
+
 
     public static inline function descendStack() {
         currentLevel++;
@@ -59,33 +77,47 @@ class DebugContext {
         compareLevel--;
     }
 
-    public static inline function exitDebug() {
+    public static inline function exitDebugContext() {
+        currentLevel = previousLevel;
         debugContextState = NotDebug;       
     }
 
-    public static inline function getHeight() {
+    public static inline function getHeight(?infos:haxe.PosInfos) {
         if (debugContextState == NotDebug) trace("Attempt to get height not in debug context??");
+        // haxe.Log.trace('gotHeight $currentLevel',infos);
+        // trace(mappedHeights);
         return currentLevel;
     }
 
     static var refMapHeight = mapHeight;
 
     public static inline function resetHeight(val:Int) {
+        previousLevel = currentLevel;
         currentLevel = val;
         compareLevel = val + 1;
         debugContextState = InDebug;
     }
 
     public static function mapHeight(id:Int):Int {
-        for (sh in 0...9999) {
-            var info = DebugLib.getinfo((sh + 1), "f");
-            if (info.func == refMapHeight) {
-                mappedHeights[id] = sh - 1;
-                trace('${sh - 1}');
-                return sh - 1;
-            } 
+        for (sh in 2...9999) {
+            var info = DebugLib.getinfo(sh, "S");
+            if (info == null) break;
+            var compareSource = DebugLib.getinfo(1,"S").source;
+            trace('${info.source} $compareSource');
+            if (info.source == null || Util.isCSource(info.source)
+                || info.source == compareSource) {
+                continue;
+            }
+            mappedHeights[id] = sh;
+            trace('Mapped height ${sh}');
+            return sh;
+            
         }
         throw "MapHeight cannot find ourself?";
+    }
+    public static function mapHeightNoCalc(id:Int,sh:Int):Int {
+        mappedHeights[id] = sh;
+        return sh;
     }
 
 

@@ -1,6 +1,7 @@
 package gmdebug.lua.handlers;
 
 
+import gmdebug.lua.debugcontext.DebugContext;
 import lua.Debug;
 import gmod.enums.SENSORBONE;
 import lua.NativeStringTools;
@@ -89,6 +90,7 @@ class HVariables implements IHandler<VariablesRequest> {
     }
 
     function child(ref:Int):Array<AddVar> {
+        DebugContext.markNotReport();
         var addVars:Array<AddVar> = [];
         var storedvar:Dynamic = (variableManager.getVar(ref) : Any).unsafe();
         if (storedvar == null)
@@ -107,44 +109,48 @@ class HVariables implements IHandler<VariablesRequest> {
         } else {
             realChild(storedvar,addVars);
         }
+        DebugContext.markReport();
         return addVars;
 
     }
 
-    function frameLocal(frame:Int,scope:FrameLocalScope) {
+    function frameLocal(offsetFrame:Int,scope:FrameLocalScope) {
+        final offsetHeight = DebugContext.getHeight();
+        DebugContext.markNotReport();
+        final realFrame = offsetFrame + offsetHeight;
         var addVars:Array<AddVar> = [];
         switch (scope) {
             case Arguments:
-                var info = DebugLib.getinfo(frame + 2, "u");
+                var info = DebugLib.getinfo(realFrame, "u");
                 for (i in 1...info.nparams + 1) {
-                    var result = DebugLib.getlocal(frame + 2, i);
+                    var result = DebugLib.getlocal(realFrame, i);
                     if (result.a == null)
                         break;
                     // trace('locals ${result.a} ${result.b}');
                     addVars.push({name: result.a, value: result.b});
                 }
                 for (i in 1...9999) {
-                    var result = DebugLib.getlocal(frame + 2, -i);
+                    var result = DebugLib.getlocal(realFrame, -i);
                     if (result.a == null)
                         break;
                     addVars.push({name: result.a, value: result.b});
                 }
             case Locals:
                 for (i in 1...9999) {
-                    var result = DebugLib.getlocal(frame + 2, i);
+                    var result = DebugLib.getlocal(realFrame, i);
                     if (result.a == null)
                         break;
                     // trace('locals ${result.a} ${result.b}');
                     addVars.push({name: result.a, value: result.b});
                 }
                 for (i in 1...9999) {
-                    var result = DebugLib.getlocal(frame + 2, -i);
+                    var result = DebugLib.getlocal(realFrame, -i);
                     if (result.a == null)
                         break;
                     addVars.push({name: result.a, value: result.b});
                 }
             case Upvalues:
-                var info = DebugLib.getinfo(frame + 2, "f");
+                var info = DebugLib.getinfo(realFrame, "f");
                 if (info != null && info.func != null) {
                     for (i in 1...9999) {
                         var func = (info.func : Dynamic); // otherwise _hx_bind..?
@@ -155,7 +161,7 @@ class HVariables implements IHandler<VariablesRequest> {
                     }
                 }
             case Fenv:
-                var info = DebugLib.getinfo(frame + 2, "f");
+                var info = DebugLib.getinfo(realFrame, "f");
                 if (info != null && info.func != null) {
                     final func = (info.func : Dynamic);
                     final tbl = DebugLib.getfenv(func);
@@ -164,10 +170,12 @@ class HVariables implements IHandler<VariablesRequest> {
                     }
                 }
         }
+        DebugContext.markReport();
         return addVars;
     }
 
     function global(scope:ScopeConsts) {
+        DebugContext.markNotReport();
         var addVars:Array<AddVar> = [];
         switch (scope) {
             case Globals:
@@ -210,6 +218,7 @@ class HVariables implements IHandler<VariablesRequest> {
             default:
                 throw "Unhandled scope";
         }
+        DebugContext.markReport();
         return addVars;
     }
 
@@ -235,20 +244,23 @@ class HVariables implements IHandler<VariablesRequest> {
     public function handle(req:VariablesRequest) {
 		final args = req.arguments.unsafe();
 		final ref:VariableReference = args.variablesReference;
-		final addVars = switch (ref.getValue()) {
-			case Child(_, ref):
-                child(ref);
-			case FrameLocal(_, frame, scope):
-				frameLocal(frame,scope);
-			case Global(_, scope):
-				global(scope);
-		}
-        
+		final addVars = DebugContext.debugContext({
+            switch (ref.getValue()) {
+                case Child(_, ref):
+                    child(ref);
+                case FrameLocal(_, frame, scope):
+                    frameLocal(frame,scope);
+                case Global(_, scope):
+                    global(scope);
+	    	}
+        });
+        DebugContext.markNotReport();
 		final variablesArr = addVars.map(variableManager.genvar);
 		fixupNames(variablesArr);
 		var resp = req.compose(variables, {variables: variablesArr});
 		final js = tink.Json.stringify((cast resp : VariablesResponse)); 
 		debugee.send(js);
+        DebugContext.markReport();
 		return WAIT;
 	}
 

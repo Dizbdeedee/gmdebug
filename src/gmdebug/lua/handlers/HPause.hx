@@ -1,5 +1,6 @@
 package gmdebug.lua.handlers;
 
+import gmdebug.lua.debugcontext.DebugContext;
 import gmdebug.lua.handlers.IHandler.HandlerResponse;
 
 typedef InitHPause = { 
@@ -13,9 +14,11 @@ class HPause implements IHandler<PauseRequest> {
 	}
 
 	public function handle(pauseReq:PauseRequest):HandlerResponse {
-		var rep = pauseReq.compose(pause, {});
-		debugee.sendMessage(rep);
-		debugee.startHaltLoop(Pause,  StackConst.PAUSE);
-		return WAIT;
+		// var rep = pauseReq.compose(pause, {});
+		// debugee.sendMessage(rep);
+		// DebugContext.enterDebugContext();
+		// DebugContext.debugContext({debugee.startHaltLoop(Pause);});
+		// DebugContext.exitDebugContext();
+		return PAUSE(pauseReq);
 	}
 }

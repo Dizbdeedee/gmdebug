@@ -13,5 +13,6 @@ enum HandlerResponse {
 	WAIT;
 	CONTINUE;
 	DISCONNECT;
+	PAUSE(pauseReq:PauseRequest);
 	CONFIG_DONE;
 }

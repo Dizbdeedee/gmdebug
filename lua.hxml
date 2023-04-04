@@ -9,6 +9,7 @@
 -D gmddebug
 -D addonName=debugee
 -D analyzer-optimize
+-D dump=pretty
 -D noGenInit
 -D haxeJSON
 -D lua-ver=5.1

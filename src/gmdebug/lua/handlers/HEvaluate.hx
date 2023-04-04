@@ -1,5 +1,6 @@
 package gmdebug.lua.handlers;
 
+import gmdebug.lua.debugcontext.DebugContext;
 #if lua
 import gmdebug.lib.lua.Protocol;
 #elseif js
@@ -91,6 +92,8 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 
 	public function handle(evalReq:EvaluateRequest):HandlerResponse {
 		final args = evalReq.arguments.unsafe();
+		final offsetHeight = DebugContext.getHeight();
+		DebugContext.markNotReport();
 		final fid:Null<FrameID> = args.frameId;
 		if (args.expression.charAt(0) == "#") {
 			processCommands(args.expression.substr(1));
@@ -105,7 +108,7 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 				evalReq.composeFail(translateEvalError(err));
 			case Success(func):
 				if (fid != null) {
-					final eval = createEvalEnvironment(fid.getValue().actualFrame + 2);
+					final eval = createEvalEnvironment(fid.getValue().actualFrame + offsetHeight);
 					Gmod.setfenv(func, eval);
 				}
 				switch (Util.runCompiledFunction(func)) {
@@ -124,6 +127,7 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 				}
 		}
 		debugee.sendMessage(resp);
+		DebugContext.markReport();
 		return WAIT;
 	}
 }

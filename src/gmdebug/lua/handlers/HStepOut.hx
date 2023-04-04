@@ -1,5 +1,6 @@
 package gmdebug.lua.handlers;
 
+import gmdebug.lua.debugcontext.DebugContext;
 import gmod.libs.DebugLib;
 
 using Lambda;
@@ -16,10 +17,11 @@ class HStepOut implements IHandler<StepOutRequest> {
 	}
 
 	public function handle(stepOutReq:StepOutRequest):HandlerResponse {
-		var tarheight = debugee.stepHeight - 1;
-		trace('stepOut ${tarheight < StackConst.MIN_HEIGHT} : $tarheight ${StackConst.MIN_HEIGHT}');
-		if (tarheight <= StackConst.MIN_HEIGHT) {
-			final info = DebugLib.getinfo(debugee.baseDepth.unsafe() + 1, "fLSl");
+		// var tarheight = debugee.stepHeight - 1;
+		// trace('stepOut ${tarheight < StackConst.MIN_HEIGHT} : $tarheight ${StackConst.MIN_HEIGHT}');
+		trace(DebugContext.getHeight());
+		if (debugee.stackHeight - DebugContext.getHeight() == 1) {
+			final info = DebugLib.getinfo(DebugContext.getHeight(), "fLSl");
 			final func = info.func;
 			trace('${info.source}');
             final activeLines = info.activelines;
@@ -31,9 +33,9 @@ class HStepOut implements IHandler<StepOutRequest> {
 				}
 			}, cast Math.POSITIVE_INFINITY);
 			trace('lowest $lowest');
-			debugee.state = OUT(func, lowest - 1,tarheight + 1); //lowest - 1, as call hook starts on first line
+			debugee.state = OUT(func, lowest - 1,DebugContext.getHeight()); //lowest - 1, as call hook starts on first line
 		} else {
-			debugee.state = STEP(tarheight);
+			debugee.state = STEP(DebugContext.getHeight());
 		}
 		DebugLoop.enableLineStep();
 		final stepoutResp = stepOutReq.compose(stepOut);

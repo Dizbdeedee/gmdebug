@@ -1,5 +1,6 @@
 package gmdebug.lua.handlers;
 
+import gmdebug.lua.debugcontext.DebugContext;
 import gmod.libs.DebugLib;
 import gmdebug.composer.ComposedEvent;
 
@@ -20,6 +21,8 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 	}
 
 	public function handle(x:StackTraceRequest):HandlerResponse {
+		DebugContext.markNotReport();
+		final offsetHeight = DebugContext.getHeight();
 		final args = x.arguments.unsafe();
 		if (!debugee.pauseLoopActive) {
 			var response = x.compose(stackTrace, {
@@ -34,13 +37,15 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 			}));
 			return WAIT;
 		}
-		final len = DebugLoop.debug_stack_len() - debugee.baseDepth;
+		final len = DebugLoop.debug_stack_len() - offsetHeight;
 		final firstFrame = switch (args.startFrame) {
 			case null:
-				debugee.baseDepth.sure();
+				offsetHeight;
 			case x:
-				x + debugee.baseDepth.sure();
+				x + offsetHeight;
 		}
+		trace('FIRSTFRAME $firstFrame');
+		
 		final lastFrame = switch (args.levels) {
 			case null | 0:
 				9999;
@@ -49,7 +54,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 		}
 		final stackFrames:Array<StackFrame> = [];
 		for (i in firstFrame...lastFrame) {
-			var info = DebugLib.getinfo((i + 1), "lnSfu");
+			var info = DebugLib.getinfo(i, "lnSfu");
 			if (info == null)
 				break;
 			var src = switch (info.source.charAt(0)) {
@@ -62,7 +67,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 			if (info.nparams > 0) {
 				args = "(";
 				for (p in 0...info.nparams) {
-					final lcl = DebugLib.getlocal(i + 1, p + 1);
+					final lcl = DebugLib.getlocal(i, p);
 					final val = switch (Lua.type(lcl.b)) {
 						case "table":
 							"table";
@@ -75,7 +80,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 				}
 				// vargs
 				for (p in 1...9999) {
-					final lcl = DebugLib.getlocal(i + 1, -p);
+					final lcl = DebugLib.getlocal(i, -p);
 					if (lcl.a == null)
 						break;
 					final val = switch (Lua.type(lcl.b)) {
@@ -104,21 +109,21 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 			var column;
 			var endLine:Null<Int> = null;
 			var endColumn:Null<Int> = null;
-			switch [src,len] {
-				case ["=[C]",_]:
+			switch [Util.isCSource(src),src,len] {
+				case [true,_,_]:
 					hint = Deemphasize;
 					path = null;
 					line = 0;
 					column = 0;
-				case [x,len] if ((len > 80 && i > 45 && (i - 5) < len - 40)):
-					path = debugee.normalPath(x);
+				case [false,src,len] if ((len > 80 && i > 45 && (i - 5) < len - 40)):
+					path = debugee.normalPath(src);
 					hint = Deemphasize;
 					line = info.currentline;
 					column = 1;
 					endLine = info.lastlinedefined;
 					endColumn = 99999;
-				case [x,_]:
-					path = debugee.normalPath(x);
+				case [false,src,_]:
+					path = debugee.normalPath(src);
 					hint = null;
 					line = info.currentline;
 					column = 1;
@@ -136,7 +141,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 				hint = Normal;
 			}
 			var target:StackFrame = {
-				id: gmdebug.FrameID.encode(debugee.clientID.sure(), i),
+				id: gmdebug.FrameID.encode(debugee.clientID.sure(), i - offsetHeight),
 				name: name,
 				source: switch path {
 					case null:
@@ -166,6 +171,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 		});
 		final json = tink.Json.stringify((cast response : StackTraceResponse)); // in pratical terms they're the same
 		debugee.send(json);
+		DebugContext.markReport();
 		return WAIT;
 	}
 }

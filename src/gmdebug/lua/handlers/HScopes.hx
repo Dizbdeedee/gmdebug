@@ -17,7 +17,7 @@ class HScopes implements IHandler<ScopesRequest> {
 	public function handle(scopeReq:ScopesRequest):HandlerResponse {
 		var args = scopeReq.arguments.sure();
 		final frameInfo = (args.frameId : FrameID).getValue();
-		var info = DebugLib.getinfo(frameInfo.actualFrame + 1, "fuS");
+		var info = DebugLib.getinfo(frameInfo.actualFrame, "fuS");
 		var arguments:Scope = {
 			name: "Arguments",
 			presentationHint: Arguments,
