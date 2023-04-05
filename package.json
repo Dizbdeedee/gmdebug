@@ -45,7 +45,8 @@
 						"required": [
 							"serverFolder",
 							"programPath",
-							"programArgs"
+							"programArgs",
+							"addonFolderName"
 						],
 						"properties": {
 							"serverFolder": {
@@ -55,12 +56,32 @@
 							},
 							"clientFolder": {
 								"type": "string",
-								"description": "The path to the client connecting to the server you wish to debug."
+								"description": "The path your local gmod installation"
 							},
 							"programPath": {
 								"type": "string",
 								"description": "The path to your server executable/config, or 'auto' to find and run the default server executable (srcds_run)",
 								"default": "auto"
+							},
+							"otherAddons": {
+								"type": "array",
+								"description": "An array of other addons you wish to automatically download(and debug) alongside this one",
+								"default": [
+									{
+										"url/id" : "2586573261",
+										"folderName": "install_at_your_peril"
+									},
+									{
+										"url/id": "https://github.com/JetBoom/zombiesurvival",
+										"folderName": "github_links_also_work",
+										"gitAddonBaseFolder": "./"
+									},
+									{
+										"url/id": ""
+									}
+								]
+									
+								
 							},
 							"programArgs": {
 								"type": "array",
@@ -72,26 +93,65 @@
 									"1"
 								]
 							},
-							"autoConnectLocalGmodClient": {
+							"multirunOptions": {
+								"type": "array",
+								"description": "Arguments to add to each multirun gmod instance",
+								"default": [
+									"-width",
+									"1280",
+									"-height",
+									"720",
+									"-window"
+								]
+							},
+							"nodebugClient": {
 								"type": "bool",
-								"description": "For convinence, when the server has launched you can have your steam account autoconnect to it",
+								"description": "More of a reminder that to debug clients, you need to specify clientFolder. If you set clients to 1 without this, gmdebug will not run",
 								"default": true
+							},
+							"clients": {
+								"type": "number",
+								"description": "Number of clients to autolaunch",
+								"default": 1
+							},
+							"noCopy": {
+								"type": "bool",
+								"description": "Add to disable copying your addon, and make copyAddonBaseFolder and addonName not required",
+								"default": true
+							},
+							"copyAddonBaseFolder": {
+								"type": "string",
+								"description": "Copy everything inside specifed folder to addons/{addonName} (which you must also specify)",
+								"default": "./"
+							},
+							"addonName": {
+								"type": "string",
+								"description": "The name of the addon folder when copied into the server garrysmod/addons folder",
+								"default": "really_cool_addon"
 							}
 						}
 					}
 				},
 				"initialConfigurations": [
 					{
-						"label": "gmdebug: Launch server",
-						"description": "Launch your garry's mod server.",
-						"body": {
-							"type": "gmdebug",
-							"request": "launch",
-							"name": "gmdebug : Launch server",
-							"serverFolder": "/path_to_server_from_root/garrysmod",
-							"programPath": "auto",
-							"autoConnectLocalGmodClient": true
-						}
+						
+						"type": "gmdebug",
+						"request": "launch",
+						"name": "gmdebug : Launch server",
+						"serverFolder": "/path_to_server_from_root/garrysmod",
+						"programPath": "auto",
+						"programArgs" : [
+							"+map",
+							"gm_flatgrass",
+							"+sv_lan",
+							"1"
+						],
+						"nodebugClient" : true,
+						"clients" : 1,
+						"addonName": "really_cool_addon",
+						"copyAddonBaseFolder": "./"
+						
+						
 					}
 				],
 				"configurationSnippets": [
@@ -104,7 +164,10 @@
 							"name": "gmdebug : Launch server",
 							"serverFolder": "/path_to_server_from_root/garrysmod",
 							"programPath": "auto",
-							"autoConnectLocalGmodClient": true
+							"nodebugClient" : true,
+							"clients" : 1,
+							"addonName": "really_cool_addon",
+							"copyAddonBaseFolder": "./"
 						}
 					}
 				]

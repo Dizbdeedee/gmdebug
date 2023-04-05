@@ -102,7 +102,7 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 		if (args.context == Hover) {
 			expr = NativeStringTools.gsub(expr, ":", "."); // a function call is probably not intended from a hover.
 		}
-		trace('expr : $expr');
+		// trace('expr : $expr');
 		final resp:ComposedProtocolMessage = switch (Util.compileString(expr, "GmDebug")) {
 			case Error(err):
 				evalReq.composeFail(translateEvalError(err));
@@ -113,17 +113,29 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 				}
 				switch (Util.runCompiledFunction(func)) {
 					case Error(err):
-						evalReq.composeFail(translateEvalError(err));
+						evalReq.composeFail(GMOD_EVALUATION_FAIL,{err : translateEvalError(err)});
 					case Success(result):
 						final item = variableManager.genvar({
 							name: "",
 							value: result
 						});
+						final valueAlter = switch [args.context,item.value] {
+							case [Repl,"nil"]:
+								"No value";
+							case [Repl,x]:
+								"Result: " + x;
+							case [_,x]:
+								x;
+						}
 						evalReq.compose(evaluate, {
-							result: item.value,
-							type: item.type,
-							variablesReference: item.variablesReference,
+							result: "",
+							variablesReference: 0
 						});
+						// evalReq.compose(evaluate, {
+						// 	result: valueAlter,
+						// 	type: item.type,
+						// 	variablesReference: item.variablesReference,
+						// });
 				}
 		}
 		debugee.sendMessage(resp);

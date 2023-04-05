@@ -26,7 +26,7 @@ class Main {
 		}
 		if (port > 0) {
 			var server = Net.createServer((socket) -> {
-				socket.on('end', () -> trace("Closed"));
+				socket.on(End, () -> trace("Closed"));
 				final session = new LuaDebugger(false, true);
 				session.setRunAsServer(true);
 				untyped session.start(socket, socket);

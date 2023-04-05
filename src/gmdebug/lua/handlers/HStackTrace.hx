@@ -3,6 +3,8 @@ package gmdebug.lua.handlers;
 import gmdebug.lua.debugcontext.DebugContext;
 import gmod.libs.DebugLib;
 import gmdebug.composer.ComposedEvent;
+using StringTools;
+
 
 typedef InitHStackTrace = {
 	debugee : Debugee,

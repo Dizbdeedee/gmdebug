@@ -91,7 +91,6 @@ private class DDebugHook {
     }
 
     static function hookFun(cur:HookState,currentLine:Int) {
-        
         for (funHook in hooks) {
             final map = funHook.flagsMap;
             if (cur == Line && map.get(line)) {

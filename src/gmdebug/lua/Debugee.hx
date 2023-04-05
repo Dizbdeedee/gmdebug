@@ -125,7 +125,10 @@ class Debugee {
 	function freeFolder(folder:String):Bool {
 		return if (!FileLib.Exists(folder,DATA)) {
 			true;
-		} else if (!FileLib.Exists(join([folder,AQUIRED]),DATA)) {
+		} else if (!FileLib.Exists(join([folder,PATH_CLIENT_READY]),DATA)
+		&& !FileLib.Exists(join([folder,PATH_CONNECTION_AQUIRED]),DATA)
+		&& !FileLib.Exists(join([folder,PATH_CONNECTION_IN_PROGRESS]),DATA)
+		) {
 			true;
 		} else {
 			false;
@@ -133,12 +136,12 @@ class Debugee {
 	}
 
 	function checkFreeSlots():String {
-		if (freeFolder(FOLDER)) {
-			return FOLDER;
+		if (freeFolder(PATH_FOLDER)) {
+			return PATH_FOLDER;
 		}
 		for (i in 1...127) {
-			if (freeFolder('$FOLDER$i')) {
-				return '$FOLDER$i';
+			if (freeFolder('$PATH_FOLDER$i')) {
+				return '$PATH_FOLDER$i';
 			}
 		}
 		throw "Can't find a free folder to claim";
@@ -146,25 +149,23 @@ class Debugee {
 
 	function generateLocations(folder:String):PipeLocations {
 		FileLib.CreateDir(folder);
-		return {
-			folder : folder,
-			client_ready: join([folder,CLIENT_READY]),
-			output: join([folder,OUTPUT]),
-			input: join([folder,INPUT]),
-			ready: join([folder,READY])
-		}
+		return generatePipeLocations(folder);
 	}
+
+	var aquiringSocket:PipeSocket;
 
 	public function start() {
 		if (socketActive)
 			return false;
-		socket = try {
-			new PipeSocket(generateLocations(checkFreeSlots()));
-		} catch (e) {
-			trace(e);
+		if (aquiringSocket == null) {
+			aquiringSocket = new PipeSocket(generateLocations(checkFreeSlots()));
+		}		
+		final result = aquiringSocket.aquire();
+		if (result != AQUIRED) {
 			return false;
 		}
-		trace("Connected to server...");
+		socket = aquiringSocket;
+		trace("GMDEBUG SUCCESSFULLY CONNECTED");
 		socketActive = true;
 		sendMessage(new ComposedEvent(initialized));
 		#if debugdump
@@ -174,10 +175,10 @@ class Debugee {
 		#end
 		#if server
 		hookPlayer();
+		
 		sendMessage(new ComposedEvent(continued, {threadId: 0, allThreadsContinued: true}));
 		#end
 		if (!startLoop()) {
-			trace("Failed to setup debugger after timeout");
 			return false;
 		}
 		DebugHook.addHook(DebugLoop.debugloop, "c");
@@ -186,6 +187,7 @@ class Debugee {
 		HookLib.Add(ShutDown,"debugee-shutdown",() -> {
 			shutdown();
 		});
+		outputter.hookPrint();
 		hooksActive = true;
 		return true;
 	}
@@ -199,17 +201,6 @@ class Debugee {
 
 	public inline function sendMessage(message:ComposedProtocolMessage) {
 		send(Json.stringify(message));
-	}
-
-	final ignores:Map<String, Bool> = [];
-
-	// currently only on first lines for now. can expand to tracebacks.
-	inline function checkIgnoreError(_err:String) {
-		return ignores.exists(_err);
-	}
-
-	inline function ignoreError(_err:String) {
-		ignores.set(_err, true);
 	}
 
 	#if server
@@ -241,8 +232,6 @@ class Debugee {
 	public function traceback(err:Any) {
 		final _err = err;
 		if (pollActive) return err;
-		if (checkIgnoreError(err))
-			return _err;
 		if (pauseLoopActive || tracebackActive) {
 			trace('traceback failed... ${pauseLoopActive} $tracebackActive');
 			return _err;
@@ -314,6 +303,7 @@ class Debugee {
 	}
 
 	public function new() {
+		Logger.init();
 		DebugHook.addHook();
 		if (G.previousSocket != null) {
 			G.previousSocket.close();
@@ -355,15 +345,18 @@ class Debugee {
 		#elseif client
 		Gmod.RunConsoleCommand("cl_timeout", 999999);
 		#end
-		trace("before socketactive");
 		var timeout = Gmod.SysTime() + CONNECT_TIMEOUT;
 		while (!socketActive && Gmod.SysTime() < timeout) {
 			start();
 		}
 		if (!socketActive) {
-			trace("Could not connect to server!!");
+			trace("GMDEBUG FAILED TO CONNECT");
+			Logger.log("GMDEBUG FAILED TO CONNECT");
+			aquiringSocket.close();
+			shutdown();
 			throw "Failed to connect to server";
 		}
+		Logger.log("GMDEBUG CONNECTED SUCCESSFULLY");
 		TimerLib.Create("report-profling", 3, 0, () -> {
 			DebugLoopProfile.report();
 		});
@@ -389,10 +382,8 @@ class Debugee {
 	public function startHaltLoop(reason:StopReason, ?txt:String) {
 		if (pauseLoopActive) return;
 		pauseLoopActive = true;
-		// baseDepth = bd;
 		final tstop:TStoppedEvent = {
 			threadId: clientID,
-			allThreadsStopped: false,
 			reason: reason,
 			text: txt
 		}
@@ -423,8 +414,6 @@ class Debugee {
 		socket = null;
 		socketActive = false;
 		trace("Debugging aborted");
-		// Exceptions.unhookGamemodeHooks();
-		// Exceptions.unhookEntityHooks();
 	}
 
 	function startLoop() {
@@ -459,7 +448,6 @@ class Debugee {
 				case CONFIG_DONE:
 					success = true;
 					break;
-
 			}
 		}
 		return success;

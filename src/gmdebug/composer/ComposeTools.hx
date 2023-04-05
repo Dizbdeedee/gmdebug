@@ -1,5 +1,7 @@
 package gmdebug.composer;
 
+import haxe.DynamicAccess;
+import gmdebug.GmDebugError.GMDEBUG_ERROR_STRINGS;
 #if lua
 import gmdebug.lib.lua.Protocol;
 #elseif js
@@ -18,9 +20,23 @@ class ComposeTools {
 		return response;
 	}
 
-	public static function composeFail<X, Y>(req:Request<X>, ?rawerror:String, ?error:Message):ComposedResponse<Null<Message>> {
+	public static function _composeFail<X, Y>(req:Request<X>, ?error:Message):ComposedResponse<Null<Message>> {
 		var response = new ComposedResponse(req, error);
-		response.message = rawerror;
+		response.message = error.format;
+		
+		response.success = false;
+		return response;
+	}
+
+	public static function composeFail<X, Y>(req:Request<X>, id:GmDebugError, ?variables:{}):ComposedResponse<Null<Message>> {
+		var error:Message = {
+			id: id,
+			showUser: true,
+			variables: variables,
+			format: GMDEBUG_ERROR_STRINGS.get(id),
+		}
+		var response = new ComposedResponse(req,error);
+		response.message = error.format;
 		response.success = false;
 		return response;
 	}

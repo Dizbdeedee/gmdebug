@@ -1,13 +1,14 @@
 package gmdebug.dap;
 
+import gmdebug.Cross.PATH_FOLDER;
+import gmdebug.Cross.PATH_DATA;
+import gmdebug.Cross.PATH_ADDONS;
 import js.node.Fs;
 using tink.CoreApi;
 import gmdebug.dap.LuaDebugger.Programs;
 import gmdebug.GmDebugMessage.GmDebugLaunchRequestArguments;
 import haxe.io.Path as HxPath;
 using gmdebug.composer.ComposeTools;
-using gmdebug.dap.DapFailure;
-
 
 class InitBundleException extends haxe.Exception {}
 
@@ -28,38 +29,28 @@ class InitBundle {
 	public final programPath:String;
 
 	public final programArgs:Null<Array<String>>;
-	
 
     function new(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments,luadebug:LuaDebugger) {
-
-        final serverFolderResult = validateServerFolder(args.serverFolder);
 		requestArguments = args;
-		if (serverFolderResult != None) {
-			serverFolderResult.sendError(req,luadebug);
-			throw new InitBundleException("Could not validate serverfolder");
+		switch (validateServerFolder(args.serverFolder)) {
+			case Error(id, variables):
+				req.composeFail(id,variables).send(luadebug);
+				throw new InitBundleException("Could not validate serverfolder");
+			default:
 		}
 		final serverSlash = HxPath.addTrailingSlash(args.serverFolder);
 		serverFolder = serverSlash;
 		if (!args.nodebugClient && args.clientFolder == null) {
-			req.composeFail({
-				id: 2,
-				format: "If you wish to debug clients, you must specify clientFolder first, or add the option nodebugClient into your launch options",
-			}).send(luadebug);
+			req.composeFail(DEBUGGER_INVALID_CLIENTFOLDER_UNSPECIFIED).send(luadebug);
 			throw new InitBundleException("Debugging clients requested but no clientFolder specified");
 		}
-		if (!args.noCopy && args.addonName == null || args.addonFolderBase == null) {
-			req.composeFail({
-				id: 2,
-				format: "If you wish to copy your addon to the server on debug, specify both addonName and addonFolderBase or add the option noCopy into your launch options",
-			}).send(luadebug);
-			throw new InitBundleException("Copying requested but no addonName/addonFolderBase");
+		if (!args.noCopy && (args.addonName == null || args.copyAddonBaseFolder == null)) {
+			req.composeFail(DEBUGGER_INVALID_COPYFOLDER).send(luadebug);
+			throw new InitBundleException("Copying requested but no addonName/copyAddonBaseFolder");
 		}
 		programPath = switch (args.programPath) {
 			case null:
-				req.composeFail({
-					id: 2,
-					format: "Gmdebug requires the property \"programPath\" to be specified when launching",
-				}).send(luadebug);
+				req.composeFail(DEBUGGER_INVALID_PROGRAMPATH_UNSPECIFIFED).send(luadebug);
 				throw new InitBundleException("Program path property does not exist");
 			case "auto":
 				if (Sys.systemName() == "Windows") {
@@ -73,19 +64,21 @@ class InitBundle {
 		if (!HxPath.isAbsolute(programPath)) {
 			programPath = HxPath.join([serverFolder,programPath]);
 		}
-		final programPathResult = validateProgramPath(programPath);
-		if (programPathResult != None) {
-			programPathResult.sendError(req,luadebug);
-			throw new InitBundleException("Could not validate programPath");
+		switch (validateProgramPath(programPath)) {
+			case Error(id, variables):
+				req.composeFail(id,variables).send(luadebug);
+				throw new InitBundleException("Could not validate programPath");
+			default:
 		}
 		shouldAutoConnect = args.autoConnectLocalGmodClient.or(false);
 		var clientFolder = args.clientFolder;
 		if (clientFolder != null) {
-			final clientFolderResult = validateClientFolder(clientFolder);
-			if (clientFolderResult != None) {
-				clientFolderResult.sendError(req,luadebug);
-				throw new InitBundleException("Could not validate client folder");
-			}
+			switch (validateClientFolder(clientFolder)) {
+				case Error(id, variables):
+					req.composeFail(id,variables);
+					throw new InitBundleException("Could not validate client folder");
+				default:
+			}			
 			clientFolder = HxPath.addTrailingSlash(clientFolder);
 		}
 		clientLocation = clientFolder;
@@ -100,93 +93,70 @@ class InitBundle {
 		} catch (e:InitBundleException) {
 			Failure(e);
 		}
-
     }
 
-	function validateProgramPath(programPath:String):haxe.ds.Option<DapFailure> {
+	function validateProgramPath(programPath:String):InitError {
 		return if (programPath == null) {
-			Some({
-				id : 2,
-				message : "Gmdebug requires the property \"programPath\" to be specified when launching"
-			});
+			Error(DEBUGGER_INVALID_PROGRAMPATH_UNSPECIFIFED);
+		} else if (!Fs.existsSync(programPath)) {
+			Error(DEBUGGER_INVALID_PROGRAMPATH_NOTEXIST);
+		} else if (!Fs.statSync(programPath).isFile()) {
+			Error(DEBUGGER_INVALID_PROGRAMPATH_NOTFILE);
 		} else {
-		
-			if (!Fs.existsSync(programPath)) {
-				Some({
-					id : 4,
-					message : "The program specified by \"programPath\" does not exist!"
-				});
-			} else if (!Fs.statSync(programPath).isFile()) {
-				Some({
-					id : 5,
-					message : "The program specified by \"programPath\" is not a file."
-				});
-			} else {
-				None;
-			}
+			None;
 		}
-	
 	}
 	
-	function validateServerFolder(serverFolder:String):haxe.ds.Option<DapFailure> {
+	function validateServerFolder(serverFolder:String):InitError {
 		return if (serverFolder == null) {
-			Some({
-				id : 2,
-				message : "Gmdebug requires the property \"serverFolder\" to be specified."
-			});
+			Error(DEBUGGER_INVALID_SERVERFOLDER_UNSPECIFIED);
 		} else {
-			final addonFolder = js.node.Path.join(serverFolder, "addons");
+			final addonFolder = js.node.Path.join(serverFolder, PATH_ADDONS);
 			if (!HxPath.isAbsolute(serverFolder)) {
-				Some({
-					id : 3,
-					message : "Gmdebug requires the property \"serverFolder\" to be an absolute path (i.e from root folder)."
-				});
+				Error(DEBUGGER_INVALID_SERVERFOLDER_NOTABSOLUTE);
 			} else if (!Fs.existsSync(serverFolder)) {
-				Some({
-					id : 4,
-					message : "The \"serverFolder\" path does not exist!"
-				});
+				Error(DEBUGGER_INVALID_SERVERFOLDER_NOTEXIST);
 			} else if (!Fs.statSync(serverFolder).isDirectory()) {
-				Some({
-					id : 5,
-					message : "The \"serverFolder\" path is not a directory."
-				});
+				Error(DEBUGGER_INVALID_SERVERFOLDER_NOTDIR);
 			} else if (!Fs.existsSync(addonFolder) || !Fs.statSync(addonFolder).isDirectory()) {
-				Some({
-					id : 6,
-					message : "\"serverFolder\" does not seem to be a garrysmod directory. (looking for \"addons\" folder)"
-				});
+				Error(DEBUGGER_INVALID_SERVERFOLDER_NOTGMOD);
 			} else {
 				None;
 			}
 		}
 	}
 	
-	function validateClientFolder(folder:String):haxe.ds.Option<DapFailure> {
-		final addonFolder = js.node.Path.join(folder, "addons");
-		final gmdebug = js.node.Path.join(folder, "data", "gmdebug");
+	function validateClientFolder(folder:String):InitError {
+		final addonFolder = js.node.Path.join(folder, PATH_ADDONS);
+		final gmdebug = js.node.Path.join(folder, PATH_DATA, PATH_FOLDER);
 		return if (!HxPath.isAbsolute(folder)) {
-			Some({
-				id : 8,
-				message : 'Gmdebug requires client folder: $folder to be an absolute path (i.e from root folder).'
-			});
+			Error(DEBUGGER_INVALID_CLIENTFOLDER_NOTABSOLUTE,{folder : folder});
 		} else if (!Fs.existsSync(folder)) {
-			Some({
-				id : 9,
-				message : 'The client folder: $folder does not exist!'
-			});
+			Error(DEBUGGER_INVALID_CLIENTFOLDER_NOTEXIST,{folder : folder});
 		} else if (!Fs.statSync(folder).isDirectory()) {
-			Some({
-				id : 10,
-				message : 'The client folder: $folder is not a directory.'
-			});
+			Error(DEBUGGER_INVALID_CLIENTFOLDER_NOTDIR,{folder : folder});
 		} else if (!Fs.existsSync(addonFolder) || !Fs.statSync(addonFolder).isDirectory()) {
-			Some({
-				id : 11,
-				message : 'The client folder: $folder does not seem to be a garrysmod directory. (looking for \"addons\" folder)'
-			});
+			Error(DEBUGGER_INVALID_CLIENTFOLDER_NOTGMOD, {folder : folder});
 		} else {
 			None;
 		}
 	}
 }
+
+@:using(gmdebug.dap.InitBundle.InitErrorUsing)
+private enum InitError {
+	None;
+	Error(id:GmDebugError,?variables:{});
+}
+
+class InitErrorUsing {
+	public static function sendError(err:InitError,req:Request<Dynamic>,luadebug:LuaDebugger) {
+		switch (err) {
+			case Error(id, variables):
+				req.composeFail(id,variables);
+			case None:
+		}
+	}
+}
+
+

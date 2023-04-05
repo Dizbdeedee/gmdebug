@@ -1,5 +1,7 @@
 package gmdebug.dap.clients;
 
+import tink.CoreApi;
+
 //BaseDebugee
 abstract class BaseConnected {
     
@@ -11,9 +13,12 @@ abstract class BaseConnected {
 
 	var disconnectActive = false;
 
+	public var disconnectFuture:Future<Noise>;
+
 	public function new(fs:PipeSocket,clID:Int) {
 		socket = fs;
 		this.clID = clID;
+		disconnectFuture = fs.closeFuture;
 	}
 
 	public function sendRaw(x:String) {
@@ -25,5 +30,4 @@ abstract class BaseConnected {
 		disconnectActive = true;
 		socket.end();
 	}
-    
 }

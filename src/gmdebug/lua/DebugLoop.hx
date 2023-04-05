@@ -33,23 +33,6 @@ class DebugLoop {
 	static var debugNow = false;
 
 	static var debugNowCount = 0;
-
-	static final DEBUG_NOW_EXHAST = 50000;
-
-	static final STACK_LIMIT_PER_FUNC = 200;
-
-	static final STACK_LIMIT = 65450; //could dynamically check this..
-
-	static final STACK_DEBUG_TAIL = 500; //the stack can change up to this.. if not problems
-
-	static final STACK_DEBUG_RELIEF_OURFUNCS = STACK_LIMIT_PER_FUNC * 2;
-
-	static final STACK_DEBUG_RELIEF_TOLERANCE = STACK_LIMIT_PER_FUNC * 4;
-
-	static final STACK_DEBUG_LIMIT = STACK_LIMIT - STACK_DEBUG_RELIEF_OURFUNCS - STACK_DEBUG_RELIEF_TOLERANCE;
-	
-	static final STACK_DEBUG_RESET_TOLERANCE = STACK_LIMIT_PER_FUNC * 10;
-
 	static var lineInfoFuncCache:haxe.ds.ObjectMap<Function, Bool> = new haxe.ds.ObjectMap();
 
 	static var currentFunc:Null<haxe.Constraints.Function> = null;
@@ -62,19 +45,14 @@ class DebugLoop {
 
 	static var prevStackHeight:Int = 0;
 
+	static var debugStopExecution = 10;
+
+	static var debugCheckRun = 0;
+
+	static var debugCheckRuns = 10000;
+
+	//dee dee diane
 	static var lineSteppin:Bool = false;
-
-	static var previousLength = null;
-
-	static var lastLocalCount = 0;
-
-	static var nextCheckStack = 1;
-
-	static var curCheckStack = 0;
-
-	static var tailLength = 0;
-
-	static var tailLocals = 0;
 
 	static var supressCheckStack:Option<Int> = None;
 
@@ -241,40 +219,28 @@ class DebugLoop {
 		}
 	}
 
-	public static extern inline function debug_stack_len() {
-		var min:Int = 0;
-		var max:Int = STACK_LIMIT;
-		var middle:Int = Math.floor((max - min) / 2);
-		while (true) {
-			final stack = DebugLib.getinfo(middle);
-			if (stack == null) {
-				max = middle;
-				middle = Math.floor((max - min) / 2) + min;
-			} else {
-				min = middle;
-				middle = Math.floor((max - min) / 2) + min;
-			}
-			if (middle == min) {
-				break;
+	static extern inline function debug_debugLoop() {
+		// #if debug
+		debugCheckRun++;
+		if (debugCheckRun > debugCheckRuns) {
+			debugCheckRun = 0;
+			final curTime = Gmod.SysTime();
+			if (curTime > debugStopExecution && debugStopExecution > 0) {
+				debugStopExecution = -1;
+				StackHeightCounter.wrap(debugee.startHaltLoop(Breakpoint));
 			}
 		}
-		return middle;
+		// #end
 	}
 
 	// TODO if having inline breakpoints, only use instruction count when necessary (i.e when running the line to step through) also granuality ect.
 	@:noCheck
 	public static function debugloop(cur:HookState, currentLine:Int) {
 		DebugContext.enterDebugContextSet(3);
+		debug_debugLoop();
 		if (debugee.pollActive || debugee.tracebackActive) {
 			DebugContext.exitDebugContext();
 			return;
-		}
-		if (DEBUG_NOW && !debugNow) {
-			debugNowCount++;
-			if (debugNowCount > DEBUG_NOW_EXHAST) {
-				debugNow = true;
-				debugContext({debugee.startHaltLoop(Breakpoint);});
-			}
 		}
 		DebugLoopProfile.profile("getinfo", true);
 		final func = DebugLib.getinfo(DebugContext.getHeight(), 'f').func;

@@ -27,21 +27,6 @@ typedef ReplaceStorage = {
     ?effectslib_register : Function
 }
 
-@:multiReturn
-private extern class Dur {
-    var a:Int;
-    var b:Int;
-    var c:Int;
-    var d:Int;
-    var e:Int;
-    var f:Int;
-    var g:Int;
-    var h:Int;
-    var i:Int;
-    var j:Int;
-    var k:Int;
-}
-
 class Exceptions {
 
     final exceptFuncs:ObjectMap<Dynamic,Dynamic> = new ObjectMap();
@@ -59,12 +44,6 @@ class Exceptions {
     }
 
     public function hooks() {
-        var countReturns:(_:Dynamic) -> Dur = untyped __lua__(embedResource("CountReturns"));
-        final testFunc = untyped __lua__("function (a,b,c,d,e,f,g,h,i,j,k) return a,b end");
-        final excepted = addExcept(testFunc);
-        final r = countReturns(excepted(1,2,3,4,5,6,7,8,9,10,11));
-        // trace(r);
-        trace('${r.a} ${r.b} ${r.c} ${r.d} ${r.e} ${r.f} ${r.g} ${r.h} ${r.i} ${r.j} ${r.k}');
         hookGamemode();
         hookEntities();
         hookHooks();
@@ -73,36 +52,19 @@ class Exceptions {
         hookTimers();
     }
 
-    function addExcept(target:Function) {
-        final meth:(err:String) -> Void = (err) -> debugee.traceback(err);
-        var exceptedFunc = untyped __lua__("function (...) local success,vrtn,vrtn2,vrtn3,vrtn4,vrtn5,vrtn6,vrtn7,vrtn8,vrtn9,vrtn10,vrtn11,vrtn12 = xpcall({0},{1},...) if success then return vrtn,vrtn2,vrtn3,vrtn4,vrtn5,vrtn6,vrtn7,vrtn8,vrtn9,vrtn10,vrtn11,vrtn12 else print(\"Error attempting to traceback! Could not debug!!\") error(vargs,99) end end",
-			target,
-			meth); //unpacking into a table could cause perfomance concerns... maybe
-        exceptFuncs.set(meth,target);
-        exceptFuncs.set(exceptedFunc,target);
-        return exceptedFunc;
+    public function addExcept(target:Function):Dynamic {
+        final traceback:(err:String) -> Void = (err) -> debugee.traceback(err);
+        final exceptSelf = this;
+        var catchError = untyped __lua__(embedResource("Catch"),exceptSelf);
+        var xpCall = untyped __lua__(embedResource("XPCall"),target,traceback,catchError,exceptSelf);
+        exceptFuncs.set(traceback,target);
+        exceptFuncs.set(catchError,target);
+        return xpCall;
     }
 
-    function testExcept(name:String,index:String,target:Function) {
-        if (index == "GetLeftMin") return target;
-        final meth:(err:String) -> Void = (err) -> debugee.traceback(err);
-        final selfself = this;
-        var countReturns = untyped __lua__(embedResource("CountReturns"));
-        var exceptedFunc = untyped __lua__(embedResource("TestExcept"),
-            target,
-            meth,
-            countReturns,
-            selfself
-            );
-            // name,index);//
-        exceptFuncs.set(meth,target);
-        exceptFuncs.set(exceptedFunc,target);
-        return exceptedFunc;
-    }
-
-    function processTestExcept(name:String,index:String,func:Function) {
+    function processExcept(func:Function):Function {
         return if (shouldExcept(func)) {
-            testExcept(name,index,func);
+            addExcept(func);
         } else {
             func;
         }
@@ -126,14 +88,6 @@ class Exceptions {
 
     function __gc() {
         trace("gc ran");
-    }
-
-    function processExcept(func:Function):Function {
-        return if (shouldExcept(func)) {
-            addExcept(func);
-        } else {
-            func;
-        }
     }
 
     function processUnExcept(func:Function):Function {
@@ -216,10 +170,10 @@ class Exceptions {
         replaceStorage.vguilib_register = VguiLib.Register;
         untyped VguiLib.Register = (name,mtable,base) -> {
             for (ind => val in mtable) {
-                mtable[ind] = processTestExcept(name,cast ind,val);
+                mtable[ind] = processExcept(val);
             }
             replaceStorage.vguilib_register(name,mtable,base);
-            // trace('register $name');
+            trace('register $name');
         }
         #end
     }
@@ -306,10 +260,4 @@ class Exceptions {
         }
         #end
     }
-
-    
-
-    
-
-   
 }

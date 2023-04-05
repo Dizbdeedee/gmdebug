@@ -1,5 +1,9 @@
 package gmdebug.dap.clients;
 
+import haxe.Timer;
+import tink.core.Callback.SimpleLink;
+import gmdebug.composer.ComposedEvent;
+import gmdebug.dap.PipeSocket;
 import tink.core.Error;
 import gmdebug.dap.PipeSocket.PipeSocketLocations;
 import haxe.io.Bytes;
@@ -12,6 +16,7 @@ import js.node.Buffer;
 import gmdebug.Cross;
 
 using Lambda;
+using tink.CoreApi;
 
 typedef ClientID = Int;
 
@@ -22,6 +27,15 @@ enum ConnectionStatus {
 	TAKEN;
 	NOT_AVALIABLE;
 }
+
+enum SlotStatus {
+	TAKEN(ps:PipeSocket);
+	AQUIRING(fut:Promise<PipeSocket>);
+	AVALIABLE;
+	NOT_AVALIABLE;
+}
+
+final MAX_FOLDER_LEN = 127;
 //DebugeeStorage
 @:await
 class ClientStorage {
@@ -29,17 +43,24 @@ class ClientStorage {
 	static final SERVER_ID = 0;
 
 	final clients:Array<BaseConnected> = [];
+
+	final clientSlots:Array<SlotStatus> = [for (_ in 0...MAX_FOLDER_LEN) AVALIABLE];
+
+	final serverSlots:Array<SlotStatus> = [for (_ in 0...MAX_FOLDER_LEN) AVALIABLE];
 	
 	final readFunc:ReadWithClientID;
 
+	final luaDebug:LuaDebugger;
+	
 	var disconnect = false;
 
 	var gmodIDMap:Map<Int,Client> = [];
 
 	var queuedServerMessages = [];
 
-	public function new(readFunc:ReadWithClientID) {
+	public function new(readFunc:ReadWithClientID,luaDebug:LuaDebugger) {
 		this.readFunc = readFunc;
+		this.luaDebug = luaDebug;
 	}
 
 	//TODO move
@@ -52,74 +73,109 @@ class ClientStorage {
 	function status(loc:String):ConnectionStatus {
 		return if (!FileSystem.exists(loc)) {
 			NOT_AVALIABLE;
-		} else if (FileSystem.exists(join([loc,AQUIRED]))) {
+		} else if (FileSystem.exists(join([loc,PATH_CONNECTION_IN_PROGRESS])) || FileSystem.exists(join([loc,PATH_CONNECTION_AQUIRED]))) {
 			TAKEN;
 		} else {
 			AVALIABLE;
 		}
 	}
 
-	function getFreeFolder(loc:String):String {
-		switch (status(join([loc,DATA,FOLDER]))) {
-			case AVALIABLE:
-				return join([loc,DATA,FOLDER]);
-			case NOT_AVALIABLE:
-				throw new Error("No free connections");
-			case TAKEN:
+	function getStatusFolders(loc:String):Array<ConnectionStatus> {
+		final results = [];
+		for (i in 0...MAX_FOLDER_LEN) {
+			var folderLoc = join([loc,PATH_FOLDER,Std.string(i)]);
+			results.push(status(folderLoc));
 		}
-		for (i in 1...127) {
-			switch (status(join([loc,DATA,'$FOLDER$i']))) {
-				case AVALIABLE:
-					return join([loc,DATA,'$FOLDER$i']);
-				case NOT_AVALIABLE:
-					throw new Error('No free connections $i');
-				case TAKEN:
+		return results;
+	}
+
+	function invalidatePreviousConnections(locs:String,slots:Array<SlotStatus>) {
+		var statuses = getStatusFolders(locs);
+		for (i in 0...slots.length) {
+			switch (statuses[i]) {
+				case AVALIABLE | TAKEN:
+					slots[i] = NOT_AVALIABLE;
+				default:
 			}
 		}
-		throw new Error('Exhasted all possible connections');
 	}
 
-	function generateSocketLocations(chosenFolder:String):PipeSocketLocations {
-		return {
-			debugee_output : join([chosenFolder,OUTPUT]),
-			debugee_input : join([chosenFolder,INPUT]),
-			ready : join([chosenFolder,READY]),
-			client_ready : join([chosenFolder,CLIENT_READY]),
-			folder : chosenFolder,
-			aquired : join([chosenFolder,AQUIRED])
-		};
+	public function lookForConnections(locs:String,slots:Array<SlotStatus>):Future<PipeSocket> {
+		return new Future(function (success) {
+			var outcomes:Array<CallbackLink> = [];
+			var watcher = Fs.watch(locs,{persistent: false},function (_, _) {
+				var statuses = getStatusFolders(locs);
+				for (i in 0...slots.length) {
+					switch [slots[i],statuses[i]] {
+						case [AVALIABLE, AVALIABLE]:
+							var sock = new PipeSocket(generatePipeLocations(join([locs,PATH_FOLDER,Std.string(i)])));
+							var sockOutcome = sock.aquire().handle(function (outcome) {
+								switch (outcome) {
+									case Success(data):
+										success(data);
+									default:
+								}
+							});
+							outcomes.push(sockOutcome);
+						default:
+					}
+				}
+			});
+			return () -> {
+				watcher.close();
+				outcomes.map((l) -> l.cancel());
+			};
+		});
 	}
 
-	@:async function makePipeSocket(loc:String,id:Int) {
-		final chosenFolder = getFreeFolder(loc);
-		final ps = new PipeSocket(generateSocketLocations(chosenFolder),
-			(buf:Buffer) -> readFunc(buf,id)
-		);
-		@:await ps.aquire().eager();
-		trace("mega aquired");
-		return ps;
+	public function continueAquireServer(serverLoc:String,timeout:Int):Promise<Server> {
+		return new Promise(function (success,failure) {
+			Timer.delay(() -> {
+				failure("Timeout");
+			},timeout);
+			var connHandler = lookForConnections(serverLoc,serverSlots).handle(function (pipesocket) {
+				success(pipesocket);
+			});
+			return () -> {
+				connHandler.cancel();
+			};
+		});
 	}
 
-
-	@:async public function newClient(clientLoc:String) {
-		final clID = clients.length; 
-		final pipesocket = @:await makePipeSocket(clientLoc,clID);
-		final client = new Client(pipesocket,clID);
-		clients.push(client);
-		trace("client created");
-		// gmodIDMap.set(gmodID,client);
-		return client;
-	}
-
-	@:async public function newServer(serverLoc:String) {
-		final clID = SERVER_ID;
-		trace("making server");
-		final pipesocket = @:await makePipeSocket(serverLoc,clID);
-		trace("Server created");
-		final server = new Server(pipesocket, clID);
-		clients[SERVER_ID] = server;
-		return server;
-	}
+	// public function continueAquireServer(serverLoc:String):Promise<Server> {
+	// 	return Future.irreversible((done) -> {
+	// 		final pms = findAquiresInProgress(serverLoc,serverSlots);
+	// 		Future.inSequence(pms).handle(results -> {
+	// 			var server = null;
+	// 			for (result in results) {
+	// 				switch (result) {
+	// 					case Success(socket):
+	// 						final clID = SERVER_ID; 
+	// 						final client = new Server(socket,clID);
+	// 						clients.push(client);
+	// 						socket.assignRead((buf) -> readFunc(buf,clID));
+	// 						socket.beginConnection();
+	// 						client.disconnectFuture.handle(() -> {
+	// 							luaDebug.sendEvent(new ComposedEvent(thread,{
+	// 								reason: Exited,
+	// 								threadId: client.clID
+	// 							}));
+	// 							client.disconnect();
+	// 							clients[clID] = null;
+	// 						});
+	// 						server = client;
+	// 						break;
+	// 					case Failure(err):
+	// 						// trace(err);
+	// 				}
+	// 			}
+	// 			if (server != null) done(Success(server));
+	// 			done(Failure(new Error("Not happenin now")));
+				
+	// 		});
+			
+	// 	});
+	// }
 
 	function get(id:Int) {
 		return clients[id];

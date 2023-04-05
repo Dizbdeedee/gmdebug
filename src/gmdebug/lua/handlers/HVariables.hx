@@ -23,7 +23,7 @@ class HVariables implements IHandler<VariablesRequest> {
 
     final debugee:Debugee;
 
-    var addVars:Array<AddVar> = [];
+    // var addVars:Array<AddVar> = [];
 
     public function new(initHVariables:InitHVariables) {
         debugee = initHVariables.debugee;
@@ -263,14 +263,6 @@ class HVariables implements IHandler<VariablesRequest> {
         DebugContext.markReport();
 		return WAIT;
 	}
-
-    public function generate(values:Array<VariableReferenceVal>) {
-        for (val in values) {
-            
-        }
-    }
-
-    
 }
 
 enum FakeChild {

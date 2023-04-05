@@ -87,7 +87,7 @@ class HScopes implements IHandler<ScopesRequest> {
 		var resp = scopeReq.compose(scopes, {
 			scopes: switch info {
 				case null:
-					Lua.print("No info?!", frameInfo.actualFrame + 1);
+					Lua.print("No info?!", frameInfo.actualFrame);
 					[globals, entities, players, enums];
 				case {what : C}:
 					[arguments, locals, globals, entities, players, enums];
