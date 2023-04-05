@@ -12,6 +12,20 @@ enum abstract VariableRefBit(Int) {
 	var Global;
 }
 
+enum abstract ScopeConsts(Int) to Int from Int {
+	var Globals;
+	var Players;
+	var Entities;
+	var Enums;
+}
+
+enum abstract FrameLocalScope(Int) to Int from Int {
+	var Arguments;
+	var Locals;
+	var Upvalues;
+	var Fenv;
+}
+
 abstract VariableReference(Int) from Int to Int {
 	static var clientID:Int = 15;
 
@@ -45,18 +59,4 @@ abstract VariableReference(Int) from Int to Int {
 				val | ref++;
 		}
 	}
-}
-
-enum abstract ScopeConsts(Int) to Int from Int {
-	var Globals;
-	var Players;
-	var Entities;
-	var Enums;
-}
-
-enum abstract FrameLocalScope(Int) to Int from Int {
-	var Arguments;
-	var Locals;
-	var Upvalues;
-	var Fenv;
 }

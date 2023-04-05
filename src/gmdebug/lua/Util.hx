@@ -2,6 +2,7 @@ package gmdebug.lua;
 
 import haxe.Constraints.Function;
 import lua.Lua;
+import gmod.libs.DebugLib;
 import gmod.Gmod;
 
 using Safety;
@@ -17,13 +18,6 @@ enum RunResult {
 }
 
 class Util {
-
-	static final CSOURCE = "=[C]";
-
-	public static inline function isCSource(source:String) {
-		return source == CSOURCE;
-	}
-
 	public static function compileString(eval:String, errorPrefix:String):CompileResult {
 		return switch (runCompiledFunction(Gmod.CompileString, eval, errorPrefix, false)) {
 			case Success(result) if (Lua.type(result) == "string"):
@@ -49,6 +43,20 @@ class Util {
 			expr.substr(1);
 		} else {
 			'return ( $expr )';
+		}
+	}
+
+	public static function traceStack(?desired:Int) {
+		trace('0 | This func... (getinfo + 1)');
+		for (i in 1...99999) {
+			var info = DebugLib.getinfo((i + 1), "lnSfu");
+			if (info == null) break;
+			var target = if (i == desired) {
+				"| TARGET";
+			} else {
+				"|";
+			}
+			trace('$i | ${info.name} $target');
 		}
 	}
 }

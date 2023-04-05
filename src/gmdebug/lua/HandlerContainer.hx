@@ -1,6 +1,5 @@
 package gmdebug.lua;
 
-import gmdebug.lua.debugcontext.DebugContext;
 import haxe.Exception;
 import gmdebug.lua.managers.FunctionBreakpointManager;
 import gmdebug.lua.handlers.HDisconnect;
@@ -57,8 +56,7 @@ class HandlerContainer {
 			trace('No such command ${req.command}');
 			throw new Exception('No such command ${req.command}');
 		}
-		var resultHandler = DebugContext.debugContext({result.handle(req);}); //oh yeah. TODO
-		return resultHandler;
+		return result.handle(req);
 	}
 }
 

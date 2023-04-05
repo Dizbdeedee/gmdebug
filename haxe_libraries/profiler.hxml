@@ -1,3 +1,0 @@
-# @install: lix --silent download "haxelib:/profiler#1.0.6" into profiler/1.0.6/haxelib
--cp ${HAXE_LIBCACHE}/profiler/1.0.6/haxelib/
--D profiler=1.0.6

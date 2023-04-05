@@ -17,7 +17,7 @@ class HScopes implements IHandler<ScopesRequest> {
 	public function handle(scopeReq:ScopesRequest):HandlerResponse {
 		var args = scopeReq.arguments.sure();
 		final frameInfo = (args.frameId : FrameID).getValue();
-		var info = DebugLib.getinfo(frameInfo.actualFrame, "fuS");
+		var info = DebugLib.getinfo(StackHeightCounter.getRSS() + frameInfo.actualFrame, "fuS");
 		var arguments:Scope = {
 			name: "Arguments",
 			presentationHint: Arguments,
@@ -87,7 +87,7 @@ class HScopes implements IHandler<ScopesRequest> {
 		var resp = scopeReq.compose(scopes, {
 			scopes: switch info {
 				case null:
-					Lua.print("No info?!", frameInfo.actualFrame + 1);
+					Lua.print("No info?!", frameInfo.actualFrame);
 					[globals, entities, players, enums];
 				case {what : C}:
 					[arguments, locals, globals, entities, players, enums];

@@ -4,19 +4,13 @@
 -lib tink_json
 -lib tink_core
 -lib profiler
---times
--D macro-times
--D gmddebug
 -D addonName=debugee
 -D analyzer-optimize
--D dump=pretty
 -D noGenInit
 -D haxeJSON
 -D lua-ver=5.1
---resource src/gmdebug/lua/include/CountReturns.lua@CountReturns
---resource src/gmdebug/lua/include/TestExcept.lua@TestExcept
+--resource src/gmdebug/lua/include/XPCall.lua@XPCall
+--resource src/gmdebug/lua/include/Catch.lua@Catch
 -dce full
-
 --macro gmod.helpers.macros.InitMacro.init()
---macro gmdebug.lua.macros.InitMacro.addDebugContext()
 --cmd haxe -lib gmodhaxe --run gmod.helpers.macros.PostCompileMacro

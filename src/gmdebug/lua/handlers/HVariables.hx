@@ -1,7 +1,6 @@
 package gmdebug.lua.handlers;
 
 
-import gmdebug.lua.debugcontext.DebugContext;
 import lua.Debug;
 import gmod.enums.SENSORBONE;
 import lua.NativeStringTools;
@@ -23,7 +22,7 @@ class HVariables implements IHandler<VariablesRequest> {
 
     final debugee:Debugee;
 
-    var addVars:Array<AddVar> = [];
+    // var addVars:Array<AddVar> = [];
 
     public function new(initHVariables:InitHVariables) {
         debugee = initHVariables.debugee;
@@ -90,7 +89,6 @@ class HVariables implements IHandler<VariablesRequest> {
     }
 
     function child(ref:Int):Array<AddVar> {
-        DebugContext.markNotReport();
         var addVars:Array<AddVar> = [];
         var storedvar:Dynamic = (variableManager.getVar(ref) : Any).unsafe();
         if (storedvar == null)
@@ -109,15 +107,12 @@ class HVariables implements IHandler<VariablesRequest> {
         } else {
             realChild(storedvar,addVars);
         }
-        DebugContext.markReport();
         return addVars;
 
     }
 
-    function frameLocal(offsetFrame:Int,scope:FrameLocalScope) {
-        final offsetHeight = DebugContext.getHeight();
-        DebugContext.markNotReport();
-        final realFrame = offsetFrame + offsetHeight;
+    function frameLocal(frame:Int,scope:FrameLocalScope) {
+        var realFrame = StackHeightCounter.getRSS() + frame;
         var addVars:Array<AddVar> = [];
         switch (scope) {
             case Arguments:
@@ -170,12 +165,10 @@ class HVariables implements IHandler<VariablesRequest> {
                     }
                 }
         }
-        DebugContext.markReport();
         return addVars;
     }
 
     function global(scope:ScopeConsts) {
-        DebugContext.markNotReport();
         var addVars:Array<AddVar> = [];
         switch (scope) {
             case Globals:
@@ -218,7 +211,6 @@ class HVariables implements IHandler<VariablesRequest> {
             default:
                 throw "Unhandled scope";
         }
-        DebugContext.markReport();
         return addVars;
     }
 
@@ -244,33 +236,28 @@ class HVariables implements IHandler<VariablesRequest> {
     public function handle(req:VariablesRequest) {
 		final args = req.arguments.unsafe();
 		final ref:VariableReference = args.variablesReference;
-		final addVars = DebugContext.debugContext({
-            switch (ref.getValue()) {
-                case Child(_, ref):
-                    child(ref);
-                case FrameLocal(_, frame, scope):
-                    frameLocal(frame,scope);
-                case Global(_, scope):
-                    global(scope);
-	    	}
-        });
-        DebugContext.markNotReport();
+    
+        StackHeightCounter.increment();
+		final addVars = switch (ref.getValue()) {
+			case Child(_, ref):
+                trace('CHILD : $ref');
+                child(ref);
+			case FrameLocal(_, frame, scope):
+                trace('FrameLocal : $frame $scope');
+
+				frameLocal(frame,scope);
+			case Global(_, scope):
+                trace('Global : $scope');
+				global(scope);
+		}
+        StackHeightCounter.decrement();
 		final variablesArr = addVars.map(variableManager.genvar);
 		fixupNames(variablesArr);
 		var resp = req.compose(variables, {variables: variablesArr});
 		final js = tink.Json.stringify((cast resp : VariablesResponse)); 
 		debugee.send(js);
-        DebugContext.markReport();
 		return WAIT;
 	}
-
-    public function generate(values:Array<VariableReferenceVal>) {
-        for (val in values) {
-            
-        }
-    }
-
-    
 }
 
 enum FakeChild {

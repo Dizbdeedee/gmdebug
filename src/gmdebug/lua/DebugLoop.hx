@@ -10,8 +10,6 @@ import lua.Lua;
 import gmod.libs.DebugLib;
 import gmod.Gmod;
 import gmdebug.lua.managers.BreakpointManager;
-import gmdebug.lua.debugcontext.DebugContext.debugContext;
-import gmdebug.lua.debugcontext.DebugContext;
 
 using gmod.helpers.WeakTools;
 using Safety;
@@ -28,28 +26,6 @@ typedef InitDebugLoop = {
 
 class DebugLoop {
 
-	static final DEBUG_NOW = true;
-
-	static var debugNow = false;
-
-	static var debugNowCount = 0;
-
-	static final DEBUG_NOW_EXHAST = 50000;
-
-	static final STACK_LIMIT_PER_FUNC = 200;
-
-	static final STACK_LIMIT = 65450; //could dynamically check this..
-
-	static final STACK_DEBUG_TAIL = 500; //the stack can change up to this.. if not problems
-
-	static final STACK_DEBUG_RELIEF_OURFUNCS = STACK_LIMIT_PER_FUNC * 2;
-
-	static final STACK_DEBUG_RELIEF_TOLERANCE = STACK_LIMIT_PER_FUNC * 4;
-
-	static final STACK_DEBUG_LIMIT = STACK_LIMIT - STACK_DEBUG_RELIEF_OURFUNCS - STACK_DEBUG_RELIEF_TOLERANCE;
-	
-	static final STACK_DEBUG_RESET_TOLERANCE = STACK_LIMIT_PER_FUNC * 10;
-
 	static var lineInfoFuncCache:haxe.ds.ObjectMap<Function, Bool> = new haxe.ds.ObjectMap();
 
 	static var currentFunc:Null<haxe.Constraints.Function> = null;
@@ -62,19 +38,14 @@ class DebugLoop {
 
 	static var prevStackHeight:Int = 0;
 
+	static var debugStopExecution = 10;
+
+	static var debugCheckRun = 0;
+
+	static var debugCheckRuns = 10000;
+
+	//dee dee diane
 	static var lineSteppin:Bool = false;
-
-	static var previousLength = null;
-
-	static var lastLocalCount = 0;
-
-	static var nextCheckStack = 1;
-
-	static var curCheckStack = 0;
-
-	static var tailLength = 0;
-
-	static var tailLocals = 0;
 
 	static var supressCheckStack:Option<Int> = None;
 
@@ -130,7 +101,7 @@ class DebugLoop {
 
 	static inline extern function currentStackHeight(func:Function) {
 		return if (func != prevFunc) {
-			prevStackHeight = debugee.stackHeight;
+			prevStackHeight = StackHeightCounter.getRSH();
 			prevStackHeight;
 		} else {
 			prevStackHeight;
@@ -139,37 +110,30 @@ class DebugLoop {
 
 	static extern inline function debug_switchHookState(cur:HookState, func:Function, ?sinfo:SourceInfo) {
 		if (sinfo != null && highestStackHeight != null && escapeHatch != null) {
-			var bpWithinRange = debugContext({bm.breakpointWithinRange(sinfo.source.gPath(),sinfo.linedefined,sinfo.lastlinedefined);});
-			
-			if (!lineSteppin && bpWithinRange) {
-				final csh = currentStackHeight(func);
-				if (csh <= highestStackHeight) {
+			if (!lineSteppin && bm.unsafe().breakpointWithinRange(sinfo.source.gPath(), sinfo.linedefined, sinfo.lastlinedefined)) {
+				final sh = currentStackHeight(func);
+				if (sh <= highestStackHeight) {
 					enableLineStep();
-					highestStackHeight = csh;
+					highestStackHeight = sh;
 				}
-			} else if (cur == Line) {
-				final csh = currentStackHeight(func);
-				if (csh == DebugContext.getHeight() + 1 && escapeHatch == NONE) {
-					escapeHatch = OUT(func);
-				} else if (shouldStopLine(func,csh)){
-					escapeHatch = NONE;
-					disableLineStep();
-					highestStackHeight = Math.POSITIVE_INFINITY;
-				}
+			} else if (cur == Line && currentStackHeight(func) < 1 && escapeHatch == NONE) {
+				escapeHatch = OUT(func);
+			} else if (cur == Line && shouldStopLine(func, currentStackHeight(func))) {
+				escapeHatch = NONE;
+				disableLineStep();
+				highestStackHeight = Math.POSITIVE_INFINITY;
 			}
 		}
 	}
 
+
 	static extern inline function debug_checkBreakpoints(sinfo:SourceInfo, line:Int) {
-		var bpForLine = debugContext({bm.getBreakpointForLine(sinfo.source.gPath(),line);});
-		// var bpForLine = bm.getBreakpointForLine(null,null);
-		switch (bpForLine) {
+		switch (bm.getBreakpointForLine(sinfo.source.gPath(),line)) {
 			case null | {breakpointType : INACTIVE}:
 			case {breakpointType : NORMAL}:
-
-				DebugContext.debugContext({debugee.startHaltLoop(Breakpoint);});
+				StackHeightCounter.wrap(debugee.startHaltLoop(Breakpoint));
 			case {breakpointType : CONDITIONAL(condFunc), id : bpID}:
-				Gmod.setfenv(condFunc, HEvaluate.createEvalEnvironment(3 + DebugHook.HOOK_USED)); //TODO 3??
+				Gmod.setfenv(condFunc, HEvaluate.createEvalEnvironment(3 + DebugHook.HOOK_USED));
 				switch (Util.runCompiledFunction(condFunc)) {
 					case Error(err):
 						final message = HEvaluate.translateEvalError(err);
@@ -186,7 +150,7 @@ class DebugLoop {
 						debugee.sendMessage(resp);
 					case Success(val):
 						if (val) {
-							DebugContext.debugContext({debugee.startHaltLoop(Breakpoint);});
+							StackHeightCounter.wrap(debugee.startHaltLoop(Breakpoint));
 						}
 				}
 		}
@@ -199,11 +163,10 @@ class DebugLoop {
 				false;
 			case WAIT:
 				false;
-			case STEP(target) if (target == null || debugee.stackHeight <= target):
-				trace('stepped $target ${debugee.stackHeight}');
+			case STEP(target) if (target == null || StackHeightCounter.getRSH() <= target):
 				debugee.state = WAIT;
 				disableLineStep();
-				DebugContext.debugContext({debugee.startHaltLoop(Step);});
+				StackHeightCounter.wrap(debugee.startHaltLoop(Step));
 				true;
 			case STEP(x):
 				true;
@@ -211,13 +174,13 @@ class DebugLoop {
 				debugee.state = WAIT;
 				Lua.print(outFunc, func);
 				disableLineStep();
-				DebugContext.debugContext({debugee.startHaltLoop(Step);});
+				StackHeightCounter.wrap(debugee.startHaltLoop(Step));
 				true;
-			case OUT(outFunc, _,tarHeight) if (outFunc != func && debugee.stackHeight <= tarHeight):
+			case OUT(outFunc, _,tarHeight) if (outFunc != func && StackHeightCounter.getRSH() <= tarHeight):
 				debugee.state = WAIT;
 				Lua.print(outFunc, func);
 				disableLineStep();
-				debugContext({debugee.startHaltLoop(Step);});
+				StackHeightCounter.wrap(debugee.startHaltLoop(Step));
 				true;
 			case OUT(outFunc, _):
 				Lua.print(outFunc, func, curLine);
@@ -235,68 +198,51 @@ class DebugLoop {
 		// RUns on entry and exit
 		if (func != null && fbm != null && currentFunc == null) {
 			if (fbm.functionBP.exists(func)) {
-				debugContext({debugee.startHaltLoop(FunctionBreakpoint);});
+				StackHeightCounter.wrap(debugee.startHaltLoop(FunctionBreakpoint));
 			}
 			currentFunc = func;
 		}
 	}
 
-	public static extern inline function debug_stack_len() {
-		var min:Int = 0;
-		var max:Int = STACK_LIMIT;
-		var middle:Int = Math.floor((max - min) / 2);
-		while (true) {
-			final stack = DebugLib.getinfo(middle);
-			if (stack == null) {
-				max = middle;
-				middle = Math.floor((max - min) / 2) + min;
-			} else {
-				min = middle;
-				middle = Math.floor((max - min) / 2) + min;
-			}
-			if (middle == min) {
-				break;
+	static extern inline function debug_debugLoop() {
+		// #if debug
+		debugCheckRun++;
+		if (debugCheckRun > debugCheckRuns) {
+			debugCheckRun = 0;
+			final curTime = Gmod.SysTime();
+			if (curTime > debugStopExecution && debugStopExecution > 0) {
+				debugStopExecution = -1;
+				StackHeightCounter.wrap(debugee.startHaltLoop(Breakpoint));
 			}
 		}
-		return middle;
+		// #end
 	}
 
 	// TODO if having inline breakpoints, only use instruction count when necessary (i.e when running the line to step through) also granuality ect.
-	@:noCheck
 	public static function debugloop(cur:HookState, currentLine:Int) {
-		DebugContext.enterDebugContextSet(3);
-		if (debugee.pollActive || debugee.tracebackActive) {
-			DebugContext.exitDebugContext();
+		StackHeightCounter.entry();
+		debug_debugLoop();
+		if (debugee.pollActive || debugee.tracebackActive)
 			return;
-		}
-		if (DEBUG_NOW && !debugNow) {
-			debugNowCount++;
-			if (debugNowCount > DEBUG_NOW_EXHAST) {
-				debugNow = true;
-				debugContext({debugee.startHaltLoop(Breakpoint);});
-			}
-		}
 		DebugLoopProfile.profile("getinfo", true);
-		final func = DebugLib.getinfo(DebugContext.getHeight(), 'f').func;
+		final func = DebugLib.getinfo(StackHeightCounter.getRSS(), 'f').func;
 		final result = sc.sourceCache.get(func);
 		final sinfo = if (result != null) {
 			result;
 		} else {
-			final tmp = DebugLib.getinfo(DebugContext.getHeight(), 'S');
+			final tmp = DebugLib.getinfo(StackHeightCounter.getRSS(), 'S');
 			sc.sourceCache.set(func, tmp);
 			tmp;
 		}
 		DebugLoopProfile.profile("step");
-		@:privateAccess if (exceptions.exceptFuncs != null && func != null && exceptions.exceptFuncs.exists(func)) {
-			DebugContext.exitDebugContext();
+		@:privateAccess if (exceptions.exceptFuncs != null && func != null && exceptions.exceptFuncs.exists(func))
 			return;
-		}
 		final stepping = debug_step(cur, func, currentLine);
 		DebugLoopProfile.profile("getbptable");
-		var bpValid = false;
-		if (bm != null) {
-			bpValid = debugContext({bm.valid();});
-		}
+		final bpValid = if (bm != null && bm.valid())
+				true;
+			else
+				false;
 		DebugLoopProfile.profile("switchhookstate");
 		if (!stepping && bpValid)
 			debug_switchHookState(cur, func, sinfo);
@@ -306,7 +252,6 @@ class DebugLoop {
 		DebugLoopProfile.profile("functionalbp");
 		debug_functionalBP(func, cur);
 		DebugLoopProfile.resetprofile();
-		DebugContext.exitDebugContext();
 	}
 }
 

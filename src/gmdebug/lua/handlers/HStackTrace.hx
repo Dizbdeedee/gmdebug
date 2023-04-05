@@ -1,13 +1,15 @@
 package gmdebug.lua.handlers;
 
-import gmdebug.lua.debugcontext.DebugContext;
 import gmod.libs.DebugLib;
 import gmdebug.composer.ComposedEvent;
+using StringTools;
+
 
 typedef InitHStackTrace = {
 	debugee : Debugee,
 	exceptions : Exceptions
 }
+
 
 class HStackTrace implements IHandler<StackTraceRequest> {
 
@@ -21,8 +23,6 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 	}
 
 	public function handle(x:StackTraceRequest):HandlerResponse {
-		DebugContext.markNotReport();
-		final offsetHeight = DebugContext.getHeight();
 		final args = x.arguments.unsafe();
 		if (!debugee.pauseLoopActive) {
 			var response = x.compose(stackTrace, {
@@ -37,15 +37,12 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 			}));
 			return WAIT;
 		}
-		final len = DebugLoop.debug_stack_len() - offsetHeight;
 		final firstFrame = switch (args.startFrame) {
 			case null:
-				offsetHeight;
+				StackHeightCounter.getRSS();
 			case x:
-				x + offsetHeight;
+				x + StackHeightCounter.getRSS();
 		}
-		trace('FIRSTFRAME $firstFrame');
-		
 		final lastFrame = switch (args.levels) {
 			case null | 0:
 				9999;
@@ -67,7 +64,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 			if (info.nparams > 0) {
 				args = "(";
 				for (p in 0...info.nparams) {
-					final lcl = DebugLib.getlocal(i, p);
+					final lcl = DebugLib.getlocal(i, p + 1);
 					final val = switch (Lua.type(lcl.b)) {
 						case "table":
 							"table";
@@ -79,7 +76,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 					args += '${lcl.a}=$val,'; // ${Lua.type(lcl.b)}
 				}
 				// vargs
-				for (p in 1...9999) {
+				for (p in 1...9999) { 
 					final lcl = DebugLib.getlocal(i, -p);
 					if (lcl.a == null)
 						break;
@@ -97,11 +94,11 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 			}
 			var name = switch [info.name, info.namewhat] {
 				case [null, NOT_FOUND]:
-					'anonymous function $args';
+					'$i|${i - StackHeightCounter.getRSS()} anonymous function $args';
 				// case [null,what]:
 				//     'anonymous function ';
 				case [name, what]:
-					'[$what] $name $args';
+					'$i|${i - StackHeightCounter.getRSS()} [$what] $name $args';
 			}
 			var path:Null<String>;
 			var hint:Null<SourcePresentationHint>;
@@ -109,21 +106,14 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 			var column;
 			var endLine:Null<Int> = null;
 			var endColumn:Null<Int> = null;
-			switch [Util.isCSource(src),src,len] {
-				case [true,_,_]:
+			switch [src] {
+				case ["=[C]"]:
 					hint = Deemphasize;
 					path = null;
 					line = 0;
 					column = 0;
-				case [false,src,len] if ((len > 80 && i > 45 && (i - 5) < len - 40)):
-					path = debugee.normalPath(src);
-					hint = Deemphasize;
-					line = info.currentline;
-					column = 1;
-					endLine = info.lastlinedefined;
-					endColumn = 99999;
-				case [false,src,_]:
-					path = debugee.normalPath(src);
+				case [x]:
+					path = debugee.normalPath(x);
 					hint = null;
 					line = info.currentline;
 					column = 1;
@@ -141,7 +131,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 				hint = Normal;
 			}
 			var target:StackFrame = {
-				id: gmdebug.FrameID.encode(debugee.clientID.sure(), i - offsetHeight),
+				id: gmdebug.FrameID.encode(debugee.clientID.sure(), i - StackHeightCounter.getRSS()), //ID is always from RealStackStart, so we give it a sensible one now - because it can change based on our funcs
 				name: name,
 				source: switch path {
 					case null:
@@ -166,12 +156,10 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 			stackFrames.push(target);
 		}
 		var response = x.compose(stackTrace, {
-			stackFrames: stackFrames,
-			totalFrames: len
+			stackFrames: stackFrames
 		});
 		final json = tink.Json.stringify((cast response : StackTraceResponse)); // in pratical terms they're the same
 		debugee.send(json);
-		DebugContext.markReport();
 		return WAIT;
 	}
 }

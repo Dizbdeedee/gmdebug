@@ -1,5 +1,6 @@
 package gmdebug.dap;
 
+import haxe.io.Path;
 import gmdebug.Util.recurseCopy;
 import sys.io.File;
 import sys.io.Process;
@@ -17,7 +18,6 @@ import gmdebug.GmDebugMessage;
 import gmdebug.dap.clients.ClientStorage;
 import haxe.io.Path as HxPath;
 using gmdebug.composer.ComposeTools;
-using gmdebug.dap.DapFailure; 
 using Lambda;
 using Safety;
 using StringTools;
@@ -59,7 +59,6 @@ class RequestRouter {
 			case setBreakpoints:
 				prevRequests.update(req);
 				clients.sendAll(req);	
-			// h_setBreakpoints(req);
 			case setExceptionBreakpoints:
 				prevRequests.update(req);
 				clients.sendAll(req);
@@ -81,10 +80,12 @@ class RequestRouter {
 		final threadArr = [{name: "Server", id: 0}];
 		for (cl in clients.getClients()) {
 			threadArr.push({
-				name : "Your name here!",
+				name : 'Client ${cl.clID}',
 				id : cl.clID
 			});
-		} 
+			trace(cl.clID);
+		}
+		trace(threadArr);
 		req.compose(threads, {threads: threadArr}).send(luaDebug);
 	}
 
@@ -131,6 +132,43 @@ class RequestRouter {
 		clients.sendAny(client, req);
 	}
 
+	function createDirArray(dir:String) {
+		var curStr = dir;
+		var cumArray = [];
+		while (curStr != null) {
+			curStr = HxPath.directory(curStr);
+			cumArray.push(HxPath.withoutDirectory(curStr));
+		}
+		return cumArray;
+	}
+
+	//i would rather just make SOMETHING at this point... goddamn
+	function matchPath(path:Array<String>,find:Array<String>) {
+		for (ipath => _ in path) {
+			var match = true;
+			for (ufind => val in find) {
+				if (path[ipath + ufind] != val) {
+					match = false;
+					break;
+				}
+			}
+			if (match) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	function h_setBreakpoints(req:SetBreakpointsRequest) {
+		final source = req.arguments.source;
+		
+		// if (matchPath(createDirArray(req.arguments.source.path),createDirArray(luaDebug.initBundle))) {
+			
+			
+		// }
+		
+	}
+
 	function h_initialize(req:InitializeRequest) {
 		final response:InitializeResponse = {
 			seq: 0, // it gets ignored anyway
@@ -146,8 +184,9 @@ class RequestRouter {
 		response.body.supportsEvaluateForHovers = true;
 		response.body.supportsLoadedSourcesRequest = true;
 		response.body.supportsFunctionBreakpoints = true;
-		response.body.supportsDelayedStackTraceLoading = true;
+		response.body.supportsDelayedStackTraceLoading = false;
 		response.body.supportsBreakpointLocationsRequest = false;
+		untyped response.body.supportsSingleThreadExecutionRequests = true;
 		luaDebug.sendResponse(response);
 	}
 
@@ -161,11 +200,8 @@ class RequestRouter {
 	}
 
 	function h_attach(req:GmDebugAttachRequest) {
-		req.composeFail("Gmdebug does not currently support attach requests",
-		{
-			id : 15,
-			format : "Gmdebug does not currently support attach requests"
-		}).send(luaDebug);
+		req.composeFail(DEBUGGER_NO_ATTACH)
+		.send(luaDebug);
 		return;
 	}
 	

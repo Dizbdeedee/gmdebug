@@ -1,7 +1,5 @@
 package gmdebug.lua.handlers;
 
-import gmdebug.lua.debugcontext.DebugContext;
-
 
 typedef InitHNext = {
 	debugee : Debugee
@@ -15,13 +13,10 @@ class HNext implements IHandler<NextRequest> {
 	}
 
 	public function handle(nextReq:NextRequest):HandlerResponse {
-		var offsetHeight = DebugContext.getHeight();
-		DebugContext.markNotReport();
 		var resp = nextReq.compose(next);
-		debugee.state = STEP(offsetHeight);
+		debugee.state = STEP(StackHeightCounter.getRSH());
 		debugee.sendMessage(resp);
 		DebugLoop.enableLineStep();
-		DebugContext.markReport();
 		return CONTINUE;
 	}
 }

@@ -1,5 +1,6 @@
 package gmdebug.lua.managers;
 
+import gmod.helpers.WeakTools;
 import gmdebug.lua.handlers.HScopes;
 import gmod.gclass.Entity;
 import gmod.libs.DebugLib;
@@ -8,7 +9,7 @@ import lua.Lua;
 import lua.NativeStringTools;
 import gmdebug.VariableReference;
 import gmdebug.lua.handlers.IHandler;
-
+using gmod.helpers.WeakTools;
 typedef InitVariableManager = {
 	debugee : Debugee
 }
@@ -17,14 +18,21 @@ class VariableManager {
     
 	var storedVariables:Array<Null<Dynamic>> = [null];
 
+	var cachedValues:haxe.ds.ObjectMap<Dynamic,Int> = new haxe.ds.ObjectMap();
+
 	final debugee:Debugee;
 	
 	public function new(initVariableManager:InitVariableManager) {
 		debugee = initVariableManager.debugee;
+		storedVariables.setWeakValuesArr();
+		cachedValues.setWeakKeysM();
 	}
 
 	public function resetVariables() {
 		storedVariables = [null];
+		storedVariables.setWeakValuesArr();
+		cachedValues = new haxe.ds.ObjectMap();
+		cachedValues.setWeakKeysM();
 	}
     
     public function getVar(ind:Int) {
@@ -62,16 +70,7 @@ class VariableManager {
 				default:
 					stringReplace;
 			},
-			variablesReference: switch id {
-				case _ if (name == "_G"):
-					ScopeConsts.Globals; //TODO update
-				case TYPE_ENTITY if (!Gmod.IsValid(val)):
-					0;
-				case TYPE_TABLE | TYPE_FUNCTION | TYPE_USERDATA | TYPE_ENTITY:
-					VariableReference.encode(Child(debugee.clientID, storedVariables.push(val) - 1));
-				default:
-					0;
-			},
+			variablesReference: generateVariablesReference(val,name)
 		}
 		switch [id, virtual] {
 			case [TYPE_FUNCTION, null]:
@@ -92,12 +91,14 @@ class VariableManager {
 	}
 
 	public function generateVariablesReference(val:Dynamic, ?name:String):Int {
-		return switch Gmod.TypeID(val) {
-			case _ if (name == "_G"):
-				ScopeConsts.Globals;
-			case TYPE_ENTITY if (!Gmod.IsValid(val)):
+		var prevVarReference = cachedValues.get(val);
+		if (prevVarReference == null && val != null) cachedValues.set(val,storedVariables.length);
+		return switch [Gmod.TypeID(val),prevVarReference] {
+			case [_,x] if (x != null):
+				x;
+			case [TYPE_ENTITY,null] if (!Gmod.IsValid(val)):
 				0;
-			case TYPE_TABLE | TYPE_FUNCTION | TYPE_USERDATA | TYPE_ENTITY:
+			case [TYPE_TABLE | TYPE_FUNCTION | TYPE_USERDATA | TYPE_ENTITY,null]:
 				VariableReference.encode(Child(debugee.clientID, storedVariables.push(val) - 1));
 			default:
 				0;

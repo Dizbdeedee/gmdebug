@@ -1,6 +1,5 @@
 package gmdebug.lua;
 
-import gmdebug.lua.debugcontext.DebugContext;
 import haxe.Json;
 import gmod.libs.VguiLib;
 import gmdebug.lua.managers.BreakpointManager;
@@ -66,27 +65,7 @@ class Debugee {
 
 	public var dapMode:Null<DapModeStr>;
 
-	public var stepHeight(get,never):Int;
-
-	public extern inline function get_stepHeight():Int {
-		return stackHeight - StackConst.STEP;
-	}
-
-	// public var baseDepth:Null<Int>;
-
 	public var recursiveGuard:RecursiveGuard = NONE;
-
-	public var stackHeight(get, never):Int;
-
-	@:noCompletion
-	public function get_stackHeight():Int {
-		for (i in 1...999999) {
-			if (DebugLib.getinfo(i + 1, "") == null) {
-				return i;
-			}
-		}
-		throw "No stack height";
-	}
 
 	public var tracebackActive = false;
 
@@ -121,11 +100,13 @@ class Debugee {
 	
 	final customHandlers:Null<CustomHandlers>;
 
-
 	function freeFolder(folder:String):Bool {
 		return if (!FileLib.Exists(folder,DATA)) {
 			true;
-		} else if (!FileLib.Exists(join([folder,AQUIRED]),DATA)) {
+		} else if (!FileLib.Exists(join([folder,PATH_CLIENT_READY]),DATA)
+		&& !FileLib.Exists(join([folder,PATH_CONNECTION_AQUIRED]),DATA)
+		&& !FileLib.Exists(join([folder,PATH_CONNECTION_IN_PROGRESS]),DATA)
+		) {
 			true;
 		} else {
 			false;
@@ -133,12 +114,12 @@ class Debugee {
 	}
 
 	function checkFreeSlots():String {
-		if (freeFolder(FOLDER)) {
-			return FOLDER;
+		if (freeFolder(PATH_FOLDER)) {
+			return PATH_FOLDER;
 		}
 		for (i in 1...127) {
-			if (freeFolder('$FOLDER$i')) {
-				return '$FOLDER$i';
+			if (freeFolder('$PATH_FOLDER$i')) {
+				return '$PATH_FOLDER$i';
 			}
 		}
 		throw "Can't find a free folder to claim";
@@ -146,25 +127,23 @@ class Debugee {
 
 	function generateLocations(folder:String):PipeLocations {
 		FileLib.CreateDir(folder);
-		return {
-			folder : folder,
-			client_ready: join([folder,CLIENT_READY]),
-			output: join([folder,OUTPUT]),
-			input: join([folder,INPUT]),
-			ready: join([folder,READY])
-		}
+		return generatePipeLocations(folder);
 	}
+
+	var aquiringSocket:PipeSocket;
 
 	public function start() {
 		if (socketActive)
 			return false;
-		socket = try {
-			new PipeSocket(generateLocations(checkFreeSlots()));
-		} catch (e) {
-			trace(e);
+		if (aquiringSocket == null) {
+			aquiringSocket = new PipeSocket(generateLocations(checkFreeSlots()));
+		}		
+		final result = aquiringSocket.aquire();
+		if (result != AQUIRED) {
 			return false;
 		}
-		trace("Connected to server...");
+		socket = aquiringSocket;
+		trace("GMDEBUG SUCCESSFULLY CONNECTED");
 		socketActive = true;
 		sendMessage(new ComposedEvent(initialized));
 		#if debugdump
@@ -174,10 +153,10 @@ class Debugee {
 		#end
 		#if server
 		hookPlayer();
+		
 		sendMessage(new ComposedEvent(continued, {threadId: 0, allThreadsContinued: true}));
 		#end
 		if (!startLoop()) {
-			trace("Failed to setup debugger after timeout");
 			return false;
 		}
 		DebugHook.addHook(DebugLoop.debugloop, "c");
@@ -186,6 +165,7 @@ class Debugee {
 		HookLib.Add(ShutDown,"debugee-shutdown",() -> {
 			shutdown();
 		});
+		outputter.hookPrint();
 		hooksActive = true;
 		return true;
 	}
@@ -199,17 +179,6 @@ class Debugee {
 
 	public inline function sendMessage(message:ComposedProtocolMessage) {
 		send(Json.stringify(message));
-	}
-
-	final ignores:Map<String, Bool> = [];
-
-	// currently only on first lines for now. can expand to tracebacks.
-	inline function checkIgnoreError(_err:String) {
-		return ignores.exists(_err);
-	}
-
-	inline function ignoreError(_err:String) {
-		ignores.set(_err, true);
 	}
 
 	#if server
@@ -239,10 +208,9 @@ class Debugee {
 	#end
 
 	public function traceback(err:Any) {
+		StackHeightCounter.entry();
 		final _err = err;
 		if (pollActive) return err;
-		if (checkIgnoreError(err))
-			return _err;
 		if (pauseLoopActive || tracebackActive) {
 			trace('traceback failed... ${pauseLoopActive} $tracebackActive');
 			return _err;
@@ -250,13 +218,11 @@ class Debugee {
 		if (!hooksActive || !socketActive)
 			return _err;
 		tracebackActive = true;
-		DebugContext.enterDebugContext();
 		if (err is haxe.Exception) {
-			DebugContext.debugContext({startHaltLoop(Exception, (err : haxe.Exception).message);});
+			StackHeightCounter.wrap(startHaltLoop(Exception, (err : haxe.Exception).message));
 		} else {
-			DebugContext.debugContext({startHaltLoop(Exception, Gmod.tostring(err));});
+			StackHeightCounter.wrap(startHaltLoop(Exception, Gmod.tostring(err)));
 		}
-		DebugContext.exitDebugContext();
 		tracebackActive = false;
 		return DebugLib.traceback(err);
 	}
@@ -299,12 +265,6 @@ class Debugee {
 			switch (chooseHandler(msg)) {
 				case DISCONNECT:
 					shutdown();
-				case PAUSE(pauseReq):
-					var resp = pauseReq.compose(pause,{});
-					sendMessage(resp);
-					DebugContext.enterDebugContext();
-					DebugContext.debugContext({startHaltLoop(Pause);});
-					DebugContext.exitDebugContext();
 				case WAIT | CONTINUE | CONFIG_DONE:
 			}
 		} catch (e:haxe.Exception) {
@@ -314,6 +274,7 @@ class Debugee {
 	}
 
 	public function new() {
+		Logger.init();
 		DebugHook.addHook();
 		if (G.previousSocket != null) {
 			G.previousSocket.close();
@@ -355,15 +316,18 @@ class Debugee {
 		#elseif client
 		Gmod.RunConsoleCommand("cl_timeout", 999999);
 		#end
-		trace("before socketactive");
 		var timeout = Gmod.SysTime() + CONNECT_TIMEOUT;
 		while (!socketActive && Gmod.SysTime() < timeout) {
 			start();
 		}
 		if (!socketActive) {
-			trace("Could not connect to server!!");
+			trace("GMDEBUG FAILED TO CONNECT");
+			Logger.log("GMDEBUG FAILED TO CONNECT");
+			aquiringSocket.close();
+			shutdown();
 			throw "Failed to connect to server";
 		}
+		Logger.log("GMDEBUG CONNECTED SUCCESSFULLY");
 		TimerLib.Create("report-profling", 3, 0, () -> {
 			DebugLoopProfile.report();
 		});
@@ -389,18 +353,14 @@ class Debugee {
 	public function startHaltLoop(reason:StopReason, ?txt:String) {
 		if (pauseLoopActive) return;
 		pauseLoopActive = true;
-		// baseDepth = bd;
 		final tstop:TStoppedEvent = {
 			threadId: clientID,
-			allThreadsStopped: false,
 			reason: reason,
 			text: txt
 		}
-		DebugContext.markNotReport();
 		sendMessage(new ComposedEvent(stopped, tstop));
-		DebugContext.markReport();
 		trace("HALT LOOP");
-		DebugContext.debugContext({haltLoop();});
+		StackHeightCounter.wrap(haltLoop());
 	}
 
 	#if debugdump
@@ -423,8 +383,6 @@ class Debugee {
 		socket = null;
 		socketActive = false;
 		trace("Debugging aborted");
-		// Exceptions.unhookGamemodeHooks();
-		// Exceptions.unhookEntityHooks();
 	}
 
 	function startLoop() {
@@ -432,7 +390,6 @@ class Debugee {
 		var success = false;
 		final timeoutTime = Gmod.SysTime() + TIMEOUT_CONFIG;
 		while (Gmod.SysTime() < timeoutTime) {
-			DebugContext.markNotReport();
 			final msg = switch (recvMessage()) {
 				case ACK | TIMEOUT:
 					continue;
@@ -441,17 +398,8 @@ class Debugee {
 				case ERROR(s):
 					throw s;
 			}
-			DebugContext.markReport();
-			var handlerResponse = DebugContext.debugContext({chooseHandler(msg);});
-			switch (handlerResponse) {
+			switch (chooseHandler(msg)) {
 				case WAIT | CONTINUE:
-				case PAUSE(pauseReq):
-					trace("Cannot pause right now!");
-					var resp = pauseReq.composeFail("Cannot pause in startloop");
-					sendMessage(resp);
-					shutdown();
-					success = false;
-					break;
 				case DISCONNECT:
 					shutdown();
 					success = false;
@@ -459,7 +407,6 @@ class Debugee {
 				case CONFIG_DONE:
 					success = true;
 					break;
-
 			}
 		}
 		return success;
@@ -468,7 +415,6 @@ class Debugee {
 
 	function haltLoop() {
 		while (true) {
-			DebugContext.markNotReport();
 			final msg = switch (recvMessage()) {
 				case ACK | TIMEOUT:
 					continue;
@@ -477,22 +423,14 @@ class Debugee {
 				case ERROR(s):
 					throw s;
 			}
-			DebugContext.markReport();
-			var handlerResponse = DebugContext.debugContext({chooseHandler(msg);});
-			switch (handlerResponse) {
+			StackHeightCounter.wrap(switch (chooseHandler(msg)) {
 				case WAIT | CONFIG_DONE:
-				case PAUSE(pauseReq):
-					trace("Cannot pause right now!");
-					var resp = pauseReq.composeFail("Cannot pause in startloop");
-					DebugContext.markNotReport();
-					sendMessage(resp);
-					DebugContext.markReport();
 				case CONTINUE:
 					break;
 				case DISCONNECT:
 					shutdown();
 					break;
-			}
+			});
 		}
 		pauseLoopActive = false;
 	}
@@ -502,10 +440,10 @@ class Debugee {
 			case null:
 				throw "message sent to us had a null type";
 			case "gmdebug":
-				DebugContext.debugContext({customHandlers.handle(cast incoming);});
+				StackHeightCounter.wrap(customHandlers.handle(cast incoming));
 				WAIT; // this is a safe option in all scenarios.
 			case MessageType.Request:
-				DebugContext.debugContext({hc.handlers(cast incoming);});
+				hc.handlers(cast incoming);
 			default:
 				throw "message sent to us had an unknown type";
 		}
