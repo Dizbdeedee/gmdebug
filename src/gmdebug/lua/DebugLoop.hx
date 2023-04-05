@@ -51,6 +51,8 @@ class DebugLoop {
 
 	static var debugCheckRuns = 10000;
 
+	static final STACK_LIMIT = 65450; //could dynamically check this..
+
 	//dee dee diane
 	static var lineSteppin:Bool = false;
 
@@ -203,6 +205,26 @@ class DebugLoop {
 			default:
 				false;
 		}
+	}
+
+	public static extern inline function debug_stack_len() {
+		var min:Int = 0;
+		var max:Int = STACK_LIMIT;
+		var middle:Int = Math.floor((max - min) / 2);
+		while (true) {
+			final stack = DebugLib.getinfo(middle);
+			if (stack == null) {
+				max = middle;
+				middle = Math.floor((max - min) / 2) + min;
+			} else {
+				min = middle;
+				middle = Math.floor((max - min) / 2) + min;
+			}
+			if (middle == min) {
+				break;
+			}
+		}
+		return middle;
 	}
 
 	static extern inline function debug_functionalBP(func:Function, cur:HookState) {

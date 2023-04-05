@@ -249,14 +249,8 @@ typedef Programs = {
 		}
 	}
 
-	@:await function pokeServerTimeout() {
-		@:await Promise.retry(clients.continueAquireServer.bind(initBundle.serverFolder),(data) -> {
-			return if (data.elapsed > SERVER_TIMEOUT * 1000) {
-				new Error(Timeout,"Poke serverNamedPipes timed out");
-			} else {
-				Noise;
-			}
-		}).eager();
+	@:await function pokeServerTimeout() {		
+		var server = @:await clients.continueAquireServer(initBundle.serverFolder,SERVER_TIMEOUT * 1000);
 		clients.sendServer(new ComposedGmDebugMessage(clientID, {id: 0}));
 		switch (dapMode) {
 			case ATTACH:

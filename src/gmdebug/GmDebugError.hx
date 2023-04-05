@@ -8,6 +8,7 @@ enum abstract GmDebugError(Int) to Int {
     var GMOD_EVALUATION_FAIL;
     var GMOD_SERVER_FAIL_CONNECT;
     var GMOD_CLIENT_FAIL_CONNECT;
+    var GMOD_CANNOT_PAUSE;
     // var DEBUGGER_INVALID_CLIENTFOLDER;
     var DEBUGGER_INVALID_COPYFOLDER;
     // var DEBUGGER_INVALID_PROGRAMPATH;
@@ -33,6 +34,7 @@ var GMDEBUG_ERROR_STRINGS = [
     DEBUGGER_NO_ATTACH => "Gmdebug does not currently support attach requests",
     GMOD_SERVER_FAIL_CONNECT => "Failed to connect to server",
     GMOD_CLIENT_FAIL_CONNECT => "Failed to connect to client",
+    GMOD_CANNOT_PAUSE => "Cannot pause right now.",
     DEBUGGER_INVALID_PROGRAMPATH_UNSPECIFIFED => "Gmdebug requires the property \"programPath\" to be specified when launching",
     DEBUGGER_INVALID_PROGRAMPATH_NOTEXIST => "The program specified by \"programPath\" does not exist",
     DEBUGGER_INVALID_PROGRAMPATH_NOTFILE => "The program specified by \"programPath\" is not a file",

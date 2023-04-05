@@ -105,7 +105,7 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 		// trace('expr : $expr');
 		final resp:ComposedProtocolMessage = switch (Util.compileString(expr, "GmDebug")) {
 			case Error(err):
-				evalReq.composeFail(translateEvalError(err));
+				evalReq.composeFail(GMOD_EVALUATION_FAIL,translateEvalError(err));
 			case Success(func):
 				if (fid != null) {
 					final eval = createEvalEnvironment(fid.getValue().actualFrame + offsetHeight);

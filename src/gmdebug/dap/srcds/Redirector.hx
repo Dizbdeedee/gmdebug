@@ -7,7 +7,6 @@ import node.worker_threads.Worker;
 import haxe.Int64;
 import js.Syntax;
 import js.lib.Object;
-import global.Buffer;
 import js.Node;
 import ref_array_di.TypedArray;
 import ref_napi.Type_;
@@ -15,47 +14,52 @@ import ffi_napi.Library;
 using StringTools;
 using Lambda;
 import RefNapi.refType;
+import gmdebug.dap.srcds.BufferCompat as Buffer;
+import ref_napi.buffer.Buffer._Buffer as RefNapiBuffer;
 import RefNapi.types as rtypes;
 
-typedef BufInt = haxe.extern.EitherType<global.Buffer,Int>;
-typedef BufBool = haxe.extern.EitherType<global.Buffer,Bool>;
+typedef BufInt = haxe.extern.EitherType<Buffer,Int>;
+typedef BufBool = haxe.extern.EitherType<Buffer,Bool>;
  
 
 private extern class Kernel32 {
-    function CreateFileMappingA(...rest:Dynamic):global.Buffer;
-    function CreateEventA(...rest:Dynamic):global.Buffer;
-    function MapViewOfFile(map_file:global.Buffer,dwDesiredAccess:BufInt,dwFileOffsetHigh:global.Buffer,
-        dwFileOffsetLow:global.Buffer,dwNumberOfBytesToMap:BufInt):global.Buffer;
+    function CreateFileMappingA(...rest:Dynamic):Buffer;
+    function CreateEventA(...rest:Dynamic):Buffer;
+    function MapViewOfFile(map_file:Buffer,dwDesiredAccess:BufInt,dwFileOffsetHigh:Buffer,
+        dwFileOffsetLow:Buffer,dwNumberOfBytesToMap:BufInt):Buffer;
     function UnmapViewOfFile(map_file:TypedArray<Int>):Void;
-    function SetEvent(handle:global.Buffer):Bool;
+    function SetEvent(handle:Buffer):Bool;
     function WaitForSingleObject(event:BufInt,timeout:Int):Int;
-    function CreateProcessA(lpApplicationName:global.Buffer,lpCommandLine:Buffer,lpProcessAttributes:SecurityInfo,lpThreadAttributes:SecurityInfo,bInheritHandles:BufBool,dwCreationFlags:BufInt,lpEnvironment:Buffer,lpCurrentDirectory:Buffer,lpStartupInfo:Buffer,lpProcessInformation:Buffer):Bool;
-    function WaitForMultipleObjects(nCount:Int,lpHandles:global.Buffer,bWaitAll:Bool,dwMilliseconds:Int):Int;
-    function SetConsoleCtrlHandler(...rest:global.Buffer):Bool;
-    function CloseHandle(handle:global.Buffer):Void;
-    function TerminateProcess(hProcess:global.Buffer,uExitCode:Int):Bool;
+    function CreateProcessA(lpApplicationName:Buffer,lpCommandLine:Buffer,lpProcessAttributes:SecurityInfo,lpThreadAttributes:SecurityInfo,bInheritHandles:BufBool,dwCreationFlags:BufInt,lpEnvironment:Buffer,lpCurrentDirectory:Buffer,lpStartupInfo:Buffer,lpProcessInformation:Buffer):Bool;
+    function WaitForMultipleObjects(nCount:Int,lpHandles:Buffer,bWaitAll:Bool,dwMilliseconds:Int):Int;
+    function SetConsoleCtrlHandler(...rest:Buffer):Bool;
+    function CloseHandle(handle:Buffer):Void;
+    function TerminateProcess(hProcess:Buffer,uExitCode:Int):Bool;
 }
 
 private extern class Lib {
-    function memset(dst:global.Buffer,val:BufInt,size:BufInt):global.Buffer;
+    function memset(dst:Buffer,val:BufInt,size:BufInt):Buffer;
 }
 
-extern class ProcessInfo extends global.Buffer {
-    var hProcess:global.Buffer;
+extern class ProcessInfo extends RefNapiBuffer {
+    var hProcess:Buffer;
     var dwProcessId:BufInt;
 }
 
-extern class SecurityInfo extends global.Buffer {
+extern class SecurityInfo extends RefNapiBuffer {
     var nLength:BufInt;
-    var lpSecurityDescriptor:global.Buffer;
+    var lpSecurityDescriptor:Buffer;
     var bSecuritHandle:BufBool;
 }
 
-extern class StartupInfo extends global.Buffer {
+extern class StartupInfo extends RefNapiBuffer {
     var cb : BufInt;
 }
-// typedef ProcessInfo = global.Buffer & {
-//     hProcess : global.Buffer
+// typedef ProcessInfo = Buffer & {
+//     hProcess : Buffer
+// }
+// typedef ProcessInfo = Buffer & {
+//     hProcess : Buffer
 // }
 
 class Redirector {
@@ -150,16 +154,16 @@ class Redirector {
     });
 
 
-    final event_parent_send:global.Buffer;
+    final event_parent_send:Buffer;
 
-    final map_file:global.Buffer;
+    final map_file:Buffer;
     
-    final event_child_send:global.Buffer;
+    final event_child_send:Buffer;
 
     final processInfo:ProcessInfo = cast PROCESS_INFO.call();
 
-    static function bufferAtAddress(address:Int64):global.Buffer {
-        final buf:global.Buffer = cast global.Buffer.alloc(8);
+    static function bufferAtAddress(address:Int64):Buffer {
+        final buf:Buffer = cast Buffer.alloc(8);
         buf.writeUInt32LE(address.high,0);
         buf.writeUInt32LE(address.low,4);
         final newType:Type_ = cast Object.assign({},rtypes.void);
@@ -169,7 +173,7 @@ class Redirector {
     }
 
     public function new() {
-        final securityAttr:global.Buffer = cast SECURITY_ATTR.call({
+        final securityAttr:Buffer = cast SECURITY_ATTR.call({
             nLength : SECURITY_ATTR.size,
             lpSecurityDescriptor : NULL,
             bInheritHandle : true
@@ -321,7 +325,7 @@ class Redirector {
 
     function WaitForResponse() {
         
-        final waitForEvents:TypedArray<global.Buffer> = voidBuf.call(2);
+        final waitForEvents:TypedArray<Buffer> = voidBuf.call(2);
         waitForEvents[0] = event_child_send;
         waitForEvents[1] = processInfo.hProcess;
         final waitResult = K32.WaitForMultipleObjects(2,cast waitForEvents,false,0xFFFFFFF);

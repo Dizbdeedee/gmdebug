@@ -123,7 +123,7 @@ class ClientStorage {
 			});
 			return () -> {
 				watcher.close();
-				outcomes.map((l) -> l.cancel());
+				outcomes.iter((l) -> l.cancel());
 			};
 		});
 	}
@@ -131,10 +131,23 @@ class ClientStorage {
 	public function continueAquireServer(serverLoc:String,timeout:Int):Promise<Server> {
 		return new Promise(function (success,failure) {
 			Timer.delay(() -> {
-				failure("Timeout");
+				failure(new Error("ClientStorage/continueAquireServer: timeout"));
 			},timeout);
 			var connHandler = lookForConnections(serverLoc,serverSlots).handle(function (pipesocket) {
-				success(pipesocket);
+				final clID = SERVER_ID; 
+				final server = new Server(pipesocket,clID);
+				clients.push(server);
+				pipesocket.assignRead((buf) -> readFunc(buf,clID));
+				pipesocket.beginConnection();
+				server.disconnectFuture.handle(() -> {
+					luaDebug.sendEvent(new ComposedEvent(thread,{
+						reason: Exited,
+						threadId: server.clID
+					}));
+					server.disconnect();
+					clients[clID] = null;
+				});
+				success(server);
 			});
 			return () -> {
 				connHandler.cancel();

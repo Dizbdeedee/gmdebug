@@ -436,7 +436,7 @@ class Debugee {
 				case WAIT | CONTINUE:
 				case PAUSE(pauseReq):
 					trace("Cannot pause right now!");
-					var resp = pauseReq.composeFail("Cannot pause in startloop");
+					var resp = pauseReq.composeFail(GMOD_CANNOT_PAUSE);
 					sendMessage(resp);
 					shutdown();
 					success = false;
@@ -471,7 +471,7 @@ class Debugee {
 				case WAIT | CONFIG_DONE:
 				case PAUSE(pauseReq):
 					trace("Cannot pause right now!");
-					var resp = pauseReq.composeFail("Cannot pause in startloop");
+					var resp = pauseReq.composeFail(GMOD_CANNOT_PAUSE);
 					DebugContext.markNotReport();
 					sendMessage(resp);
 					DebugContext.markReport();
