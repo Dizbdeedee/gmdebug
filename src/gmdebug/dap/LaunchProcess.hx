@@ -111,7 +111,7 @@ class LaunchProcess {
 		});
 		childProcess.on("exit", (_) -> {
 			active = false;
-			trace("EXIIIIIIIIIIIITED");
+			trace("EXITED");
 			luaDebug.shutdown();
 		});
 		luadebugwrite = new Writable({
@@ -127,17 +127,17 @@ class LaunchProcess {
 		});
 		stdin = childProcess.stdin;
 		stdout = childProcess.stdout;
-		// Fs.watchFile("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log",{persistent : false},(_,_) -> {
-		// 	stdout = Fs.createReadStream("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log",{start: logheader});
-		// 	attachOutput(luaDebug);
+		// // Fs.watchFile("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log",{persistent : false},(_,_) -> {
+		// // 	stdout = Fs.createReadStream("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log",{start: logheader});
+		// // 	attachOutput(luaDebug);
 
-		// });
-		stdout = Fs.createReadStream("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log");
-		// stdout = new Socket({
-		// 	fd: Fs.openSync("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log",cast Fs.constants.O_RDWR | Fs.constants.O_NONBLOCK),
-		// 	writable : false
-		// });
-		// stdout = 
+		// // });
+		// stdout = Fs.createReadStream("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log");
+		// // stdout = new Socket({
+		// // 	fd: Fs.openSync("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log",cast Fs.constants.O_RDWR | Fs.constants.O_NONBLOCK),
+		// // 	writable : false
+		// // });
+		// // stdout = 
 		stderr = childProcess.stderr;
 		attachOutput(luaDebug);
 	}

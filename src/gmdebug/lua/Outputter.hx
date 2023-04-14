@@ -92,7 +92,7 @@ class Outputter {
 		}
 		sh += 1;//pcall, output
 		printOutput(sh,rest.toArray());
-		final hideOutput = rest.append(generateID() + "oldprint\x08w");		
+		final hideOutput = rest.append(generateID());		
 		G.__oldprint(TableTools.unpack(cast hideOutput));
 		ignoreTrace = false;
 	}

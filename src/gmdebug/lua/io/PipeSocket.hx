@@ -32,6 +32,7 @@ class PipeSocket implements DebugIO {
 	var process:AquireProcess = WAITING_FOR_CONNECTION;
 	
 	public function new(_locs:PipeLocations) {
+		trace("NEW PIPE SOCKET :D");
 		locs = _locs;
 		if (!FileLib.Exists(locs.folder,DATA)) {
 			FileLib.CreateDir(locs.folder);
@@ -57,18 +58,21 @@ class PipeSocket implements DebugIO {
 		if (process == AQUIRED) throw "Already aquired...";
 		if (!connection_pass()) {
 			if (!FileLib.Exists(locs.connect, DATA)) {
+				
 				return WAITING_FOR_CONNECTION;
 			}
 			if (!FileLib.Exists(locs.client_ack,DATA)) {
 				FileLib.Write(locs.client_ack,"");
 			}
 			process = WAITING_FOR_PIPES_READY;
+			trace(process);
 		}
 		if (!pipes_ready_pass()) {
 			if (!FileLib.Exists(locs.pipes_ready,DATA)) {
 				return WAITING_FOR_PIPES_READY;
 			}
 			process = WAITING_FOR_INPUT;
+			trace(process);
 		}
 		if (!input_pass()) {
 			if (input == null) {
@@ -79,6 +83,7 @@ class PipeSocket implements DebugIO {
 				return inputAq;
 			}
 			process = WAITING_FOR_OUTPUT;
+			trace(process);
 		}
 		if (output == null) {
 			output = new PipeOutput(locs);
@@ -87,6 +92,7 @@ class PipeSocket implements DebugIO {
 		if (outputAq != AQUIRED) {
 			return outputAq;
 		}
+		trace("first write");
 		output.writeString("\004"); //mark ready for writing...
 		FileLib.Delete(locs.pipes_ready);
 		FileLib.Delete(locs.client_ready);
