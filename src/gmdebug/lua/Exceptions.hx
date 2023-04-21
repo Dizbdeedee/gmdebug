@@ -44,12 +44,12 @@ class Exceptions {
     }
 
     public function hooks() {
-        hookGamemode();
-        hookEntities();
-        hookHooks();
-        hookEffects();
-        hookPanels();
-        hookTimers();
+        // hookGamemode();
+        // hookEntities();
+        // hookHooks();
+        // hookEffects();
+        // hookPanels();
+        // hookTimers();
     }
 
     public function addExcept(target:Function):Dynamic {

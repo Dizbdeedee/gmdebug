@@ -1,6 +1,7 @@
 package gmdebug.lua.handlers;
 
 
+import gmod.helpers.LuaArray;
 import gmdebug.lua.debugcontext.DebugContext;
 import lua.Debug;
 import gmod.enums.SENSORBONE;
@@ -31,6 +32,7 @@ class HVariables implements IHandler<VariablesRequest> {
     }
 
     function realChild(storedvar:Dynamic,addVars:Array<AddVar>) {
+        trace("Realy child!");
         switch Gmod.TypeID(storedvar) {
             case TYPE_TABLE:
                 for (ind => val in (storedvar : AnyTable)) {
@@ -42,12 +44,12 @@ class HVariables implements IHandler<VariablesRequest> {
                     name: "(source)",
                     value: Gmod.tostring(info.short_src),
                     virtual: true,
-                    noquote: true
+                    props: NOQUOTE
                 });
                 addVars.push({name: "(line)", value: info.linedefined, virtual: true});
                 final fenv = DebugLib.getfenv(storedvar);
                 if (fenv != null) {
-                    addVars.push({name : "(fenv)",value : fenv,virtual : true});
+                    addVars.push({name : "(fenv)",value : fenv,virtual: true});
                 }
                 if (Debug.getupvalue(storedvar,1) != null) {
                     addVars.push({name : "(upvalues)",value : generateFakeChild(storedvar,Upvalues),virtual : true});
@@ -89,12 +91,12 @@ class HVariables implements IHandler<VariablesRequest> {
         return tab;
     }
 
-    function child(ref:Int):Array<AddVar> {
+    function child(ref:Int,addVars:Array<AddVar>) {
         DebugContext.markNotReport();
-        var addVars:Array<AddVar> = [];
         var storedvar:Dynamic = (variableManager.getVar(ref) : Any).unsafe();
-        if (storedvar == null)
+        if (storedvar == null) {
             trace('Variable requested with nothing stored! $ref');
+        }
         
         var mt = DebugLib.getmetatable(storedvar);
         if (mt != null) {
@@ -110,23 +112,20 @@ class HVariables implements IHandler<VariablesRequest> {
             realChild(storedvar,addVars);
         }
         DebugContext.markReport();
-        return addVars;
-
     }
 
-    function frameLocal(offsetFrame:Int,scope:FrameLocalScope) {
+    function frameLocal(offsetFrame:Int,scope:FrameLocalScope,addVars:Array<AddVar>) {
         final offsetHeight = DebugContext.getHeight();
         DebugContext.markNotReport();
         final realFrame = offsetFrame + offsetHeight;
-        var addVars:Array<AddVar> = [];
         switch (scope) {
             case Arguments:
                 var info = DebugLib.getinfo(realFrame, "u");
                 for (i in 1...info.nparams + 1) {
                     var result = DebugLib.getlocal(realFrame, i);
-                    if (result.a == null)
+                    if (result.a == null) {
                         break;
-                    // trace('locals ${result.a} ${result.b}');
+                    }
                     addVars.push({name: result.a, value: result.b});
                 }
                 for (i in 1...9999) {
@@ -138,9 +137,9 @@ class HVariables implements IHandler<VariablesRequest> {
             case Locals:
                 for (i in 1...9999) {
                     var result = DebugLib.getlocal(realFrame, i);
-                    if (result.a == null)
+                    if (result.a == null) {
                         break;
-                    // trace('locals ${result.a} ${result.b}');
+                    }           
                     addVars.push({name: result.a, value: result.b});
                 }
                 for (i in 1...9999) {
@@ -171,12 +170,10 @@ class HVariables implements IHandler<VariablesRequest> {
                 }
         }
         DebugContext.markReport();
-        return addVars;
     }
 
-    function global(scope:ScopeConsts) {
+    function global(scope:ScopeConsts,addVars:Array<AddVar>) {
         DebugContext.markNotReport();
-        var addVars:Array<AddVar> = [];
         switch (scope) {
             case Globals:
                 var _g:AnyTable = untyped __lua__("_G");
@@ -192,7 +189,7 @@ class HVariables implements IHandler<VariablesRequest> {
                 }
                 for (index in sort) {
                     if (Lua.type(index) == "string") {
-                        addVars.push({name: index, value: Reflect.field(_g, index)});
+                        addVars.push({name: index, value: _g[untyped index]});
                     }
                 }
             case Enums:
@@ -206,7 +203,6 @@ class HVariables implements IHandler<VariablesRequest> {
                 }
             case Players:
                 for (i => ply in PlayerLib.GetAll()) {
-                    trace('players $i $ply');
                     addVars.push({name: ply.GetName(), value: ply});
                 }
             case Entities:
@@ -216,10 +212,9 @@ class HVariables implements IHandler<VariablesRequest> {
                     addVars.push({name: ent.GetClass(), value: ent});
                 }
             default:
-                throw "Unhandled scope";
+                trace("Unhandled global scope");
         }
         DebugContext.markReport();
-        return addVars;
     }
 
     function isEnum(index:String, value:Dynamic) {
@@ -231,6 +226,7 @@ class HVariables implements IHandler<VariablesRequest> {
     function fixupNames(variables:Array<Variable>) {
         final varnamecount:Map<String, Int> = [];
         for (v in variables) {
+            if (v.name == null) continue;
             final count = varnamecount.get(v.name);
             if (count != null) {
                 varnamecount.set(v.name, count + 1);
@@ -244,18 +240,26 @@ class HVariables implements IHandler<VariablesRequest> {
     public function handle(req:VariablesRequest) {
 		final args = req.arguments.unsafe();
 		final ref:VariableReference = args.variablesReference;
-		final addVars = DebugContext.debugContext({
+        trace(ref);
+        final addVars:Array<AddVar> = [];
+		DebugContext.debugContext({
             switch (ref.getValue()) {
                 case Child(_, ref):
-                    child(ref);
+                    child(ref,addVars);
                 case FrameLocal(_, frame, scope):
-                    frameLocal(frame,scope);
+                    frameLocal(frame,scope,addVars);
                 case Global(_, scope):
-                    global(scope);
+                    global(scope,addVars);
+                case INVALID:
+                    trace("INVALID");
+                    [];
 	    	}
         });
         DebugContext.markNotReport();
-		final variablesArr = addVars.map(variableManager.genvar);
+        var variablesArr = [];
+        for (addV in addVars) {
+            variablesArr.push(variableManager.genvar(addV));
+        }
 		fixupNames(variablesArr);
 		var resp = req.compose(variables, {variables: variablesArr});
 		final js = tink.Json.stringify((cast resp : VariablesResponse)); 

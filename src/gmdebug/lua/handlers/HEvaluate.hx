@@ -36,7 +36,8 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 		return NativeStringTools.gsub(err, '^%[string %"X%"%]%:%d+%: ', "");
 	}
 
-	public static function createEvalEnvironment(stackLevel:Int):AnyTable {
+	public static function createEvalEnvironment(_stackLevel:Int):AnyTable {
+		var stackLevel = _stackLevel + 1; //we're a function
 		final env = Table.create();
 		final unsettables:AnyTable = Table.create();
 		final set = function(k, v) {
@@ -108,6 +109,7 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 				evalReq.composeFail(GMOD_EVALUATION_FAIL,translateEvalError(err));
 			case Success(func):
 				if (fid != null) {
+					trace('Caclulated ${fid.getValue().actualFrame} $offsetHeight');
 					final eval = createEvalEnvironment(fid.getValue().actualFrame + offsetHeight);
 					Gmod.setfenv(func, eval);
 				}
@@ -115,11 +117,12 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 					case Error(err):
 						evalReq.composeFail(GMOD_EVALUATION_FAIL,{err : translateEvalError(err)});
 					case Success(result):
-						final item = variableManager.genvar({
+						final variable = variableManager.genvar({
 							name: "",
 							value: result
 						});
-						final valueAlter = switch [args.context,item.value] {
+						final valueAlter = switch [args.context,variable.value] {
+							
 							case [Repl,"nil"]:
 								"No value";
 							case [Repl,x]:
@@ -128,14 +131,10 @@ class HEvaluate implements IHandler<EvaluateRequest> {
 								x;
 						}
 						evalReq.compose(evaluate, {
-							result: "",
-							variablesReference: 0
+							result: valueAlter,
+							type: variable.type,
+							variablesReference: variable.variablesReference,
 						});
-						// evalReq.compose(evaluate, {
-						// 	result: valueAlter,
-						// 	type: item.type,
-						// 	variablesReference: item.variablesReference,
-						// });
 				}
 		}
 		debugee.sendMessage(resp);

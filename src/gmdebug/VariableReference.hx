@@ -4,6 +4,7 @@ enum VariableReferenceVal {
 	Child(clientID:Int, ref:Int);
 	FrameLocal(clientID:Int, frameID:Int, ref:FrameLocalScope);
 	Global(clientID:Int, ref:ScopeConsts);
+	INVALID;
 }
 
 enum abstract VariableRefBit(Int) {
@@ -41,6 +42,8 @@ abstract VariableReference(Int) from Int to Int {
 				FrameLocal(clientID, (this >>> 8) & maskFrameID, this & 0xFF);
 			case Global:
 				Global(clientID, this & 0xFFFFFF);
+			default:
+				INVALID;
 		}
 	}
 
@@ -57,6 +60,9 @@ abstract VariableReference(Int) from Int to Int {
 			case Global(clientID, ref):
 				val |= clientID << 25;
 				val | ref++;
+			case INVALID:
+				trace("Attempt to encode an invalid value!");
+				-666;
 		}
 	}
 }

@@ -21,6 +21,8 @@ using tink.CoreApi;
 
 interface ClientStorage {
     function attemptServer(serverLoc:String,timeout:Int):Promise<Server>;
+    function firstClient(clientLoc:String):Void;
+    function attemptClient(clientLoc:String):Future<Array<Client>>;
     function sendServer(msg:Dynamic):Void;
     function sendClient(id:Int,msg:Dynamic):Void;
     function sendAll(msg:Dynamic):Void;
@@ -118,7 +120,9 @@ class ClientStorageDef implements ClientStorage {
         for (slotID => slot in slots) {
             if (slot == UNKNOWN) {
                 var connectionLoc = getConnectionLocForSlot(slotLocation,slotID);
-                node.Fs.rmdirSync(connectionLoc,untyped {recursive: true, force: true});
+                if (node.Fs.existsSync(connectionLoc)) {
+                    node.Fs.rmdirSync(connectionLoc,untyped {recursive: true, force: true});
+                }
                 slot = AVALIABLE;
             }
         }
@@ -139,6 +143,38 @@ class ClientStorageDef implements ClientStorage {
             }
         }
         return sockPromises;
+    }
+
+    function aquireClients(slotLocation:String,slots:Array<SlotStatus>):Future<Array<Client>> {
+        return connectionProcess(slotLocation,slots).inSequence().map((clientOutcomesArr) -> {
+            var clientsAquired = [];
+            for (clientOut in clientOutcomesArr) {
+                switch (clientOut) {
+                    case Success(ps):
+                        clientsAquired.push(newClient(ps));
+                    case Failure(err):
+                        trace(err.message);
+                }
+            }
+            return clientsAquired;
+        });
+    }
+
+    function newClient(pipeSocket:PipeSocket) {
+        final clID = clients.length;
+        final client = new Client(pipeSocket,clID);
+        clients.push(client);
+        pipeSocket.assignRead((buf) -> readFunc(buf,clID));
+        pipeSocket.beginConnection();
+        client.disconnectFuture.handle(() -> {
+            luaDebug.sendEvent(new ComposedEvent(thread,{
+                reason: Exited,
+                threadId: client.clID
+            }));
+            client.disconnect();
+            clients[clID] = null;
+        });
+        return client;
     }
 
     function newServer(pipeSocket:PipeSocket) {
@@ -193,6 +229,14 @@ class ClientStorageDef implements ClientStorage {
 
     public function attemptServer(serverLoc:String,timeout:Int):Promise<Server> {
         return continueAquireServer(gmodLocToSlotLoc(serverLoc),timeout);
+    }
+
+    public function firstClient(clientLoc:String) {
+        invalidatePreviousConnections(gmodLocToSlotLoc(clientLoc),clientSlots);
+    }
+
+    public function attemptClient(clientLoc:String):Future<Array<Client>> {
+        return aquireClients(gmodLocToSlotLoc(clientLoc),clientSlots);
     }
 
     public function sendServer(msg:Dynamic) {

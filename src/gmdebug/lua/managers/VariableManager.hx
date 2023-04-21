@@ -43,10 +43,12 @@ class VariableManager {
 		final name = Std.string(addv.name);
 		final val = addv.value;
 		var virtual = addv.virtual;
-		var noquote = addv.noquote;
-		var novalue = addv.novalue;
 		var ty = Gmod.type(val);
-		var id = Gmod.TypeID(val);
+		var id:gmod.enums.TYPE = if (val != null) {
+			Gmod.TypeID(val);
+		} else {
+			TYPE_NONE;
+		}
 		var stringReplace = switch (ty) {
 			case "table":
 				"table";
@@ -57,29 +59,32 @@ class VariableManager {
 			default:
 				Gmod.tostring(val);
 		};
+		var generatedVariablesReference = generateVariablesReference(val,name);
 		var obj:Variable = {
 			name: name,
 			type: ty,
-			value: switch [ty, noquote, novalue] {
-				case ["table", _, _]:
+			value: switch [ty, addv.props] {
+				case ["table", NONE]:
 					"table";
-				case ["string", null, _]:
+				case ["string", NONE]:
 					'"$stringReplace"';
-				case [_, _, true]:
+				case [_,NOQUOTE]:
+					stringReplace;
+				case [_, NOVALUE]:
 					"";
 				default:
 					stringReplace;
 			},
-			variablesReference: generateVariablesReference(val,name)
+			variablesReference: generatedVariablesReference
 		}
 		switch [id, virtual] {
-			case [TYPE_FUNCTION, null]:
+			case [TYPE_FUNCTION, false]:
 				obj.presentationHint = {
 					kind: Method,
 					attributes: null,
 					visibility: Public
 				};
-			case [_, null]:
+			case [_, false]:
 			case [_, _]:
 				obj.presentationHint = {
 					kind: Virtual,
@@ -91,15 +96,19 @@ class VariableManager {
 	}
 
 	public function generateVariablesReference(val:Dynamic, ?name:String):Int {
-		var prevVarReference = cachedValues.get(val);
-		if (prevVarReference == null && val != null) cachedValues.set(val,storedVariables.length);
-		return switch [Gmod.TypeID(val),prevVarReference] {
-			case [_,x] if (x != null):
-				x;
+		if (val == null) return 0;
+		var cacheID = cachedValues.get(val);
+		return switch [Gmod.TypeID(val),cacheID] {
+			case [null,_]:
+				0;
 			case [TYPE_ENTITY,null] if (!Gmod.IsValid(val)):
 				0;
 			case [TYPE_TABLE | TYPE_FUNCTION | TYPE_USERDATA | TYPE_ENTITY,null]:
+				cachedValues.set(val,storedVariables.length);
 				VariableReference.encode(Child(debugee.clientID, storedVariables.push(val) - 1));
+			case [TYPE_TABLE | TYPE_FUNCTION | TYPE_USERDATA | TYPE_ENTITY,cacheID]:
+				trace("Where's my super cache");
+				VariableReference.encode(Child(debugee.clientID, cacheID));
 			default:
 				0;
 		};
@@ -108,11 +117,17 @@ class VariableManager {
 	
 }
 
-typedef AddVar = {
-	name:Dynamic,
+@:structInit
+class AddVar {
+	public var name:Dynamic;
 	// std.string
-	value:Dynamic,
-	?virtual:Bool,
-	?noquote:Bool,
-	?novalue:Bool
+	public var value:Dynamic;
+	public var virtual:Null<Bool> = false;
+	public var props:AddVarProperties = NONE;
+}
+
+enum AddVarProperties {
+	NOQUOTE;
+	NOVALUE;
+	NONE;
 }

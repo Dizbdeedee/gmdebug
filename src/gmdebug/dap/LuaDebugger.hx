@@ -1,5 +1,6 @@
 package gmdebug.dap;
 
+import js.html.SetInterval;
 import haxe.Timer;
 import js.node.Timers;
 import gmdebug.dap.clients.ClientStorage;
@@ -158,21 +159,7 @@ typedef Programs = {
         // shutdown();
     }
 
-    function pokeClients() {
-        if (!poking || shutdownActive) return;
-        // clients.continueAquires(initBundle.clientLocation).handle((newclients) -> {
-        //  for (newClient in newclients) {
-        //      clients.sendClient(newClient.clID,new ComposedGmDebugMessage(clientID, {id: newClient.clID}));
-        //      new ComposedEvent(thread, {
-        //          threadId: newClient.clID,
-        //          reason: Started
-        //      }).send(this);
-        //      setupPlayer(newClient.clID);
-        //  }
-        //  Timers.setTimeout(pokeClients,1000);
-        // });
-    }
-
+    
 
 
     function setupPlayer(clientID:Int) {
@@ -262,18 +249,33 @@ typedef Programs = {
         return Noise; //or server. who cares.
     }
 
+    // static var pokeClients:
+
     function startPokeClients() {
         if (initBundle.clientLocation != null) {
             poking = true;
             trace("Poking the client");
-            pokeClients();
-
+            clients.firstClient(initBundle.clientLocation);
+            // pokeClients();
+            haxe.Timer.delay(pokeClients,500);
+            // SetInterval.cal/l(pokeClients,500);
         }
     }
+
+    function pokeClients() {
+        if (!poking || shutdownActive) return;
+        clients.attemptClient(initBundle.clientLocation).handle((clients) -> {
+            trace(clients);
+            haxe.Timer.delay(pokeClients,500);
+
+        });
+    }
+
 
     function stopPokeClients() {
         if (poking != null) {
             poking = false;
+            // js.node.
         }
     }
 

@@ -45,7 +45,7 @@ class PipeSocket {
 
     public var closeFuture:Future<Noise>;
 
-    static final CONNECT_ESTABLISH_DELAY = 15; //ms
+    static final CONNECT_ESTABLISH_DELAY = 30; //ms
 
     static final WIN_PIPE_NAME_IN = "\\\\.\\pipe\\gmdebugin";
 
@@ -110,7 +110,7 @@ class PipeSocket {
                 success(Noise);
                 return () -> {};
             }
-            var watcher = Fs.watch(locs.client_ready,{persistent : false},(_,_) -> {
+            var watcher = Fs.watch(locs.folder,{persistent : false},(_,_) -> {
                 if (isReady()) {
                     watcher.close();
                     timer.stop();
@@ -234,8 +234,8 @@ class PipeSocket {
                         sudoExec(cmd);
                     default:
                         (outcome : Promise<Dynamic>);
-            }});
-            Promise.NOISE;
+            }}).noise();
+            // Promise.NOISE;
         } else {
             Promise.NOISE;
         }
@@ -252,32 +252,48 @@ class PipeSocket {
     function getValidSocket(server:js.node.net.Server):Promise<Socket> {
         return new Promise(function (success,failure) {
             trace("getValidSocket");
-            var ranConnection = false;
+            var socketsStatus:Array<Socket> = [];
             haxe.Timer.delay(() -> {
-                // if (!ranConnection) {
+                trace(socketsStatus);
+                
+                for (socket in socketsStatus) {
+                    if (socket != null) {
+                        server.close();
+                        socket.removeAllListeners(End);
+                        success(socket);
+                        return;
+                    }
+                }
                 failure(new Error("Timeout for connection"));
                 // }
-            },2500);
+            },500);
             server.on('connection',(socket:Socket) -> {
-                ranConnection = true;
-                trace("Connection!");
-                var validSocket = true;
+                var id = socketsStatus.length;
                 var invalidateSocket = () -> {
-                    trace(Sys.time());
-                    trace("Connection invalidated");
-                    // failure(new Error("Invalid connection"));
-                    validSocket = false;
+                    socketsStatus[id] = null;
                 };
+                socketsStatus.push(socket);
                 socket.on(End,invalidateSocket);
-                haxe.Timer.delay(() -> {
-                    if (validSocket) {
-                        server.close();
-                        socket.off(End,invalidateSocket);
-                        success(socket);
-                    } else {
-                        trace("What are you trying to prove?");
-                    }
-                },CONNECT_ESTABLISH_DELAY);
+                // if (!ranConnection) {
+                //     // haxe.Timer.delay(() -> {
+
+                //     // },2500);
+                // }
+                // ranConnection = true;
+                // trace("Connection!");
+                // var validSocket = true;
+                
+
+                // haxe.Timer.delay(() -> {
+                //     if (validSocket) {
+                //         server.close();
+                //         socket.off(End,invalidateSocket);
+                //         success(socket);
+                //     } else {
+                        
+                //         trace("What are you trying to prove?");
+                //     }
+                // },CONNECT_ESTABLISH_DELAY);
             });
             return function () {
                 // server.off('connection');

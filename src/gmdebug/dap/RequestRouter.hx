@@ -78,7 +78,8 @@ class RequestRouter {
 
     function h_threads(req:ThreadsRequest) {
         final threadArr = [{name: "Server", id: 0}];
-        for (cl in clients.getClients()) { //hmm...
+        for (id => cl in clients.getClients()) { //hmm...
+            if (id == 0) continue;
             threadArr.push({
                 name : 'Client ${cl.clID}',
                 id : cl.clID
@@ -105,6 +106,9 @@ class RequestRouter {
         switch (ref.getValue()) {
             case Global(clID, _) | FrameLocal(clID, _, _) | Child(clID, _):
                 clients.sendAny(clID, req);
+            case INVALID:
+                trace("Where the hell are we going to send you?");
+                req.compose(variables, {variables: []}).send(luaDebug);
         }
     }
 

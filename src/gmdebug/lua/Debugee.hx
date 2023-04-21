@@ -271,7 +271,7 @@ class Debugee {
     public function poll() {
         if (socket == null)
             return;
-        try {
+        Gmod.xpcall(() -> {
             final msg = switch (recvMessage()) {
                 case ACK | TIMEOUT:
                     return;
@@ -286,14 +286,16 @@ class Debugee {
                 case PAUSE(pauseReq):
                     var resp = pauseReq.compose(pause,{});
                     sendMessage(resp);
-                    DebugContext.enterDebugContext();
+                    DebugContext.enterDebugContextSet(5);
                     DebugContext.debugContext({startHaltLoop(Pause);});
                     DebugContext.exitDebugContext();
                 case WAIT | CONTINUE | CONFIG_DONE:
             }
-        } catch (e:haxe.Exception) {
-            trace(e.toString());
-        }
+        },(err) -> {
+            trace(err);
+            DebugLib.Trace();
+        });
+       
 
     }
 

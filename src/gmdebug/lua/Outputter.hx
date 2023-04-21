@@ -36,10 +36,10 @@ class Outputter {
 	}
 
 	public function hookPrint() {
-		if (G.__oldprint == null) {
-			G.__oldprint = G.print;
-		}
-		G.print = printFunc;
+		// if (G.__oldprint == null) {
+		// 	G.__oldprint = G.print;
+		// }
+		// G.print = printFunc;
 	}
 
 	public function unhookPrint() {
