@@ -35,7 +35,7 @@ class HStepOut implements IHandler<StepOutRequest> {
 				}
 			}, cast Math.POSITIVE_INFINITY);
 			trace('lowest $lowest');
-			debugee.state = OUT(func, lowest - 1,DebugContext.getHeight()); //lowest - 1, as call hook starts on first line
+			debugee.state = OUT(func, lowest - 1,DebugContext.getHeight());
 		} else {
 			trace("Not out");
 			debugee.state = STEP(DebugContext.getHeight() - 1);

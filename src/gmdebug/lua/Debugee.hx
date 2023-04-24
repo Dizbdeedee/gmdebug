@@ -66,12 +66,6 @@ class Debugee {
 
     public var dapMode:Null<DapModeStr>;
 
-    public var stepHeight(get,never):Int;
-
-    public extern inline function get_stepHeight():Int {
-        return stackHeight - StackConst.STEP;
-    }
-
     // public var baseDepth:Null<Int>;
 
     public var recursiveGuard:RecursiveGuard = NONE;
