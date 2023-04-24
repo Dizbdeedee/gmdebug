@@ -15,7 +15,7 @@ class HNext implements IHandler<NextRequest> {
 	}
 
 	public function handle(nextReq:NextRequest):HandlerResponse {
-		var offsetHeight = DebugContext.getHeight();
+		var offsetHeight = debugee.stackHeight - DebugContext.getHeight();
 		DebugContext.markNotReport();
 		var resp = nextReq.compose(next);
 		debugee.state = STEP(offsetHeight);

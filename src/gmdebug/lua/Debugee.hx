@@ -81,8 +81,8 @@ class Debugee {
     @:noCompletion
     public function get_stackHeight():Int {
         for (i in 1...999999) {
-            if (DebugLib.getinfo(i + 1, "") == null) {
-                return i;
+            if (DebugLib.getinfo(i, "") == null) {
+                return i - 2; //non inline, last null is not an actual height.
             }
         }
         throw "No stack height";

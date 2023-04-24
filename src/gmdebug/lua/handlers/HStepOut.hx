@@ -19,8 +19,10 @@ class HStepOut implements IHandler<StepOutRequest> {
 	public function handle(stepOutReq:StepOutRequest):HandlerResponse {
 		// var tarheight = debugee.stepHeight - 1;
 		// trace('stepOut ${tarheight < StackConst.MIN_HEIGHT} : $tarheight ${StackConst.MIN_HEIGHT}');
-		trace(DebugContext.getHeight());
-		if (debugee.stackHeight - DebugContext.getHeight() == 1) {
+		trace('Actual Height: ${debugee.stackHeight} ContextHeight: ${DebugContext.getHeight()}');
+
+		if (debugee.stackHeight - DebugContext.getHeight() <= 0) {
+			trace("Out");
 			final info = DebugLib.getinfo(DebugContext.getHeight(), "fLSl");
 			final func = info.func;
 			trace('${info.source}');
@@ -35,7 +37,8 @@ class HStepOut implements IHandler<StepOutRequest> {
 			trace('lowest $lowest');
 			debugee.state = OUT(func, lowest - 1,DebugContext.getHeight()); //lowest - 1, as call hook starts on first line
 		} else {
-			debugee.state = STEP(DebugContext.getHeight());
+			trace("Not out");
+			debugee.state = STEP(DebugContext.getHeight() - 1);
 		}
 		DebugLoop.enableLineStep();
 		final stepoutResp = stepOutReq.compose(stepOut);

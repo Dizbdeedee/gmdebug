@@ -62,7 +62,7 @@ private class DDebugHook {
         } else {
             flagMap.set(line,false);
         }
-        if (str.indexOf("c") != -1) {
+        if (str.indexOf("t") != -1) {
             flagMap.set(call,true);
         } else {
             flagMap.set(call,false);
@@ -79,11 +79,11 @@ private class DDebugHook {
         }
         switch [lineSet,callSet] {
             case [true,true]:
-                Debug.sethook(hookFun,"cl");
+                Debug.sethook(hookFun,"tl");
             case [true,false]:
                 Debug.sethook(hookFun,"l");
             case [false,true]:
-                Debug.sethook(hookFun,"c");
+                Debug.sethook(hookFun,"t");
             case [false,false]:
                 Debug.sethook();
         }

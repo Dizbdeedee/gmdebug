@@ -89,12 +89,12 @@ class DebugLoop {
     }
 
     public static extern inline function enableLineStep() {
-        DebugHook.addHook(debugloop, "cl");
+        DebugHook.addHook(debugloop, "tl");
         lineSteppin = true;
     }
 
     public static extern inline function disableLineStep() {
-        DebugHook.addHook(debugloop,"c");
+        DebugHook.addHook(debugloop,"t");
         lineSteppin = false;
     }
 
@@ -181,7 +181,7 @@ class DebugLoop {
                 false;
             case WAIT:
                 false;
-            case STEP(target) if (target == null || debugee.stackHeight <= target):
+            case STEP(target) if (target == null || debugee.stackHeight - DebugContext.getHeight() == target):
                 trace('stepped $target ${debugee.stackHeight}');
                 debugee.state = WAIT;
                 disableLineStep();
@@ -189,20 +189,23 @@ class DebugLoop {
                 true;
             case STEP(x):
                 true;
-            case OUT(outFunc, lowest,_) if (outFunc == func && curLine.unsafe() == lowest):
+            case OUT(outFunc, lowest,_) if (outFunc == func && curLine.unsafe() <= lowest):
                 debugee.state = WAIT;
                 Lua.print(outFunc, func);
+                Lua.print("Lowest line, same function");
                 disableLineStep();
                 DebugContext.debugContext({debugee.startHaltLoop(Step);});
                 true;
-            case OUT(outFunc, _,tarHeight) if (outFunc != func && debugee.stackHeight <= tarHeight):
+            case OUT(outFunc, _,tarHeight) if (outFunc != func && debugee.stackHeight - DebugContext.getHeight() == 0):
                 debugee.state = WAIT;
                 Lua.print(outFunc, func);
+                Lua.print(debugee.stackHeight, tarHeight);
+                Lua.print("Less than target height");
                 disableLineStep();
                 debugContext({debugee.startHaltLoop(Step);});
                 true;
-            case OUT(outFunc, _):
-                Lua.print(outFunc, func, curLine);
+            case OUT(outFunc, _,_):
+                Lua.print("208 ",outFunc, func, curLine);
                 true;
             default:
                 false;
