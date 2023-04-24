@@ -69,7 +69,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 			var args:String = "";
 			if (info.nparams > 0) {
 				args = "(";
-				for (p in 0...info.nparams) {
+				for (p in 1...info.nparams + 1) {
 					final lcl = DebugLib.getlocal(i, p);
 					final val = switch (Lua.type(lcl.b)) {
 						case "table":

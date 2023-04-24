@@ -59,6 +59,7 @@ class Exceptions {
         var xpCall = untyped __lua__(embedResource("XPCall"),target,traceback,catchError,exceptSelf);
         exceptFuncs.set(traceback,target);
         exceptFuncs.set(catchError,target);
+        exceptFuncs.set(xpCall,target);
         return xpCall;
     }
 

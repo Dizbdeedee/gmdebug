@@ -135,19 +135,20 @@ class HVariables implements IHandler<VariablesRequest> {
                     addVars.push({name: result.a, value: result.b});
                 }
             case Locals:
-                for (i in 1...9999) {
+                var info = DebugLib.getinfo(realFrame, "u");
+                for (i in info.nparams + 1...9999) {
                     var result = DebugLib.getlocal(realFrame, i);
                     if (result.a == null) {
                         break;
                     }           
                     addVars.push({name: result.a, value: result.b});
                 }
-                for (i in 1...9999) {
-                    var result = DebugLib.getlocal(realFrame, -i);
-                    if (result.a == null)
-                        break;
-                    addVars.push({name: result.a, value: result.b});
-                }
+                // for (i in 1...9999) {
+                //     var result = DebugLib.getlocal(realFrame, -i);
+                //     if (result.a == null)
+                //         break;
+                //     addVars.push({name: result.a, value: result.b});
+                // }
             case Upvalues:
                 var info = DebugLib.getinfo(realFrame, "f");
                 if (info != null && info.func != null) {
