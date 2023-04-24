@@ -265,7 +265,11 @@ typedef Programs = {
     function pokeClients() {
         if (!poking || shutdownActive) return;
         clients.attemptClient(initBundle.clientLocation).handle((clients) -> {
-            trace(clients);
+            for (newClient in clients) {
+                trace('Setting up player: ${newClient.clID}');
+                setupPlayer(newClient.clID);
+            }
+            // trace(clients);
             haxe.Timer.delay(pokeClients,500);
 
         });

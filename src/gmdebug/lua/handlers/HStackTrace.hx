@@ -24,6 +24,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 
 	public function handle(x:StackTraceRequest):HandlerResponse {
 		DebugContext.markNotReport();
+		final sh = debugee.stackHeight;
 		final offsetHeight = DebugContext.getHeight();
 		final args = x.arguments.unsafe();
 		if (!debugee.pauseLoopActive) {
@@ -99,11 +100,11 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 			}
 			var name = switch [info.name, info.namewhat] {
 				case [null, NOT_FOUND]:
-					'$i | anonymous function $args';
+					'${sh - i} | anonymous function $args';
 				// case [null,what]:
 				//     'anonymous function ';
 				case [name, what]:
-					'$i | [$what] $name $args';
+					'${sh - i} | [$what] $name $args';
 			}
 			var path:Null<String>;
 			var hint:Null<SourcePresentationHint>;
