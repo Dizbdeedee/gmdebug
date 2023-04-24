@@ -15,35 +15,11 @@ class RedirectWorker {
 
     static final CON_LINE_LENGTH = 80;
 
-    static function isAllWhitespace(str:String) {
-        for (c in str) {
-            if (c != " ".code) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    static function findLastNotWhitespace(str:String) {
-        var retInd = null;
-        for (ind => c in str) {
-            if (c != " ".code) {
-                retInd = ind;
-            }
-        }
-        return retInd;
-    }
-
     static var oldCmdLine:String;
 
-    static function HandleCommandLineDisplay(r:Redirector,screenSize:Int) {
-        
-        final cmdLine:String = r.ReadText(screenSize - 1,screenSize - 1);
-        if (cmdLine.length > 0 && !isAllWhitespace(cmdLine) && oldCmdLine != null && !cmdLine.startsWith(oldCmdLine)) {
-            // Node.process.stdout.write('\r ${cmdLine.substr(0, findLastNotWhitespace(cmdLine) + 1)}');
-        }
-        oldCmdLine = cmdLine;
-    }
+    static var red:Redirector;
+
+    static var canLoop = true;
 
     public static function makeWorker(program:String,args:Array<String>):Worker {
         final argv = [program].concat(args);
@@ -64,8 +40,6 @@ class RedirectWorker {
         return cp;
     }
 
-    static var red:Redirector;
-
     static function handleDeth(...rest) {
         trace("deth handled");
         canLoop = false;
@@ -73,7 +47,34 @@ class RedirectWorker {
         return false;
     }
 
-    static var canLoop = true;
+
+    static function HandleCommandLineDisplay(r:Redirector,screenSize:Int) {
+        
+        final cmdLine:String = r.ReadText(screenSize - 1,screenSize - 1);
+        if (cmdLine.length > 0 && !isAllWhitespace(cmdLine) && oldCmdLine != null && !cmdLine.startsWith(oldCmdLine)) {
+            // Node.process.stdout.write('\r ${cmdLine.substr(0, findLastNotWhitespace(cmdLine) + 1)}');
+        }
+        oldCmdLine = cmdLine;
+    }
+
+    static function isAllWhitespace(str:String) {
+        for (c in str) {
+            if (c != " ".code) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static function findLastNotWhitespace(str:String) {
+        var retInd = null;
+        for (ind => c in str) {
+            if (c != " ".code) {
+                retInd = ind;
+            }
+        }
+        return retInd;
+    }
 
     public static function main() {
         final r = new Redirector();
@@ -186,14 +187,10 @@ class RedirectWorker {
             if (canLoop) {
                 Timers.setTimeout(mainLoop,25);
             } else {
-                trace("Bugger off please");
                 r.Destroy();
-                trace("exiting");
                 Node.process.exit(1);
-                trace("ohohoho");
             }
         }
         mainLoop();
-        trace("mm");
     }
 }

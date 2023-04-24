@@ -1,5 +1,6 @@
 package gmdebug.dap.srcds;
 
+
 import ffi_napi.Callback;
 import sys.FileSystem;
 import node.worker_threads.Worker;
@@ -13,9 +14,9 @@ import ffi_napi.Library;
 using StringTools;
 using Lambda;
 import RefNapi.refType;
-import RefNapi.types as rtypes;
 import gmdebug.dap.srcds.BufferCompat as Buffer;
 import ref_napi.buffer.Buffer._Buffer as RefNapiBuffer;
+import RefNapi.types as rtypes;
 
 typedef BufInt = haxe.extern.EitherType<Buffer,Int>;
 typedef BufBool = haxe.extern.EitherType<Buffer,Bool>;
@@ -54,6 +55,9 @@ extern class SecurityInfo extends RefNapiBuffer {
 extern class StartupInfo extends RefNapiBuffer {
     var cb : BufInt;
 }
+// typedef ProcessInfo = Buffer & {
+//     hProcess : Buffer
+// }
 // typedef ProcessInfo = Buffer & {
 //     hProcess : Buffer
 // }
@@ -159,15 +163,13 @@ class Redirector {
     final processInfo:ProcessInfo = cast PROCESS_INFO.call();
 
     static function bufferAtAddress(address:Int64):Buffer {
-        
         final buf:Buffer = cast Buffer.alloc(8);
         buf.writeUInt32LE(address.high,0);
         buf.writeUInt32LE(address.low,4);
         final newType:Type_ = cast Object.assign({},rtypes.void);
         newType.indirection = 2;
         buf.type = newType;
-        
-        return RefNapi.deref(cast buf);
+        return RefNapi.deref(buf);
     }
 
     public function new() {
@@ -177,26 +179,24 @@ class Redirector {
             bInheritHandle : true
         });
         //FFFFFFFF
-        
         final point = bufferAtAddress(Int64.make(Syntax.code("0xFFFFFFFF"),Syntax.code("0xFFFFFFFF")));
         trace(point.address());
         map_file = K32.CreateFileMappingA(point,securityAttr.ref(),0x04,0,65536,NULL);
         trace(map_file.address());
-        if (RefNapi.isNull(cast map_file)) {
+        if (RefNapi.isNull(map_file)) {
             throw "Could not create file mapping";
         }
         event_parent_send = K32.CreateEventA(securityAttr.ref(),false,false,RefNapi.NULL);
-        if (RefNapi.isNull(cast event_parent_send)) {
+        if (RefNapi.isNull(event_parent_send)) {
             throw "Could not create parent send event";
         }
         event_child_send = K32.CreateEventA(securityAttr.ref(),false,false,NULL);
-        if (RefNapi.isNull(cast event_child_send)) {
+        if (RefNapi.isNull(event_child_send)) {
             throw "Could not create child send event";
         }
     }
 
     public function Destroy() {
-        
         K32.CloseHandle(map_file);
         K32.CloseHandle(event_parent_send);
         K32.CloseHandle(event_child_send);
@@ -206,7 +206,6 @@ class Redirector {
             lib.memset(processInfo.ref(),0,cast PROCESS_INFO.size);
         }
         // K32.WaitForSingleObject(processInfo.hProcess,0xFFFFFFFF);
-
     }
 
     public function Start(program:String,args:Array<String>) {
@@ -241,11 +240,10 @@ class Redirector {
         
         final eventSet = K32.SetEvent(event_parent_send);
         if (!eventSet) {
-            throw "Event not set...";
+            throw "Event not set at ReadText";
         }
         if (!WaitForResponse()) {
-            trace("Could not wait...");
-            throw "Yikes";
+            throw "Failed to wait at ReadText";
         }
         
         final pBuf = GetMappedBuffer();
@@ -268,7 +266,7 @@ class Redirector {
         K32.SetEvent(event_parent_send);
 
         if (!WaitForResponse()) {
-            throw "Could not wait";
+            throw "Could not wait at SetScreenBufferSize";
         }
         final pBuf = GetMappedBuffer();
         final success = pBuf[0] == 1;
@@ -276,11 +274,11 @@ class Redirector {
         return success;
     }
 
-    function GetMappedBuffer():TypedArray<Int> {
+    function GetMappedBuffer() {
         final pbuf = K32.MapViewOfFile(map_file, 0x0004 | 0x0002, RefNapi.NULL,RefNapi.NULL,0);
         final pbuf2:TypedArray<Int> = cast intBuf.call(pbuf.reinterpret(3 * rtypes.int.size),3);
         if (RefNapi.isNull(cast pbuf2.buffer)) {
-            trace("Wuh oh");
+            //There was trace here. It's gone now
         }
         
         return pbuf2;
@@ -289,7 +287,6 @@ class Redirector {
     public function WriteText(input:String) {
         final pBuf = GetMappedBuffer();
         pBuf[0] = 0x2;
-
         final strBuf = pBuf.buffer.reinterpret((input.length + 1) * rtypes.char.size,1 * rtypes.int32.size);
         // strBuf.writeCString(cast input,cast 0,"utf8"); //pretty sure this is a bug in napi, or dts2hx. whatever
         strBuf.write(input + "\000",0);
@@ -307,7 +304,6 @@ class Redirector {
     public function GetScreenBufferSize() {
         //lock
         final pBuf = GetMappedBuffer();
-        
         pBuf[0] = 0x4;
         ReleaseMappedBuffer(pBuf);
         final eventSet = K32.SetEvent(event_parent_send);
@@ -319,11 +315,8 @@ class Redirector {
         }
         final pBuf = GetMappedBuffer();
         final bufferSize = if (pBuf[0] == 1) {
-            
             pBuf[1];
         } else {
-            trace(pBuf[0]);
-            trace(pBuf[1]);
             -1;
         }
         ReleaseMappedBuffer(pBuf);
@@ -346,10 +339,5 @@ class Redirector {
     function ReleaseMappedBuffer(pbuf:TypedArray<Int>) {
         K32.UnmapViewOfFile(pbuf);
     }
-
-    
-
-    
-
    
 }

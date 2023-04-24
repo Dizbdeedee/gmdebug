@@ -4,6 +4,6 @@ function (...)
     if pass then
         return select(2,...)
     else
-        error("Error")
+        error(select(2,...))
     end
 end

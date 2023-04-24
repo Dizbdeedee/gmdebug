@@ -3,6 +3,8 @@ package gmdebug.lua.handlers;
 import gmdebug.lua.debugcontext.DebugContext;
 import gmod.libs.DebugLib;
 import gmdebug.composer.ComposedEvent;
+using StringTools;
+
 
 typedef InitHStackTrace = {
 	debugee : Debugee,
@@ -97,11 +99,11 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 			}
 			var name = switch [info.name, info.namewhat] {
 				case [null, NOT_FOUND]:
-					'anonymous function $args';
+					'$i | anonymous function $args';
 				// case [null,what]:
 				//     'anonymous function ';
 				case [name, what]:
-					'[$what] $name $args';
+					'$i | [$what] $name $args';
 			}
 			var path:Null<String>;
 			var hint:Null<SourcePresentationHint>;

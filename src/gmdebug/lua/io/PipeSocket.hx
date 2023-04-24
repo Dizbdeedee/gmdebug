@@ -1,6 +1,7 @@
 package gmdebug.lua.io;
 
-import gmdebug.Cross.AQUIRED;
+import gmod.helpers.WeakTools;
+import gmdebug.Cross.PipeLocations;
 import haxe.io.Encoding;
 import lua.lib.luasocket.socket.TcpClient;
 import haxe.io.Bytes;
@@ -12,37 +13,95 @@ import haxe.io.Output;
 import sys.net.Socket;
 import haxe.io.Path.join;
 
-typedef PipeLocations = {
-	folder : String,
-	client_ready : String,
-	ready : String,
-	input : String,
-	output : String
+enum AquireProcess {
+	WAITING_FOR_CONNECTION;
+	WAITING_FOR_PIPES_READY;
+	WAITING_FOR_INPUT;
+	WAITING_FOR_OUTPUT;
+	AQUIRED;
 }
 
 class PipeSocket implements DebugIO {
 
-	public final input:PipeInput;
+	public var input:PipeInput;
 
-	public final output:PipeOutput;
+	public var output:PipeOutput;
 
 	final locs:PipeLocations;
+
+	var process:AquireProcess = WAITING_FOR_CONNECTION;
 	
 	public function new(_locs:PipeLocations) {
+		trace("NEW PIPE SOCKET :D");
 		locs = _locs;
 		if (!FileLib.Exists(locs.folder,DATA)) {
 			FileLib.CreateDir(locs.folder);
 		}
 		FileLib.Write(locs.client_ready,"");
-		if (!FileLib.Exists(locs.ready, DATA)) {
-			throw "Other process is not ready.";
+		WeakTools.setGCMethod(cast this,__gc);
+		
+	}
+
+	function connection_pass() {
+		return process != WAITING_FOR_CONNECTION;
+	}
+
+	function input_pass() {
+		return process != WAITING_FOR_INPUT;
+	}
+
+	function pipes_ready_pass() {
+		return process != WAITING_FOR_PIPES_READY;
+	}
+
+	public function aquire():AquireProcess {
+		if (process == AQUIRED) throw "Already aquired...";
+		if (!connection_pass()) {
+			if (!FileLib.Exists(locs.connect, DATA)) {
+				
+				return WAITING_FOR_CONNECTION;
+			}
+			if (!FileLib.Exists(locs.client_ack,DATA)) {
+				FileLib.Write(locs.client_ack,"");
+			}
+			process = WAITING_FOR_PIPES_READY;
+			trace(process);
 		}
-		input = new PipeInput(locs);
-		output = new PipeOutput(locs);
+		if (!pipes_ready_pass()) {
+			if (!FileLib.Exists(locs.pipes_ready,DATA)) {
+				return WAITING_FOR_PIPES_READY;
+			}
+			process = WAITING_FOR_INPUT;
+			trace(process);
+		}
+		if (!input_pass()) {
+			if (input == null) {
+				input = new PipeInput(locs);
+			}
+			final inputAq = input.aquire();
+			if (inputAq != AQUIRED) {
+				return inputAq;
+			}
+			process = WAITING_FOR_OUTPUT;
+			trace(process);
+		}
+		if (output == null) {
+			output = new PipeOutput(locs);
+		}
+		final outputAq = output.aquire();
+		if (outputAq != AQUIRED) {
+			return outputAq;
+		}
+		trace("first write");
 		output.writeString("\004"); //mark ready for writing...
-		FileLib.Delete(locs.ready);
+		FileLib.Delete(locs.pipes_ready);
 		FileLib.Delete(locs.client_ready);
-		FileLib.Write(join([locs.folder,AQUIRED]),"");
+		FileLib.Delete(locs.connection_in_progress);
+		process = AQUIRED;
+		FileLib.Write(locs.connection_aquired,"");
+
+		// FileLib.Write(join([locs.folder,AQUIRED]),"");
+		return AQUIRED;
 	}
 
 	public function close() {
@@ -55,23 +114,29 @@ class PipeSocket implements DebugIO {
 		}
 		FileLib.Delete(locs.folder);
 	}
+	
+	function __gc() {
+		close();
+	}
 }
 
 class PipeInput extends Input {
-	final file:File;
+	var file:File;
 	final locs:PipeLocations;
 
 	public function new(_locs:PipeLocations) {
 		locs = _locs;
-		trace("Input exists");
+	}
+
+	public function aquire():AquireProcess {
 		if (!FileLib.Exists(locs.input, DATA)) {
-			throw "Input pipe does not exist";
+			return WAITING_FOR_INPUT;
 		}
-		trace("input open");
 		final f = FileLib.Open(locs.input, FileOpenMode.bin_read, DATA);
 		if (f == null)
-			throw "Cannot open Input pipe for reading";
+			return WAITING_FOR_INPUT;
 		file = f;
+		return AQUIRED;
 	}
 
 	override function readByte():Int {
@@ -89,19 +154,20 @@ class PipeInput extends Input {
 
 class PipeOutput extends Output {
 
-	final file:File;
+	var file:File;
 	final locs:PipeLocations;
 
 	public function new(_locs:PipeLocations) {
 		locs = _locs;
-		// if (!FileLib.Exists(Cross.OUTPUT,DATA)) { IT HANGS HERE :)
-		//     throw "Output pipe does not exist";
-		// }
-		trace("output open");
+	}
+
+	public function aquire() {
+		//DO NOT CHECK FOR EXISTS HERE
 		final f = FileLib.Open(locs.output, FileOpenMode.write, DATA);
 		if (f == null)
-			throw "Cannot open output pipe for reading";
+			return WAITING_FOR_OUTPUT;
 		file = f;
+		return AQUIRED;
 	}
 
 	override function close() {

@@ -2,6 +2,7 @@ package gmdebug.lua;
 
 import haxe.Constraints.Function;
 import lua.Lua;
+import gmod.libs.DebugLib;
 import gmod.Gmod;
 
 using Safety;
@@ -49,6 +50,20 @@ class Util {
 			expr.substr(1);
 		} else {
 			'return ( $expr )';
+		}
+	}
+
+	public static function traceStack(?desired:Int) {
+		trace('0 | This func... (getinfo + 1)');
+		for (i in 1...99999) {
+			var info = DebugLib.getinfo((i + 1), "lnSfu");
+			if (info == null) break;
+			var target = if (i == desired) {
+				"| TARGET";
+			} else {
+				"|";
+			}
+			trace('$i | ${info.name} $target');
 		}
 	}
 }

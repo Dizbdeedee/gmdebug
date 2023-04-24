@@ -1,6 +1,6 @@
 package gmdebug.dap;
 
-import gmdebug.dap.srcds.RedirectIntegrated;
+import js.node.Fs;
 import js.node.stream.Readable;
 import js.node.stream.Writable;
 import js.node.stream.Writable.IWritable;
@@ -9,6 +9,8 @@ import node.worker_threads.Worker;
 import gmdebug.dap.srcds.RedirectWorker;
 import ffi_napi.Library;
 import js.Node;
+import js.node.net.Socket;
+
 import js.node.Buffer;
 import gmdebug.composer.ComposedEvent;
 
@@ -22,14 +24,16 @@ class LaunchProcess {
 
     var childProcess:js.node.child_process.ChildProcess;
 	var worker:Worker;
-
-	var unworker:RedirectIntegrated;
-
 	var stdout:IReadable;
 	var stderr:IReadable;
 	var stdin:IWritable;
 
+	var luadebugwrite:IWritable;
 	public var active(default,null) = true;
+
+	var outputBufferBuf = 50;
+
+	var outputBufferWait:Array<Event<Dynamic>> = [];
 
     public function new(programPath:String,luaDebug:LuaDebugger,?programArgs:Array<String>) {
         programArgs = programArgs.or([]);
@@ -72,56 +76,24 @@ class LaunchProcess {
 	}
 
 	function attachOutput(luaDebug:LuaDebugger) {
-		stdout.on(Data, (str:Buffer) -> {
-			if (luaDebug.shutdownActive) return;
-			new ComposedEvent(output, {
-				category: Stdout,
-				output: str.toString().replace("\r", ""),
-				data: null
-			}).send(luaDebug);
-		});
-		if (stderr == null) return;
-		stderr.on(Data, (str:Buffer) -> {
-			new ComposedEvent(output, {
-				category: Stdout,
-				output: str.toString(),
-				data: null
-			}).send(luaDebug);
-		});
+		
+		stdout.pipe(luadebugwrite,{end: false});
+		// stdout.on('data',(buf:Buffer) -> {
+		// 	logheader += buf.length;
+		// });
+		stderr.pipe(luadebugwrite,{end: false});
+		// stdout.on(Data, (str:Buffer) -> {
+		// 	if (luaDebug.shutdownActive) return;
+		// 	new ComposedEvent(output, {
+		// 		category: Stdout,
+		// 		output: str.toString().replace("\r", ""),
+		// 		data: null
+		// 	}).send(luaDebug);
+		// });
+		
 	}
 
 	function setupWindows(programPath,luaDebug:LuaDebugger,argString) {
-		
-		#if AAAAAAAAARGH
-		unworker = new RedirectIntegrated(() -> {
-			luaDebug.shutdown();
-		});
-		unworker.start(programPath,[EXTRA_ARGS_WINDOWS,argString,EXTRA_ARGS]);
-		stdin = unworker.stdin;
-		stdout = unworker.stdout;
-		// stderr = cast worker.stderr;
-		#elseif worker
-		worker = RedirectWorker.makeWorker(programPath,[EXTRA_ARGS_WINDOWS,argString,EXTRA_ARGS]);
-		worker.on("error", (err) -> {
-			new ComposedEvent(output, {
-				category: Stderr,
-				output: err.message + "\n" + err.stack,
-				data: null
-			}).send(luaDebug);
-			trace("worker error///");
-			trace(err.message);
-			trace(err.stack);
-			trace("worker error end///");
-			luaDebug.shutdown();
-			return;
-		});
-		worker.on('exit',(err) -> {
-			luaDebug.shutdown();
-		});
-		stdin = cast worker.stdin;
-		stdout = cast worker.stdout;
-		stderr = cast worker.stderr;
-		#else
 		childProcess = RedirectWorker.makeChildProcess(programPath,[EXTRA_ARGS_WINDOWS,argString,EXTRA_ARGS]);
 		childProcess.on("error", (err) -> {
 			active = false;
@@ -139,14 +111,34 @@ class LaunchProcess {
 		});
 		childProcess.on("exit", (_) -> {
 			active = false;
-			trace("EXIIIIIIIIIIIITED");
+			trace("EXITED");
 			luaDebug.shutdown();
 		});
-
+		luadebugwrite = new Writable({
+			write : (chunk:Buffer, encoding, callback) -> {
+				if (luaDebug.shutdownActive) return;
+				new ComposedEvent(output, {
+					category: Stdout,
+					output: chunk.toString().replace("\r", ""),
+					data: null
+				}).send(luaDebug);
+				callback(null);
+			}
+		});
 		stdin = childProcess.stdin;
 		stdout = childProcess.stdout;
+		// // Fs.watchFile("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log",{persistent : false},(_,_) -> {
+		// // 	stdout = Fs.createReadStream("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log",{start: logheader});
+		// // 	attachOutput(luaDebug);
+
+		// // });
+		// stdout = Fs.createReadStream("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log");
+		// // stdout = new Socket({
+		// // 	fd: Fs.openSync("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log",cast Fs.constants.O_RDWR | Fs.constants.O_NONBLOCK),
+		// // 	writable : false
+		// // });
+		// // stdout = 
 		stderr = childProcess.stderr;
-		#end
 		attachOutput(luaDebug);
 	}
 
@@ -160,9 +152,6 @@ class LaunchProcess {
 		}
 		if (worker != null) {
 			worker.terminate();
-		}
-		if (unworker != null) {
-			unworker.kill();
 		}
     }
 }
