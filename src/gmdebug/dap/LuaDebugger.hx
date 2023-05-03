@@ -81,7 +81,7 @@ typedef Programs = {
                 generateInitFiles(initBundle.serverFolder);
                 copyGmDebugLuaFiles(initBundle.serverFolder);
                 if (!args.noCopy) {
-                    copyProjectFiles(args.copyAddonBaseFolder,args.addonName);
+                    copyProjectFiles(args.copyAddonBaseFolder,args.copyAddonName);
                 }
                 dapMode = LAUNCH(childProcess);
                 startServer(req);

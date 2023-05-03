@@ -44,7 +44,11 @@ class InitBundle {
 			req.composeFail(DEBUGGER_INVALID_CLIENTFOLDER_UNSPECIFIED).send(luadebug);
 			throw new InitBundleException("Debugging clients requested but no clientFolder specified");
 		}
-		if (!args.noCopy && (args.addonName == null || args.copyAddonBaseFolder == null)) {
+		if (HxPath.isAbsolute(args.copyAddonBaseFolder)) {
+			req.composeFail(DEBUGGER_INVALID_COPYFOLDER_ABSOLUTE).send(luadebug);
+			throw new InitBundleException("CopyAddonBaseFolder is a relative path, copying your active lua development files");
+		}
+		if (!args.noCopy && (args.copyAddonName == null || args.copyAddonBaseFolder == null)) {
 			req.composeFail(DEBUGGER_INVALID_COPYFOLDER).send(luadebug);
 			throw new InitBundleException("Copying requested but no addonName/copyAddonBaseFolder");
 		}

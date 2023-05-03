@@ -113,7 +113,7 @@ typedef GmDebugLaunchRequestArguments = LaunchRequestArguments &
 	?copyAddonBaseFolder:String,
 
 	/**Give it a name...**/
-	?addonName:String,
+	?copyAddonName:String,
 
 	/**Ect. ect.**/
 	?noCopy:Bool

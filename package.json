@@ -121,12 +121,12 @@
 							},
 							"copyAddonBaseFolder": {
 								"type": "string",
-								"description": "Copy everything inside specifed folder to addons/{addonName} (which you must also specify)",
-								"default": "./"
+								"description": "The location of your development lua files, as if they were in the first folder of a addon structure.",
+								"default": "src/"
 							},
-							"addonName": {
+							"copyAddonName": {
 								"type": "string",
-								"description": "The name of the addon folder when copied into the server garrysmod/addons folder",
+								"description": "The name of your addon when copied",
 								"default": "really_cool_addon"
 							}
 						}
@@ -148,8 +148,8 @@
 						],
 						"nodebugClient" : true,
 						"clients" : 1,
-						"addonName": "really_cool_addon",
-						"copyAddonBaseFolder": "./"
+						"copyAddonName": "my_really_cool_addon",
+						"copyAddonBaseFolder": "src/"
 						
 						
 					}
@@ -166,8 +166,8 @@
 							"programPath": "auto",
 							"nodebugClient" : true,
 							"clients" : 1,
-							"addonName": "really_cool_addon",
-							"copyAddonBaseFolder": "./"
+							"copyAddonName": "my_really_cool_addon",
+							"copyAddonBaseFolder": "src/"
 						}
 					}
 				]
@@ -179,6 +179,6 @@
 	},
 	"scripts": {
 		"preinstall": "npm install -g node-gyp",
-		"postinstall": "npx dts2hx --noLibWrap --output lib ffi-napi ref-napi ref-struct-di sudo-prompt ref-array-di && npx lix download"
+		"postinstall": "npx lix download" 
 	}
 }
