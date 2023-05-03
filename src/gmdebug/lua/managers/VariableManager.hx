@@ -30,7 +30,7 @@ class WordsStorage {
 
 	static function _createToName() {
 		var toName = new haxe.ds.ObjectMap();
-		toName.setWeakValuesM();
+		toName.setWeakKeysM();
 		return toName;
 	}
 }

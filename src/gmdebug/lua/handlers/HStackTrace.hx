@@ -3,12 +3,14 @@ package gmdebug.lua.handlers;
 import gmdebug.lua.debugcontext.DebugContext;
 import gmod.libs.DebugLib;
 import gmdebug.composer.ComposedEvent;
+import gmdebug.lua.managers.VariableManager;
 using StringTools;
 
 
 typedef InitHStackTrace = {
 	debugee : Debugee,
-	exceptions : Exceptions
+	exceptions : Exceptions,
+	vm : VariableManager,
 }
 
 class HStackTrace implements IHandler<StackTraceRequest> {
@@ -17,9 +19,12 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 
 	final exceptions:Exceptions;
 
+	final variableManager:VariableManager;
+
 	public function new(init:InitHStackTrace) {
 		debugee = init.debugee;
 		exceptions = init.exceptions;
+		variableManager = init.vm;
 	}
 
 	public function handle(x:StackTraceRequest):HandlerResponse {
@@ -47,7 +52,6 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 			case x:
 				x + offsetHeight;
 		}
-		trace('FIRSTFRAME $firstFrame');
 		
 		final lastFrame = switch (args.levels) {
 			case null | 0:
@@ -98,13 +102,12 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 				}
 				args = args.substr(0, args.length - 1) + ")";
 			}
+			//_hx_bind STRIKES AGAIN!
 			var name = switch [info.name, info.namewhat] {
 				case [null, NOT_FOUND]:
-					'${sh - i} | anonymous function $args';
-				// case [null,what]:
-				//     'anonymous function ';
+					'anon (${variableManager.generateUniqueName(untyped info.func)}) $args'; //${sh - i}
 				case [name, what]:
-					'${sh - i} | [$what] $name $args';
+					'[$what] $name (${variableManager.generateUniqueName(untyped info.func)}) $args';
 			}
 			var path:Null<String>;
 			var hint:Null<SourcePresentationHint>;

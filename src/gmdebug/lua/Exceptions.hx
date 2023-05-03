@@ -44,7 +44,7 @@ class Exceptions {
     }
 
     public function hooks() {
-        // hookGamemode();
+        hookGamemode();
         // hookEntities();
         // hookHooks();
         // hookEffects();
