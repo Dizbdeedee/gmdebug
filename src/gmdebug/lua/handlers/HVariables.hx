@@ -77,6 +77,17 @@ class HVariables implements IHandler<VariablesRequest> {
                         break;
                     addVars.push({name: upv.a, value: upv.b});
                 }
+            case Output:
+                addVars.push({name: "Bibbly bobbly boo", value: generateFakeChild(realChild,Output_Recurse),overrideValue: "Print Results: "});
+            case Output_Recurse:
+                for (k => v in (realChild : LuaArray<Dynamic>)) {
+                    addVars.push({name : k, value: v});
+                }
+
+                // addVars.push({name: "Yikes!", value: "Cringe"});    
+            // for (k => v in (realChild :lua.Table.AnyTable)) {
+                //     addVars.push({name: k, value: v});
+                // }
         }
     }
 
@@ -268,9 +279,4 @@ class HVariables implements IHandler<VariablesRequest> {
         DebugContext.markReport();
 		return WAIT;
 	}
-}
-
-enum FakeChild {
-    Upvalues;
-
 }

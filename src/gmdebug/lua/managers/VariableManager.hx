@@ -1,5 +1,6 @@
 package gmdebug.lua.managers;
 
+import gmdebug.WordList.WORD_ARRAY;
 import gmod.helpers.WeakTools;
 import gmdebug.lua.handlers.HScopes;
 import gmod.gclass.Entity;
@@ -9,9 +10,29 @@ import lua.Lua;
 import lua.NativeStringTools;
 import gmdebug.VariableReference;
 import gmdebug.lua.handlers.IHandler;
+
 using gmod.helpers.WeakTools;
+using Lambda;
+
 typedef InitVariableManager = {
 	debugee : Debugee
+}
+
+typedef WordsStorageType = {
+	table : WordsStorage,
+	funcs : WordsStorage
+}
+
+@:structInit
+class WordsStorage {
+	public final wordsAvaliable:Array<String> = WORD_ARRAY.array();
+	public final toName:haxe.ds.ObjectMap<Dynamic,String> = _createToName();
+
+	static function _createToName() {
+		var toName = new haxe.ds.ObjectMap();
+		toName.setWeakValuesM();
+		return toName;
+	}
 }
 
 class VariableManager {
@@ -19,6 +40,14 @@ class VariableManager {
 	var storedVariables:Array<Null<Dynamic>> = [null];
 
 	var cachedValues:haxe.ds.ObjectMap<Dynamic,Int> = new haxe.ds.ObjectMap();
+
+	final wordsStorageType:WordsStorageType = {
+		table: {},
+		funcs: {}
+	}
+	// var tableToName:haxe.ds.ObjectMap<Dynamic,String> = new haxe.ds.ObjectMap();
+
+	// var wordsAvaliable = WORD_ARRAY.array();
 
 	final debugee:Debugee;
 	
@@ -39,6 +68,17 @@ class VariableManager {
         return storedVariables[ind];
     }
 
+	public function generateFakeChild(child:Dynamic,type:FakeChild) {
+        final tab = Table.create();
+        final meta = Table.create();
+        final fakechild = Table.create();
+        Lua.setmetatable(tab,meta);
+        meta.__gmdebugFakeChild = fakechild;
+        fakechild.child = child;
+        fakechild.type = type;
+        return tab;
+    }
+
 	public function genvar(addv:AddVar):Variable {
 		final name = Std.string(addv.name);
 		final val = addv.value;
@@ -51,7 +91,9 @@ class VariableManager {
 		}
 		var stringReplace = switch (ty) {
 			case "table":
-				"table";
+				'table: ${generateUniqueName(val)}';
+			case "function":
+				'function: ${generateUniqueName(val)}';
 			case "string":
 				val;
 			case "number":
@@ -63,14 +105,16 @@ class VariableManager {
 		var obj:Variable = {
 			name: name,
 			type: ty,
-			value: switch [ty, addv.props] {
-				case ["table", NONE]:
-					"table";
-				case ["string", NONE]:
+			value: switch [addv.overrideValue != null,ty, addv.props] {
+				case [true,_,_]:
+					addv.overrideValue;
+				// case [_,"table", NONE]:
+					// 'table: ${generateUniqueName(val)}';
+				case [_,"string", NONE]:
 					'"$stringReplace"';
-				case [_,NOQUOTE]:
+				case [_,_,NOQUOTE]:
 					stringReplace;
-				case [_, NOVALUE]:
+				case [_,_, NOVALUE]:
 					"";
 				default:
 					stringReplace;
@@ -93,6 +137,29 @@ class VariableManager {
 				};
 		}
 		return obj;
+	}
+
+	public function generateUniqueName(val:Dynamic) {
+		
+		var wordsStorage:WordsStorage = switch (Gmod.type(val)) {
+			case "function":
+				wordsStorageType.funcs;
+			case "table":
+				wordsStorageType.table;
+			default:
+				throw "generateUniqueName: Very much not handled";
+		}
+		
+		return if (wordsStorage.toName.exists(val)) {
+			wordsStorage.toName.get(val);
+		} else {
+			var chosenID = Math.floor(Math.random() * wordsStorage.wordsAvaliable.length);
+			var chosen = wordsStorage.wordsAvaliable[chosenID];
+			wordsStorage.wordsAvaliable.remove(chosen); //blah blah blah.
+			wordsStorage.toName.set(val,chosen);
+			chosen;
+		}
+		
 	}
 
 	public function generateVariablesReference(val:Dynamic, ?name:String):Int {
@@ -122,6 +189,7 @@ class AddVar {
 	public var name:Dynamic;
 	// std.string
 	public var value:Dynamic;
+	public var overrideValue:String = null;
 	public var virtual:Null<Bool> = false;
 	public var props:AddVarProperties = NONE;
 }
@@ -130,4 +198,10 @@ enum AddVarProperties {
 	NOQUOTE;
 	NOVALUE;
 	NONE;
+}
+
+enum FakeChild {
+    Upvalues;
+    Output;
+	Output_Recurse; //this is getting silly, vscode.
 }

@@ -1,7 +1,6 @@
 package gmdebug.dap;
 
-import js.html.SetInterval;
-import haxe.Timer;
+import gmdebug.dap.EventIntercepter;
 import js.node.Timers;
 import gmdebug.dap.clients.ClientStorage;
 import gmdebug.Util.recurseCopy;
@@ -14,10 +13,10 @@ import js.node.Buffer;
 import haxe.io.Path as HxPath;
 import js.node.net.Socket;
 import vscode.debugAdapter.DebugSession;
-import gmdebug.Cross;
 import js.node.ChildProcess;
 using tink.CoreApi;
 using gmdebug.composer.ComposeTools;
+using StringTools;
 
 import gmdebug.GmDebugMessage;
 
@@ -44,6 +43,8 @@ typedef Programs = {
     var prevRequests:PreviousRequests;
 
     var clients:ClientStorage;
+    
+    var eventIntercepter:EventIntercepter;
 
     var workspaceFolder:String;
 
@@ -59,6 +60,7 @@ typedef Programs = {
         prevRequests = new PreviousRequests();
         clients = new ClientStorageDef(readGmodBuffer,this);
         requestRouter = new RequestRouter(this,clients,prevRequests);
+        eventIntercepter = new EventIntercepterDef(this);
         poking = false;
         Node.process.on("uncaughtException", uncaughtException);
         Node.process.on("SIGTRM", shutdown);
@@ -300,8 +302,11 @@ typedef Programs = {
             case Event:
                 final cmd = (cast debugeeMessage : Event<Dynamic>).event;
                 trace('$time DEBUGEE: recieved event, $cmd');
-                EventIntercepter.event(cast debugeeMessage, threadId, this);
-                sendEvent(cast debugeeMessage);
+                switch (eventIntercepter.event(cast debugeeMessage, threadId)) {
+                    case NoSend:
+                    case Send:
+                        sendEvent(cast debugeeMessage);
+                };
             case Response:
                 final cmd = (cast debugeeMessage : Response<Dynamic>).command;
                 trace('$time DEBUGEE: recieved response, $cmd');
@@ -333,6 +338,19 @@ typedef Programs = {
         }
         trace("Final shutdown active");
         super.shutdown();
+    }
+
+    public dynamic function childProcessWrite(chunk:Buffer, encoding, callback) {
+        if (shutdownActive) return;
+        var stringOutput = chunk.toString().replace("\r","");
+        if (!stringOutput.contains(Cross.OUTPUT_INTERCEPTED)) {
+            new ComposedEvent(output, {
+                category: Stdout,
+                output: stringOutput,
+                data: null
+            }).send(this);
+        } 
+        callback(null);
     }
 
     public override function handleMessage(message:ProtocolMessage) {

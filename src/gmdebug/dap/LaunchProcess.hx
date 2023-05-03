@@ -76,21 +76,8 @@ class LaunchProcess {
 	}
 
 	function attachOutput(luaDebug:LuaDebugger) {
-		
 		stdout.pipe(luadebugwrite,{end: false});
-		// stdout.on('data',(buf:Buffer) -> {
-		// 	logheader += buf.length;
-		// });
 		stderr.pipe(luadebugwrite,{end: false});
-		// stdout.on(Data, (str:Buffer) -> {
-		// 	if (luaDebug.shutdownActive) return;
-		// 	new ComposedEvent(output, {
-		// 		category: Stdout,
-		// 		output: str.toString().replace("\r", ""),
-		// 		data: null
-		// 	}).send(luaDebug);
-		// });
-		
 	}
 
 	function setupWindows(programPath,luaDebug:LuaDebugger,argString) {
@@ -115,29 +102,10 @@ class LaunchProcess {
 			luaDebug.shutdown();
 		});
 		luadebugwrite = new Writable({
-			write : (chunk:Buffer, encoding, callback) -> {
-				if (luaDebug.shutdownActive) return;
-				new ComposedEvent(output, {
-					category: Stdout,
-					output: chunk.toString().replace("\r", ""),
-					data: null
-				}).send(luaDebug);
-				callback(null);
-			}
+			write : luaDebug.childProcessWrite
 		});
 		stdin = childProcess.stdin;
 		stdout = childProcess.stdout;
-		// // Fs.watchFile("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log",{persistent : false},(_,_) -> {
-		// // 	stdout = Fs.createReadStream("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log",{start: logheader});
-		// // 	attachOutput(luaDebug);
-
-		// // });
-		// stdout = Fs.createReadStream("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log");
-		// // stdout = new Socket({
-		// // 	fd: Fs.openSync("C:\\Users\\g\\Documents\\gmodDS\\steamapps\\common\\GarrysModDS\\garrysmod\\console.log",cast Fs.constants.O_RDWR | Fs.constants.O_NONBLOCK),
-		// // 	writable : false
-		// // });
-		// // stdout = 
 		stderr = childProcess.stderr;
 		attachOutput(luaDebug);
 	}

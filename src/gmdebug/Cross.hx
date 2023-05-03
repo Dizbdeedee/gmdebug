@@ -40,7 +40,7 @@ final PATH_ADDONS = "addons";
 
 final JIT = HxPath.join([PATH_FOLDER, "jitchoice.txt"]);
 
-
+final OUTPUT_INTERCEPTED = "[lua_debug] ";
 
 typedef PipeLocations = {
 	folder : String,
