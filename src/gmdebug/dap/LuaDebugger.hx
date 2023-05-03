@@ -14,12 +14,13 @@ import haxe.io.Path as HxPath;
 import js.node.net.Socket;
 import vscode.debugAdapter.DebugSession;
 import js.node.ChildProcess;
+import gmdebug.GmDebugMessage;
+import gmdebug.dap.ResponseIntercepter;
+
+
 using tink.CoreApi;
 using gmdebug.composer.ComposeTools;
 using StringTools;
-
-import gmdebug.GmDebugMessage;
-
 using Lambda;
 
 typedef Programs = {
@@ -46,6 +47,8 @@ typedef Programs = {
     
     var eventIntercepter:EventIntercepter;
 
+    var responseIntercepter:ResponseIntercepter;
+
     var workspaceFolder:String;
 
     var pokeClientCancel:Timeout;
@@ -61,6 +64,7 @@ typedef Programs = {
         clients = new ClientStorageDef(readGmodBuffer,this);
         requestRouter = new RequestRouter(this,clients,prevRequests);
         eventIntercepter = new EventIntercepterDef(this);
+        responseIntercepter = new ResponseIntercepterDef();
         poking = false;
         Node.process.on("uncaughtException", uncaughtException);
         Node.process.on("SIGTRM", shutdown);
@@ -308,9 +312,11 @@ typedef Programs = {
                         sendEvent(cast debugeeMessage);
                 };
             case Response:
-                final cmd = (cast debugeeMessage : Response<Dynamic>).command;
+                final resp = (cast debugeeMessage : Response<Dynamic>);
+                final cmd = resp.command;
                 trace('$time DEBUGEE: recieved response, $cmd');
-                sendResponse(cast debugeeMessage);
+                responseIntercepter.intercept(resp,threadId);
+                sendResponse(resp);
             case "gmdebug":
                 final cmd = (cast debugeeMessage : GmDebugMessage<Dynamic>).msg;
                 trace('$time DEBUGEE: recieved gmdebug, $cmd');
