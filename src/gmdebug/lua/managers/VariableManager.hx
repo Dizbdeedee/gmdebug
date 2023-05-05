@@ -1,5 +1,6 @@
 package gmdebug.lua.managers;
 
+import gmod.libs.HookLib;
 import gmdebug.WordList.WORD_ARRAY;
 import gmod.helpers.WeakTools;
 import gmdebug.lua.handlers.HScopes;
@@ -45,9 +46,10 @@ class VariableManager {
 		table: {},
 		funcs: {}
 	}
-	// var tableToName:haxe.ds.ObjectMap<Dynamic,String> = new haxe.ds.ObjectMap();
 
-	// var wordsAvaliable = WORD_ARRAY.array();
+	var caniocalNames:haxe.ds.ObjectMap<Dynamic,UniqueName> = new haxe.ds.ObjectMap();
+
+	var traverseDepth:Int = 2;
 
 	final debugee:Debugee;
 	
@@ -55,6 +57,8 @@ class VariableManager {
 		debugee = initVariableManager.debugee;
 		storedVariables.setWeakValuesArr();
 		cachedValues.setWeakKeysM();
+		caniocalNames.setWeakKeysM();
+		storeCaniocalNames();
 	}
 
 	public function resetVariables() {
@@ -62,6 +66,36 @@ class VariableManager {
 		storedVariables.setWeakValuesArr();
 		cachedValues = new haxe.ds.ObjectMap();
 		cachedValues.setWeakKeysM();
+		caniocalNames = new haxe.ds.ObjectMap();
+		storeCaniocalNames();
+	}
+
+	function storeCaniocalNames() {
+		recurseNames(0,"",untyped __lua__("_G"));
+		
+		// for (hookname => hookTbl in HookLib.GetTable()) {
+        //     for (ident => hook in hookTbl) {
+		// 		caniocalNames.set(hook,CHook(hookname,ident));
+        //     }
+        // }
+	}
+
+	function recurseNames(recurseDepth:Int,prevIndent:String,table:AnyTable) {
+		if (recurseDepth > traverseDepth) {
+			return;
+		}
+		for (k => v in table) {
+			switch [Gmod.type(k),Gmod.type(v)] {
+				case ["string","function"]:
+					caniocalNames.set(v,Canionical('$prevIndent$k'));
+				case ["string","table"]:
+					if (v == untyped __lua__("_G")) continue;
+					recurseNames(recurseDepth + 1,'$k.',v);
+					
+				default:
+
+			}
+		}
 	}
     
     public function getVar(ind:Int) {
@@ -89,11 +123,21 @@ class VariableManager {
 		} else {
 			TYPE_NONE;
 		}
+		var uniqueName = if (Gmod.type(val) == "table" || Gmod.type(val) == "function") {
+			switch (generateUniqueName(val)) {
+				case Canionical(name):
+					name;
+				case Generated(name):
+					'*$name';
+			}
+		} else {
+			"";
+		}
 		var stringReplace = switch (ty) {
 			case "table":
-				'table: ${generateUniqueName(val)}';
+				'table: $uniqueName';
 			case "function":
-				'function: ${generateUniqueName(val)}';
+				'function: $uniqueName';
 			case "string":
 				val;
 			case "number":
@@ -139,8 +183,10 @@ class VariableManager {
 		return obj;
 	}
 
-	public function generateUniqueName(val:Dynamic) {
-		
+	public function generateUniqueName(val:Dynamic):UniqueName {
+		if (caniocalNames.exists(val)) {
+			return caniocalNames.get(val);
+		}
 		var wordsStorage:WordsStorage = switch (Gmod.type(val)) {
 			case "function":
 				wordsStorageType.funcs;
@@ -151,13 +197,13 @@ class VariableManager {
 		}
 		
 		return if (wordsStorage.toName.exists(val)) {
-			wordsStorage.toName.get(val);
+			Generated(wordsStorage.toName.get(val));
 		} else {
 			var chosenID = Math.floor(Math.random() * wordsStorage.wordsAvaliable.length);
 			var chosen = wordsStorage.wordsAvaliable[chosenID];
 			wordsStorage.wordsAvaliable.remove(chosen); //blah blah blah.
 			wordsStorage.toName.set(val,chosen);
-			chosen;
+			Generated(chosen);
 		}
 		
 	}
@@ -184,6 +230,11 @@ class VariableManager {
 	
 }
 
+@:native("_G")
+private extern class G {
+
+}
+
 @:structInit
 class AddVar {
 	public var name:Dynamic;
@@ -204,4 +255,14 @@ enum FakeChild {
     Upvalues;
     Output;
 	Output_Recurse; //this is getting silly, vscode.
+}
+
+enum UniqueName {
+	Canionical(name:String);
+	// Hook(hookname:String,uid:String);
+	// Gamemode(gamemodeName:String,funcName:String);
+	// Entity(entityName:String,funcName:String);
+	// Effect(effectName:String,funcName:String);
+	// Meta(metaName:String,funcName:String);
+	Generated(name:String);
 }

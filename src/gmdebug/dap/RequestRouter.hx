@@ -136,41 +136,46 @@ class RequestRouter {
         clients.sendAny(client, req);
     }
 
-    function createDirArray(dir:String) {
-        var curStr = dir;
-        var cumArray = [];
-        while (curStr != null) {
-            curStr = HxPath.directory(curStr);
-            cumArray.push(HxPath.withoutDirectory(curStr));
-        }
-        return cumArray;
-    }
+    // function createDirArray(dir:String) {
+    //     var curStr = dir;
+    //     var cumArray = [];
+    //     while (curStr != null) {
+    //         curStr = HxPath.directory(curStr);
+    //         cumArray.push(HxPath.withoutDirectory(curStr));
+    //     }
+    //     return cumArray;
+    // }
 
-    //i would rather just make SOMETHING at this point... goddamn
-    function matchPath(path:Array<String>,find:Array<String>) {
-        for (ipath => _ in path) {
-            var match = true;
-            for (ufind => val in find) {
-                if (path[ipath + ufind] != val) {
-                    match = false;
-                    break;
-                }
-            }
-            if (match) {
-                return true;
-            }
-        }
-        return false;
+    // //i would rather just make SOMETHING at this point... goddamn
+    // function matchPath(path:Array<String>,find:Array<String>) {
+    //     for (ipath => _ in path) {
+    //         var match = true;
+    //         for (ufind => val in find) {
+    //             if (path[ipath + ufind] != val) {
+    //                 match = false;
+    //                 break;
+    //             }
+    //         }
+    //         if (match) {
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // }
+
+    static final luaPaths = ["garrysmod","lua"];
+
+    static final addonPath = ["garrysmod","addons"];
+
+    
+
+    function makeRelativeToLua() {
+        
     }
 
     function h_setBreakpoints(req:SetBreakpointsRequest) {
         final source = req.arguments.source;
-
-        // if (matchPath(createDirArray(req.arguments.source.path),createDirArray(luaDebug.initBundle))) {
-
-
-        // }
-
+        
     }
 
     function h_initialize(req:InitializeRequest) {

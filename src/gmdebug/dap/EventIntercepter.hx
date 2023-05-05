@@ -33,12 +33,8 @@ class EventIntercepterDef implements EventIntercepter {
 				} else {
 					"[S] - ";
 				}
-				// if (outputEvent.body.output.contains("[lua_debug]")) {
-				// 	NoSend;
-				// } else {
 				outputEvent.body.output = prefix + outputEvent.body.output;
 				Send;
-				// }
 			case stopped:
 				final stoppedEvent:StoppedEvent = cast ceptedEvent;
 				if (luaDebug.initBundle.programs.xdotool && stoppedEvent.body.threadId > 0) {
