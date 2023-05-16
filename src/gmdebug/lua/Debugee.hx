@@ -88,9 +88,6 @@ class Debugee {
 
     public var socket(default, set):Null<DebugIO>;
 
-    // SENT BY DEBUG CLIENT
-    public var dest = "";
-
     @:noCompletion
     function set_socket(sock) {
         G.previousSocket = sock;
@@ -364,10 +361,10 @@ class Debugee {
     }
 
     public function normalPath(x:String):String {
-        if (x.charAt(0) == "@") {
-            x = @:nullSafety(Off) x.substr(1);
-        }
-        x = '$dest$x';
+        // if (x.charAt(0) == "@") {
+        //     x = @:nullSafety(Off) x.substr(1);
+        // }
+        // x = '$dest$x';
         return x;
     }
 
@@ -488,16 +485,6 @@ class Debugee {
                 DebugContext.debugContext({hc.handlers(cast incoming);});
             default:
                 throw "message sent to us had an unknown type";
-        }
-    }
-
-    public function fullPathToGmod(fullPath:String):Option<GmodPath> {
-        return if (fullPath.contains(dest)) {
-            var result = fullPath.replace(dest, "");
-            result = "@" + result;
-            Some(cast result);
-        } else {
-            None;
         }
     }
 }

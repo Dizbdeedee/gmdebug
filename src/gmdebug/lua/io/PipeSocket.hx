@@ -30,7 +30,7 @@ class PipeSocket implements DebugIO {
 	final locs:PipeLocations;
 
 	var process:AquireProcess = WAITING_FOR_CONNECTION;
-	
+
 	public function new(_locs:PipeLocations) {
 		trace("NEW PIPE SOCKET :D");
 		locs = _locs;

@@ -9,8 +9,13 @@ interface ResponseIntercepter {
 
 class ResponseIntercepterDef implements ResponseIntercepter {
 
-    public function new() {
-        
+    final luaDebug:LuaDebugger;
+
+    final pathManager:PathManager;
+
+    public function new(_luaDebug:LuaDebugger,_pathManager:PathManager) {
+        luaDebug = _luaDebug;
+        pathManager = _pathManager;
     }
 
 
@@ -35,10 +40,15 @@ class ResponseIntercepterDef implements ResponseIntercepter {
                             0;
                     }
                 });
-                // for (v in variablesResp.body.variables) {
-        
-                // }
+            case stackTrace:
+                final stackTraceResp:StackTraceResponse = ceptedResponse;
+                for (stackFrame in stackTraceResp.body.stackFrames) {
+                    final pth = stackFrame.source.path;
+                    stackFrame.source.path = pathManager.gmodPathToRealPath(pth);
+                }
             default:
         }
     }
+
+
 }

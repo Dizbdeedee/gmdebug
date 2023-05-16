@@ -51,8 +51,6 @@ class SourceContainer {
 	}
 
 	function readSourceInfo() {
-		if (debugee.dest == "")
-			return;
 		for (si in sourceCache) {
 			if (!uniqueSources.exists(si.source)) {
 				final result = infoToSource(si);

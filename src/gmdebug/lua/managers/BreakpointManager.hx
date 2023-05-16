@@ -28,12 +28,7 @@ class BreakpointManager {
 	}
 
 	inline function getRealPath(source:String):GmodPath {
-		return switch (debugee.fullPathToGmod(source)) {
-			case Some(v):
-				v;
-			case None:
-				cast source;
-		}
+		return cast source;
 	}
 
 	public function retrieveSourceLineInfo(source:GmodPath):Map<Int, Bool> {
@@ -82,11 +77,11 @@ class BreakpointManager {
 	}
 
 	public function newBreakpoint(source:Source,bp:SourceBreakpoint):Breakpoint {
-		final status = switch (debugee.fullPathToGmod(source.path)) { 
-			case Some(v):
-				breakpointStatus(v,bp.line);
-			case None:
+		final status = switch (source.path) {
+			case null:
 				NOT_VISITED;
+			case v:
+				breakpointStatus(cast v,bp.line);
 		}
 		final breakpoint = new Breakpoint(bpID++,source,bp,status);
 		if (breakpoint.breakpointType != INACTIVE) {

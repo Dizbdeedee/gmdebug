@@ -35,7 +35,7 @@ class CustomHandlers {
 	}
 
 	function h_initalInfo(x:GmDebugMessage<GmDebugIntialInfo>) {
-		debugee.dest = x.body.location;
+		// debugee.dest = x.body.location;
 		if (x.body.dapMode == Launch) {
 			#if server
 			debugee.sendMessage(new ComposedGmDebugMessage(serverInfo, {

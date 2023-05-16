@@ -1,41 +1,41 @@
 package gmdebug.dap;
 
-import gmdebug.dap.EventIntercepter;
-import js.node.Timers;
-import gmdebug.dap.clients.ClientStorage;
+import node.Child_process;
+import tink.CoreApi;
+import js.node.buffer.Buffer;
 import gmdebug.Util.recurseCopy;
-import js.Node;
 import sys.FileSystem;
-import gmdebug.composer.*;
-import js.node.Fs;
-import vscode.debugProtocol.DebugProtocol;
-import js.node.Buffer;
-import haxe.io.Path as HxPath;
-import js.node.net.Socket;
-import vscode.debugAdapter.DebugSession;
-import js.node.ChildProcess;
-import gmdebug.GmDebugMessage;
-import gmdebug.dap.ResponseIntercepter;
-import gmdebug.dap.InitializedDebugger;
-
-using tink.CoreApi;
+import gmdebug.composer.ComposedEvent;
+import gmdebug.composer.ComposedRequest;
 using gmdebug.composer.ComposeTools;
-using StringTools;
-using Lambda;
+import gmdebug.GmDebugMessage;
+import node.Fs;
+import gmdebug.dap.clients.ClientStorage;
+import gmdebug.composer.ComposedGmDebugMessage;
+import global.nodejs.Timeout;
+import vscode.debugProtocol.DebugProtocol;
+import haxe.io.Path as HxPath;
 
-typedef Programs = {
-    xdotool : Bool
+
+interface InitializedDebugger {
+    final initBundle:InitBundle;
 }
 
-@:keep @:await class LuaDebugger extends DebugSession {
+@:await
+class InitializedDebuggerDef implements InitializedDebugger {
 
     static final SERVER_TIMEOUT = 15; //thanks peanut brain
 
-    public var dapMode:DapMode;
+    var dapMode:DapMode;
 
-    public var initBundle:InitBundle;
+    public final initBundle:InitBundle;
 
-    public var shutdownActive(default,null):Bool;
+    final clients:ClientStorage;
+    
+    final luaDebug:LuaDebugger;
+
+
+    // public var shutdownActive(default,null):Bool;
 
     var requestRouter:RequestRouter;
 
@@ -43,7 +43,7 @@ typedef Programs = {
 
     var prevRequests:PreviousRequests;
 
-    var clients:ClientStorage;
+
     
     var eventIntercepter:EventIntercepter;
 
@@ -55,29 +55,21 @@ typedef Programs = {
 
     var poking:Bool;
 
-    public function new(?x, ?y, _workspaceFolder:String) {
-        super(x, y);
-        dapMode = ATTACH;
-        workspaceFolder = _workspaceFolder;
-        var initLuaDebugger:LuaDebuggerInitBundle = Main.luaDebuggerInit(this);
-        bytesProcessor = initLuaDebugger.bytesProcessor;
-        prevRequests = initLuaDebugger.prevRequests;
-        clients = initLuaDebugger.clients;
-        requestRouter = initLuaDebugger.requestRouter;
-        eventIntercepter = initLuaDebugger.eventIntercepter;
-        responseIntercepter = initLuaDebugger.responseIntercepter;
+    public function new(_initBundle:InitBundle,_clients:ClientStorage,_bytesProcessor:BytesProcessor) {
+        initBundle = _initBundle;
+        clients = _clients;
         
-        poking = false;
-        Node.process.on("uncaughtException", uncaughtException);
-        Node.process.on("SIGTRM", shutdown);
-        shutdownActive = false;
-        Sys.setCwd(HxPath.directory(HxPath.directory(Sys.programPath())));
-        checkPrograms();
+        dapMode = LAUNCH(childProcess);
+        startServer(req);
     }
 
-    // public function initFromRequest(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments) {
-        
-    // }
+    public function onInit(args:GmDebugLaunchRequestArguments) {
+        generateInitFiles(initBundle.serverFolder);
+        copyGmDebugLuaFiles(initBundle.serverFolder);
+        if (!args.noCopy) {
+            copyProjectFiles(args.copyAddonBaseFolder,args.copyAddonName);
+        }
+    }
 
     function copyGmDebugLuaFiles(serverFolder:String) {
         final addonFolder = HxPath.join([serverFolder, "addons"]);
@@ -118,13 +110,13 @@ typedef Programs = {
     **/
     function startServer(attachReq:Request<Dynamic>) {
         final resp = attachReq.compose(attach);
-        resp.send(this);
+        resp.send(luaDebug);
         pokeServerTimeout().handle((result) -> {
             switch (result) {
                 case Success(server):
                     startPokeClients();
                 case Failure(err):
-                    shutdown();
+                    luaDebug.shutdown();
                     throw err;
         }});
     }
@@ -140,11 +132,7 @@ typedef Programs = {
         }
     }
 
-    function uncaughtException(err:js.lib.Error, origin) {
-        trace(err.message);
-        trace(err.stack);
-        // shutdown();
-    }
+  
 
     
 
@@ -163,7 +151,7 @@ typedef Programs = {
         new ComposedEvent(thread, {
             threadId: clients.getByGmodID(x.playerID).clID,
             reason: Exited
-        }).send(this);
+        }).send(luaDebug);
     }
 
     function serverInfoMessage(x:GMServerInfoMessage) {
@@ -250,7 +238,7 @@ typedef Programs = {
     }
 
     function pokeClients() {
-        if (!poking || shutdownActive) return;
+        if (!poking || luaDebug.shutdownActive) return;
         clients.attemptClient(initBundle.clientLocation).handle((clients) -> {
             for (newClient in clients) {
                 trace('Setting up player: ${newClient.clID}');
@@ -290,14 +278,14 @@ typedef Programs = {
                 switch (eventIntercepter.event(cast debugeeMessage, threadId)) {
                     case NoSend:
                     case Send:
-                        sendEvent(cast debugeeMessage);
+                        luaDebug.sendEvent(cast debugeeMessage);
                 };
             case Response:
                 final resp = (cast debugeeMessage : Response<Dynamic>);
                 final cmd = resp.command;
                 trace('$time DEBUGEE: recieved response, $cmd');
                 responseIntercepter.intercept(resp,threadId);
-                sendResponse(resp);
+                luaDebug.sendResponse(resp);
             case "gmdebug":
                 final cmd = (cast debugeeMessage : GmDebugMessage<Dynamic>).msg;
                 trace('$time DEBUGEE: recieved gmdebug, $cmd');
@@ -307,63 +295,9 @@ typedef Programs = {
         }
     }
 
-    public override function shutdown() {
-
-        shutdownActive = true;
-        switch (dapMode) {
-            case LAUNCH(child = {active : true}):
-                child.write("quit\n");
-                child.kill();
-            default:
-        }
-        sendEvent(new ComposedEvent(terminated, {}));
-        sendEvent(new ComposedEvent(exited,{exitCode: 0}));
-        clients.disconnectAll();
-        final dir = HxPath.join([initBundle.serverFolder,"addons","debugee"]);
-        if (Fs.existsSync(dir)) {
-            untyped Fs.rmSync(dir,{recursive : true, force : true});
-        }
-        trace("Final shutdown active");
-        super.shutdown();
-    }
-
-    public dynamic function childProcessWrite(chunk:Buffer, encoding, callback) {
-        if (shutdownActive) return;
-        var stringOutput = chunk.toString().replace("\r","");
-        if (!stringOutput.contains(Cross.OUTPUT_INTERCEPTED)) {
-            new ComposedEvent(output, {
-                category: Stdout,
-                output: stringOutput,
-                data: null
-            }).send(this);
-        } 
-        callback(null);
-    }
-
-    public override function handleMessage(message:ProtocolMessage) {
-        var time = Sys.time();
-        switch (message.type) {
-            case Request:
-                final request:Request<Dynamic> = cast message;
-                trace('$time MASTER: recieved request ${request.command} ${request}');
-                try {
-                    requestRouter.route(cast message);
-
-                } catch (e) {
-                    trace('Failed to handle message ${e.toString()}');
-                    trace(e.stack);
-                    final fail = (cast message : Request<Dynamic>).composeFail(DEBUGGER_UNSPECIFIED_ERROR, {err : e.toString()});
-                    fail.send(this);
-                    throw e;
-                }
-            default:
-                trace('Sent message type ${message.type} from dap. Not a request: not handling');
-        }
-    }
 }
 
-typedef FileSocket = {
-    readS:Socket,
-    writeS:Socket,
+enum DapMode {
+    ATTACH;
+    LAUNCH(child:LaunchProcess);
 }
-

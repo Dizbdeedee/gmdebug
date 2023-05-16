@@ -30,7 +30,8 @@ class InitBundle {
 
 	public final programArgs:Null<Array<String>>;
 
-    function new(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments,luadebug:LuaDebugger) {
+    function new(req:Request<Dynamic>,luadebug:LuaDebugger) {
+		final args:GmDebugLaunchRequestArguments = req.arguments;
 		requestArguments = args;
 		switch (validateServerFolder(args.serverFolder)) {
 			case Error(id, variables):
@@ -90,14 +91,7 @@ class InitBundle {
     }
 
 
-    public static function initBundle(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments,luadebug:LuaDebugger):Outcome<InitBundle,InitBundleException> {
-        return try {
-			final initBundleAttempt = new InitBundle(req, args, luadebug);
-			Success(initBundleAttempt);
-		} catch (e:InitBundleException) {
-			Failure(e);
-		}
-    }
+    
 
 	function validateProgramPath(programPath:String):InitError {
 		return if (programPath == null) {

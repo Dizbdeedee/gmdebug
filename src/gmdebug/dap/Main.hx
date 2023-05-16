@@ -1,5 +1,7 @@
 package gmdebug.dap;
 
+import gmdebug.GmDebugMessage.GmDebugLaunchRequestArguments;
+import gmdebug.dap.clients.ClientStorage;
 import js.Syntax;
 import js.node.ChildProcess;
 import js.node.console.Console;
@@ -43,5 +45,55 @@ class Main {
                 Node.console.error(str);
             };
         }
+    }
+
+    public static function luaDebuggerInit(luaDebug:LuaDebugger):LuaDebuggerInitBundle {
+        var bytesProcessor = new BytesProcessor();
+        var previousRequests = new PreviousRequests();
+        var clients = new ClientStorageDef(luaDebug.readGmodBuffer,luaDebug);
+        var requestRouter = new RequestRouterInit(luaDebug,(req) -> {
+            switch (initBundle(req,this)) {
+                case Success(_initBundle):
+                    initBundle = _initBundle;
+                    var childProcess = new LaunchProcess(initBundle.programPath,this,initBundle.programArgs);
+                    // if (args.noDebug) {
+                    //     dapMode = LAUNCH(childProcess);
+                    //     final comp = (req : LaunchRequest).compose(launch,{});
+                    //     comp.send(this);
+                    //     return;
+                    // }
+                    
+                case Failure(e):
+                    trace(e);
+                    throw "Couldn't create initBundle";
+    
+            };
+        });
+        return {
+            bytesProcessor: new BytesProcessor(),
+            previousRequests: new PreviousRequests(),
+            clients: new ClientStorageDef(readGmodBuffer,luaDebug),
+            requestRouter: new RequestRouterInit(luaDebug,() -> {
+                
+            }),
+            eventIntercepter: new EventIntercepterDef(luaDebug),
+            responseIntercepter: new ResponseIntercepterDef(luaDebug),
+            initalizedDebuggerFactory: () -> new InitalizedDebuggerDef()
+
+        }
+    }
+
+    static function what() {
+        
+    }
+
+    public static function initBundle(req:Request<Dynamic>,luadebug:LuaDebugger):Outcome<InitBundle,InitBundleException> {
+        final args:GmDebugLaunchRequestArguments = req.args;
+        return try {
+			final initBundleAttempt = new InitBundle(req, luadebug);
+			Success(initBundleAttempt);
+		} catch (e:InitBundleException) {
+			Failure(e);
+		}
     }
 }

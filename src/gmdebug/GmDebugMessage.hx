@@ -28,7 +28,7 @@ typedef GmDebugIntialInfo = {
 	/**
 		Location. Can be server or client.
 	**/
-	location:String,
+	// location:String,
 
 	?dapMode:DapModeStr,
 	?autoLaunch:Bool
