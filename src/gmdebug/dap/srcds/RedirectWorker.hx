@@ -163,7 +163,15 @@ class RedirectWorker {
                 }
                 for (i in firstNewLine...outputBuffer.length) {
                     oldOutput.push(outputBuffer[i]); 
-                    Node.process.stdout.write(outputBuffer[i] + "\n");
+                    //ok, so it's not perfect, and we could mistake 80 character things.
+                    //but it's rare, so whatever
+                    var newline = if (outputBuffer[i].charCodeAt(79) != 32) {
+                        "";
+                    } else {
+                        "\n";
+                    }
+                
+                    Node.process.stdout.write(outputBuffer[i] + newline);
                 }
 
                 final sizeDiff = oldOutput.length - screenSize;

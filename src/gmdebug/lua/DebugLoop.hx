@@ -151,7 +151,7 @@ class DebugLoop {
                 DebugContext.debugContext({debugee.startHaltLoop(Breakpoint);});
             case {breakpointType : CONDITIONAL(condFunc), id : bpID}:
                 var height = DebugContext.getHeight();
-                Gmod.setfenv(condFunc, HEvaluate.createEvalEnvironment(height)); //TODO 3??
+                Gmod.setfenv(condFunc, HEvaluate.createEvalEnvironment(height));
                 switch (Util.runCompiledFunction(condFunc)) {
                     case Error(err):
                         final message = HEvaluate.translateEvalError(err);

@@ -5,9 +5,7 @@ import js.node.stream.Readable.IReadable;
 using StringTools;
 
 abstract class RedirectBase {
-
-    static final CON_LINE_LENGTH = 80;
-
+    
     public final stdin:IWritable;
 
     public final stdout:IReadable;
