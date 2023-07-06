@@ -58,6 +58,8 @@ enum LineStore {
 
     var responseIntercepter:ResponseIntercepter;
 
+    var launchProcessor:LaunchProcessor;
+
     var workspaceFolder:String;
 
     var pokeClientCancel:Timeout;
@@ -75,6 +77,7 @@ enum LineStore {
         eventIntercepter = new EventIntercepterDef(this);
         responseIntercepter = new ResponseIntercepterDef();
         gmodClientOpener = new GmodClientOpenerMultirun();
+        launchProcessor = new LaunchProcessorDef();
         poking = false;
         Node.process.on("uncaughtException", uncaughtException);
         Node.process.on("SIGTRM", shutdown);
@@ -83,28 +86,50 @@ enum LineStore {
         checkPrograms();
     }
 
+    function initFromBundle(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments,initBundle:InitBundle) {
+        var launchProcessOpt = if (Sys.systemName() == "Linux") {
+            launchProcessor.launchLinux(programPath,argString);
+        } else {
+            launchProcessor.launchWindows(programPath,argString);
+        }
+        var childProcess = switch (launchProcessOpt) {
+            case Some(launchProcess):
+                launchProcess;
+            case None:
+                trace("initFromRequest: UNABLE TO LAUNCH PROCESS");
+                throw "InitFromRequest: Unable to launch process");
+        }
+        if (args.noDebug) {
+            dapMode = LAUNCH(childProcess);
+            final comp = (req : LaunchRequest).compose(launch,{});
+            comp.send(this);
+            return;
+        }
+        generateInitFiles(initBundle.serverFolder);
+        copyGmDebugLuaFiles(initBundle.serverFolder);
+        if (!args.noCopy) {
+            copyProjectFiles(args.copyAddonBaseFolder,args.copyAddonName);
+        }
+        dapMode = LAUNCH(childProcess);
+        final resp = attachReq.compose(attach);
+        resp.send(this);
+        pokeServerTimeout().handle((result) -> {
+            switch (result) {
+                case Success(server):
+                    startPokeClients();
+                case Failure(err):
+                    shutdown();
+                    throw err;
+        }});
+    }
+
     public function initFromRequest(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments) {
         switch (InitBundle.initBundle(req,args,this)) {
             case Success(_initBundle):
-                initBundle = _initBundle;
-                var childProcess = new LaunchProcess(initBundle.programPath,this,initBundle.programArgs);
-                if (args.noDebug) {
-                    dapMode = LAUNCH(childProcess);
-                    final comp = (req : LaunchRequest).compose(launch,{});
-                    comp.send(this);
-                    return;
-                }
-                generateInitFiles(initBundle.serverFolder);
-                copyGmDebugLuaFiles(initBundle.serverFolder);
-                if (!args.noCopy) {
-                    copyProjectFiles(args.copyAddonBaseFolder,args.copyAddonName);
-                }
-                dapMode = LAUNCH(childProcess);
-                startServer(req);
+                initFromBundle(req,args,initBundle);
             case Failure(e):
                 trace(e);
                 throw "Couldn't create initBundle";
-
         };
     }
 
@@ -142,21 +167,6 @@ enum LineStore {
         sys.io.File.saveContent(ourInitFile,initContents + appendContents);
     }
 
-    /**
-     * Async start server. Respond to attach request when attached.
-    **/
-    function startServer(attachReq:Request<Dynamic>) {
-        final resp = attachReq.compose(attach);
-        resp.send(this);
-        pokeServerTimeout().handle((result) -> {
-            switch (result) {
-                case Success(server):
-                    startPokeClients();
-                case Failure(err):
-                    shutdown();
-                    throw err;
-        }});
-    }
 
     function checkPrograms() {
         if (Sys.systemName() != "Linux") return;
@@ -204,17 +214,21 @@ enum LineStore {
     function onReadableData(buff:global.Buffer,id:Int,lineStore:Array<LineStore>) {
         var str = buff.toString();
         var lineSplit = str.split("\r\n");
+        if (lineSplit.length == 1) {
+            lineStore[id] = switch (lineStore[id]) {
+                case LAST_SPLIT(lastline):
+                    LAST_SPLIT(lastline + lineSplit[0]);
+                case NO_SPLIT:
+                    LAST_SPLIT(lineSplit[0]);
+            }
+            return;
+        }
         trace(lineSplit);
         var firstLine = switch (lineStore[id]) {
             case LAST_SPLIT(lastline):
                 lastline + lineSplit[0];
             case NO_SPLIT:
                 lineSplit[0];
-        }
-        lineStore[id] = if (str.charAt(str.length - 1) == "\n") {
-            NO_SPLIT;
-        } else {
-            LAST_SPLIT(lineSplit[lineSplit.length - 2]);
         }
         new ComposedEvent(output, {
             category: Stdout,
@@ -228,12 +242,11 @@ enum LineStore {
                 data: null
             }).send(this);
         }
-        if (lineStore[id] == NO_SPLIT) {
-            new ComposedEvent(output, {
-                category: Stdout,
-                output: lineSplit[lineSplit.length - 1] + "\n",
-                data: null
-            }).send(this);
+        var lastLine = lineSplit[lineSplit.length - 1];
+        lineStore[id] = if (lastLine.length > 0) {
+            LAST_SPLIT(lastLine);
+        } else {
+            NO_SPLIT;
         }
     }
 

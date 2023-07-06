@@ -122,7 +122,7 @@ class GmodClientOpenerMultirun implements GmodClientOpener {
                     var fd = Fs.openSync(file,null,null);
                     Fs.read(fd,buff,0,maxBuff,bytesReached,(err,bytesRead,buf) -> {
                         Fs.closeSync(fd);
-                        haxe.Timer.delay(run,35);
+                        haxe.Timer.delay(run,90);
                         var sliceBuff = buff.subarray(0,bytesRead);
                         if (bytesRead > 0) {
                             var push = untyped readable.push(sliceBuff);
@@ -132,7 +132,7 @@ class GmodClientOpenerMultirun implements GmodClientOpener {
                         }
                     });
                 }
-                haxe.Timer.delay(run,150);
+                haxe.Timer.delay(run,90);
                 success(cast readable);
             };
             return () -> {interval.stop();};
