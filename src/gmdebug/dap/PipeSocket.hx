@@ -38,6 +38,8 @@ enum ConnStatus {
 
 }
 
+//move 004 into repeatable function
+
 @:await
 class PipeSocket {
 
@@ -65,11 +67,9 @@ class PipeSocket {
 
     var connStatus:ConnStatus = CLIENT_NOT_READY;
 
-
     //no async new functions
     public function new(locs:PipeLocations) {
         this.locs = locs;
-
     }
 
     public function isReady() {
@@ -208,6 +208,7 @@ class PipeSocket {
         };
     }
 
+    //promise.irreversible
     static function sudoExec(str:String):Promise<Noise> {
         return new Promise(function (success,failure) {
             std.SudoPrompt.exec(str,(err) -> {
@@ -235,11 +236,9 @@ class PipeSocket {
                     default:
                         (outcome : Promise<Dynamic>);
             }}).noise();
-            // Promise.NOISE;
         } else {
             Promise.NOISE;
         }
-
     }
 
     @:async function aquireReadSocket(out:String) { //
@@ -255,7 +254,6 @@ class PipeSocket {
             var socketsStatus:Array<Socket> = [];
             haxe.Timer.delay(() -> {
                 trace(socketsStatus);
-                
                 for (socket in socketsStatus) {
                     if (socket != null) {
                         server.close();
@@ -274,32 +272,11 @@ class PipeSocket {
                 };
                 socketsStatus.push(socket);
                 socket.on(End,invalidateSocket);
-                // if (!ranConnection) {
-                //     // haxe.Timer.delay(() -> {
-
-                //     // },2500);
-                // }
-                // ranConnection = true;
-                // trace("Connection!");
-                // var validSocket = true;
-                
-
-                // haxe.Timer.delay(() -> {
-                //     if (validSocket) {
-                //         server.close();
-                //         socket.off(End,invalidateSocket);
-                //         success(socket);
-                //     } else {
-                        
-                //         trace("What are you trying to prove?");
-                //     }
-                // },CONNECT_ESTABLISH_DELAY);
             });
             return function () {
                 // server.off('connection');
                 server.close();
             };
-
         });
     }
 
@@ -322,8 +299,6 @@ class PipeSocket {
             sockOut : socks[1]
         };
     }
-
-
 
     @:async function aquireWriteSocket(inp:String) {
         var fd = @:await Fs.prom_open(inp, cast Fs.constants.O_RDWR | Fs.constants.O_NONBLOCK);

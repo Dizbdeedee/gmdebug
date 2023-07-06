@@ -3,14 +3,10 @@ package gmdebug.dap.clients;
 import js.node.net.Socket;
 class Client extends BaseConnected {
 
-	var name:String;
+    var name:String;
 
-	public function new(fs:PipeSocket, clientID:Int) {
-		super(fs,clientID);
-	}
+    public function new(fs:PipeSocket, clientID:Int) {
+        super(fs,clientID);
+    }
 
-
-	
 }
-
-

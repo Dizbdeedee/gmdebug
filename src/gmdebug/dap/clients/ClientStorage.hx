@@ -105,10 +105,11 @@ class ClientStorageDef implements ClientStorage {
     function invalidatePreviousConnections(locs:String,slots:Array<SlotStatus>) {
         var statuses = getStatusFolders(locs);
         for (i in 0...slots.length) {
-            trace(statuses[i]);
             switch (statuses[i]) {
-                case TAKEN | STRANGE:
+                case TAKEN | STRANGE | AVALIABLE: //hmm...
+                    trace('INVALIDATING $i');
                     slots[i] = UNKNOWN;
+                    trace('APPLE $clientSlots');
                 case NOTHING:
                     slots[i] = AVALIABLE;
                 default:

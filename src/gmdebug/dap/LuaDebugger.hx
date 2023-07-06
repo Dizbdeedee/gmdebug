@@ -16,7 +16,9 @@ import vscode.debugAdapter.DebugSession;
 import js.node.ChildProcess;
 import gmdebug.GmDebugMessage;
 import gmdebug.dap.ResponseIntercepter;
-
+import gmdebug.dap.GmodClientOpener;
+import js.node.stream.Readable;
+import gmdebug.dap.Log;
 
 using tink.CoreApi;
 using gmdebug.composer.ComposeTools;
@@ -25,6 +27,11 @@ using Lambda;
 
 typedef Programs = {
     xdotool : Bool
+}
+
+enum LineStore {
+    LAST_SPLIT(x:String);
+    NO_SPLIT;
 }
 
 @:keep @:await class LuaDebugger extends DebugSession {
@@ -44,8 +51,10 @@ typedef Programs = {
     var prevRequests:PreviousRequests;
 
     var clients:ClientStorage;
-    
+
     var eventIntercepter:EventIntercepter;
+
+    var gmodClientOpener:GmodClientOpener;
 
     var responseIntercepter:ResponseIntercepter;
 
@@ -65,6 +74,7 @@ typedef Programs = {
         requestRouter = new RequestRouter(this,clients,prevRequests);
         eventIntercepter = new EventIntercepterDef(this);
         responseIntercepter = new ResponseIntercepterDef();
+        gmodClientOpener = new GmodClientOpenerMultirun();
         poking = false;
         Node.process.on("uncaughtException", uncaughtException);
         Node.process.on("SIGTRM", shutdown);
@@ -165,9 +175,6 @@ typedef Programs = {
         // shutdown();
     }
 
-    
-
-
     function setupPlayer(clientID:Int) {
         clients.sendClient(clientID, new ComposedGmDebugMessage(intialInfo, {location: initBundle.serverFolder,dapMode : Launch}));
         clients.sendClient(clientID, new ComposedGmDebugMessage(GmMsgType.clientID, {id: clientID}));
@@ -185,7 +192,56 @@ typedef Programs = {
         }).send(this);
     }
 
+    function setupReadables(readables:Array<IReadable>) {
+        var lineStore:Array<LineStore> = [];
+        for (i in 0...readables.length) {
+            lineStore[i] = NO_SPLIT;
+            var read = readables[i];
+            read.on("data",onReadableData.bind(_,i,lineStore));
+        }
+    }
+
+    function onReadableData(buff:global.Buffer,id:Int,lineStore:Array<LineStore>) {
+        var str = buff.toString();
+        var lineSplit = str.split("\r\n");
+        trace(lineSplit);
+        var firstLine = switch (lineStore[id]) {
+            case LAST_SPLIT(lastline):
+                lastline + lineSplit[0];
+            case NO_SPLIT:
+                lineSplit[0];
+        }
+        lineStore[id] = if (str.charAt(str.length - 1) == "\n") {
+            NO_SPLIT;
+        } else {
+            LAST_SPLIT(lineSplit[lineSplit.length - 2]);
+        }
+        new ComposedEvent(output, {
+            category: Stdout,
+            output: firstLine + "\n",
+            data: null
+        }).send(this);
+        for (y in 1...lineSplit.length - 1) {
+            new ComposedEvent(output, {
+                category: Stdout,
+                output: lineSplit[y] + "\n",
+                data: null
+            }).send(this);
+        }
+        if (lineStore[id] == NO_SPLIT) {
+            new ComposedEvent(output, {
+                category: Stdout,
+                output: lineSplit[lineSplit.length - 1] + "\n",
+                data: null
+            }).send(this);
+        }
+    }
+
     function serverInfoMessage(x:GMServerInfoMessage) {
+        final clientLoc = initBundle.requestArguments.clientFolder;
+        final mrOptions = initBundle.requestArguments.multirunOptions;
+        final noDebug = initBundle.requestArguments.noDebug;
+        final noClients = initBundle.requestArguments.clients;
         final sp = x.ip.split(":");
         final ip = if (x.isLan) {
             gmdebug.lib.js.Ip.address();
@@ -193,53 +249,23 @@ typedef Programs = {
             sp[0];
         }
         final port = sp[1];
-        if (initBundle.requestArguments.clients == 1) {
-            if (Sys.systemName() == "Linux") {
-                js.node.ChildProcess.spawn('xdg-open steam://connect/$ip:$port', {shell: true}); //FIXME client injection. malicious ect. ect.
-            } else {
-                js.node.ChildProcess.spawn('start steam://connect/$ip:$port', {shell: true});
+        if (!noDebug && noClients < 1) return;
+        var promReadables = gmodClientOpener.open({ip: ip,port: port},clientLoc,mrOptions,noClients);
+        promReadables.inSequence().handle((out) -> {
+            switch (out) {
+                case Success(readables):
+                    setupReadables(readables);
+                case Failure(err):
+                    trace('gmodClientOpener&serverInfoMessage: Failure $err');
             }
-        }
-        //TODO: proton
-        if (!initBundle.requestArguments.noDebug && initBundle.requestArguments.clients > 1) {
-            for (_ in 0...initBundle.requestArguments.clients) {
-                openMultirun(ip,port);
-            }
-        }
-    }
-
-    function openMultirun(ip:String,port:String) {
-        var mrOptions = "";
-        if (initBundle.requestArguments.multirunOptions != null) {
-            mrOptions = initBundle.requestArguments.multirunOptions.join(" ");
-        }
-        trace(mrOptions);
-        final hl2 = HxPath.join([initBundle.clientLocation,"..","hl2.exe"]);
-        trace('$hl2 ${Fs.existsSync(hl2);}');
-        js.node.ChildProcess.spawn('"$hl2" -multirun -condebug $mrOptions +sv_lan 1 +connect $ip:$port',{shell : true});
+        });
     }
 
     function processCustomMessages(x:GmDebugMessage<Dynamic>) {
         switch (x.msg) {
-            case playerAdded:
-                //add name, when connect :)
-                // playerAddedMessage(cast x.body).handle((out) -> {
-                //  switch (out) {
-                //      case Success(true):
-                //          trace("Whater a sucess");
-                //      case Success(false):
-                //          trace("Could not add a new player...");
-                //      case Failure(fail):
-                //          throw fail;
-                //  }
-                // });
-            case playerRemoved:
-                // playerRemovedMessage(cast x.body);
             case serverInfo:
                 serverInfoMessage(cast x.body);
-            case clientID | intialInfo:
-                throw "Wrong direction..?";
-
+            default:
         }
     }
 
@@ -255,18 +281,15 @@ typedef Programs = {
         return Noise; //or server. who cares.
     }
 
-    // static var pokeClients:
-
+    //move to clientpoker
     function startPokeClients() {
-        if (initBundle.clientLocation != null) {
-            poking = true;
-            trace("Poking the client");
-            clients.firstClient(initBundle.clientLocation);
-            // pokeClients();
-            haxe.Timer.delay(pokeClients,500);
-            // SetInterval.cal/l(pokeClients,500);
-        }
+        if (initBundle.clientLocation == null) return;
+        poking = true;
+        trace("Poking the client");
+        clients.firstClient(initBundle.clientLocation);
+        haxe.Timer.delay(pokeClients,500);
     }
+
 
     function pokeClients() {
         if (!poking || shutdownActive) return;
@@ -275,9 +298,7 @@ typedef Programs = {
                 trace('Setting up player: ${newClient.clID}');
                 setupPlayer(newClient.clID);
             }
-            // trace(clients);
             haxe.Timer.delay(pokeClients,500);
-
         });
     }
 
@@ -305,7 +326,7 @@ typedef Programs = {
         switch (debugeeMessage.type) {
             case Event:
                 final cmd = (cast debugeeMessage : Event<Dynamic>).event;
-                trace('$time DEBUGEE: recieved event, $cmd');
+                tracev('$time DEBUGEE: recieved event, $cmd');
                 switch (eventIntercepter.event(cast debugeeMessage, threadId)) {
                     case NoSend:
                     case Send:
@@ -314,12 +335,12 @@ typedef Programs = {
             case Response:
                 final resp = (cast debugeeMessage : Response<Dynamic>);
                 final cmd = resp.command;
-                trace('$time DEBUGEE: recieved response, $cmd');
+                tracev('$time DEBUGEE: recieved response, $cmd');
                 responseIntercepter.intercept(resp,threadId);
                 sendResponse(resp);
             case "gmdebug":
                 final cmd = (cast debugeeMessage : GmDebugMessage<Dynamic>).msg;
-                trace('$time DEBUGEE: recieved gmdebug, $cmd');
+                tracev('$time DEBUGEE: recieved gmdebug, $cmd');
                 processCustomMessages(cast debugeeMessage);
             default:
                 throw "unhandled"; // this would be dumb...
@@ -327,7 +348,6 @@ typedef Programs = {
     }
 
     public override function shutdown() {
-
         shutdownActive = true;
         switch (dapMode) {
             case LAUNCH(child = {active : true}):
@@ -355,7 +375,7 @@ typedef Programs = {
                 output: stringOutput,
                 data: null
             }).send(this);
-        } 
+        }
         callback(null);
     }
 
@@ -367,7 +387,6 @@ typedef Programs = {
                 trace('$time MASTER: recieved request ${request.command} ${request}');
                 try {
                     requestRouter.route(cast message);
-
                 } catch (e) {
                     trace('Failed to handle message ${e.toString()}');
                     trace(e.stack);
