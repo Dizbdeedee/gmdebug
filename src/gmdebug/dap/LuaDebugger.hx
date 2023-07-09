@@ -13,11 +13,13 @@ import js.node.Buffer;
 import haxe.io.Path as HxPath;
 import js.node.net.Socket;
 import vscode.debugAdapter.DebugSession;
-import js.node.ChildProcess;
+import js.node.child_process.ChildProcess;
 import gmdebug.GmDebugMessage;
 import gmdebug.dap.ResponseIntercepter;
 import gmdebug.dap.GmodClientOpener;
 import js.node.stream.Readable;
+import js.node.stream.Writable;
+import gmdebug.dap.LaunchProcessor;
 import gmdebug.dap.Log;
 
 using tink.CoreApi;
@@ -88,16 +90,16 @@ enum LineStore {
 
     function initFromBundle(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments,initBundle:InitBundle) {
         var launchProcessOpt = if (Sys.systemName() == "Linux") {
-            launchProcessor.launchLinux(programPath,argString);
+            launchProcessor.launchLinux(initBundle.programPath,initBundle.argString);
         } else {
-            launchProcessor.launchWindows(programPath,argString);
+            launchProcessor.launchWindows(initBundle.programPath,initBundle.argString);
         }
         var childProcess = switch (launchProcessOpt) {
             case Some(launchProcess):
                 launchProcess;
             case None:
                 trace("initFromRequest: UNABLE TO LAUNCH PROCESS");
-                throw "InitFromRequest: Unable to launch process");
+                throw "InitFromRequest: Unable to launch process";
         }
         if (args.noDebug) {
             dapMode = LAUNCH(childProcess);
@@ -111,7 +113,8 @@ enum LineStore {
             copyProjectFiles(args.copyAddonBaseFolder,args.copyAddonName);
         }
         dapMode = LAUNCH(childProcess);
-        final resp = attachReq.compose(attach);
+        childProcessSetup(childProcess);
+        final resp = req.compose(attach);
         resp.send(this);
         pokeServerTimeout().handle((result) -> {
             switch (result) {
@@ -123,14 +126,39 @@ enum LineStore {
         }});
     }
 
+    function childProcessSetup(childProcess:ChildProcess) {
+        childProcess.on("error", (err) -> {
+            new ComposedEvent(output, {
+                category: Stderr,
+                output: err.message + "\n" + err.stack,
+                data: null
+            }).send(this);
+            shutdown();
+        });
+        childProcess.on("exit", (sig) -> {
+            new ComposedEvent(output, {
+                category: Stderr,
+                output: "Gmod Server exited with code:" + sig,
+                data: null
+            }).send(this);
+            shutdown();
+        });
+        var createEventWritable = new Writable({
+            write: createEventFromStdout
+        });
+        childProcess.stdout.pipe(createEventWritable, {end: false});
+        childProcess.stderr.pipe(createEventWritable, {end: false});
+    }
+
     public function initFromRequest(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments) {
-        switch (InitBundle.initBundle(req,args,this)) {
+        initBundle = switch (InitBundle.initBundle(req,args,this)) {
             case Success(_initBundle):
-                initFromBundle(req,args,initBundle);
+                _initBundle;
             case Failure(e):
                 trace(e);
                 throw "Couldn't create initBundle";
         };
+        initFromBundle(req,args,initBundle);
     }
 
     function copyGmDebugLuaFiles(serverFolder:String) {
@@ -171,7 +199,7 @@ enum LineStore {
     function checkPrograms() {
         if (Sys.systemName() != "Linux") return;
         try {
-            ChildProcess.execSync("xdotool --help");
+            js.node.ChildProcess.execSync("xdotool --help");
             initBundle.programs.xdotool = true;
         } catch (e) {
             trace("Xdotool not found");
@@ -363,8 +391,8 @@ enum LineStore {
     public override function shutdown() {
         shutdownActive = true;
         switch (dapMode) {
-            case LAUNCH(child = {active : true}):
-                child.write("quit\n");
+            case LAUNCH(child = {connected : true}):
+                child.stdin.write("quit\n");
                 child.kill();
             default:
         }
@@ -379,7 +407,7 @@ enum LineStore {
         super.shutdown();
     }
 
-    public dynamic function childProcessWrite(chunk:Buffer, encoding, callback) {
+    function createEventFromStdout(chunk:Buffer, encoding, callback) {
         if (shutdownActive) return;
         var stringOutput = chunk.toString().replace("\r","");
         if (!stringOutput.contains(Cross.OUTPUT_INTERCEPTED)) {
@@ -420,5 +448,5 @@ typedef FileSocket = {
 
 enum DapMode {
     ATTACH;
-    LAUNCH(child:LaunchProcess);
+    LAUNCH(child:ChildProcess);
 }
