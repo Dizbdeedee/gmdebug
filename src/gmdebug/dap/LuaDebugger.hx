@@ -20,6 +20,7 @@ import gmdebug.dap.GmodClientOpener;
 import js.node.stream.Readable;
 import js.node.stream.Writable;
 import gmdebug.dap.LaunchProcessor;
+import gmdebug.dap.FileWatcher;
 import gmdebug.dap.Log;
 
 using tink.CoreApi;
@@ -62,7 +63,9 @@ enum LineStore {
 
     var launchProcessor:LaunchProcessor;
 
-    var workspaceFolder:String;
+    var fileWatcher:FileWatcher;
+
+    public var workspaceFolder:String; //oh dear
 
     var pokeClientCancel:Timeout;
 
@@ -80,6 +83,7 @@ enum LineStore {
         responseIntercepter = new ResponseIntercepterDef();
         gmodClientOpener = new GmodClientOpenerMultirun();
         launchProcessor = new LaunchProcessorDef();
+        fileWatcher = new FileWatcherDef();
         poking = false;
         Node.process.on("uncaughtException", uncaughtException);
         Node.process.on("SIGTRM", shutdown);
@@ -108,9 +112,10 @@ enum LineStore {
             return;
         }
         generateInitFiles(initBundle.serverFolder);
-        copyGmDebugLuaFiles(initBundle.serverFolder);
+        copyGmDebugLuaFiles();
         if (!args.noCopy) {
-            copyProjectFiles(args.copyAddonBaseFolder,args.copyAddonName);
+            copyProjectFiles();
+            fileWatcher.watch(initBundle);
         }
         dapMode = LAUNCH(childProcess);
         childProcessSetup(childProcess);
@@ -161,18 +166,15 @@ enum LineStore {
         initFromBundle(req,args,initBundle);
     }
 
-    function copyGmDebugLuaFiles(serverFolder:String) {
-        final addonFolder = HxPath.join([serverFolder, "addons"]);
-        recurseCopy('generated',addonFolder,(_) -> true);
+    function copyGmDebugLuaFiles() {
+        recurseCopy('generated',initBundle.serverAddonFolder,(_) -> true);
     }
 
-    function copyProjectFiles(relative:String,addonName:String) {
-        final luaAddon = HxPath.join([workspaceFolder,relative]);
-        final destination = HxPath.join([initBundle.serverFolder,"addons",addonName]);
-        if (!Fs.existsSync(destination)) {
-            Fs.mkdirSync(destination);
+    function copyProjectFiles() {
+        if (!Fs.existsSync(initBundle.luaAddonDestination)) {
+            Fs.mkdirSync(initBundle.luaAddonDestination);
         }
-        recurseCopy(luaAddon,destination,(file -> {trace(file); return file.charAt(0) != ".";}));
+        recurseCopy(initBundle.luaAddon,initBundle.luaAddonDestination,(file -> {trace(file); return file.charAt(0) != ".";}));
     }
 
     function generateInitFiles(serverFolder:String) {

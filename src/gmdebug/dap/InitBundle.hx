@@ -30,8 +30,17 @@ class InitBundle {
 
     public final argString:Null<String>;
 
+    public final luaAddonDestination:String;
+
+    public final luaAddon:String;
+
+    public final addonName:String;
+
+    public final serverAddonFolder:String;
+
     function new(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments,luadebug:LuaDebugger) {
         requestArguments = args;
+
         switch (validateServerFolder(args.serverFolder)) {
             case Error(id, variables):
                 req.composeFail(id,variables).send(luadebug);
@@ -40,6 +49,7 @@ class InitBundle {
         }
         final serverSlash = HxPath.addTrailingSlash(args.serverFolder);
         serverFolder = serverSlash;
+
         if (!args.nodebugClient && args.clientFolder == null) {
             req.composeFail(DEBUGGER_INVALID_CLIENTFOLDER_UNSPECIFIED).send(luadebug);
             throw new InitBundleException("Debugging clients requested but no clientFolder specified");
@@ -68,6 +78,7 @@ class InitBundle {
         if (!HxPath.isAbsolute(programPath)) {
             programPath = HxPath.join([serverFolder,programPath]);
         }
+
         switch (validateProgramPath(programPath)) {
             case Error(id, variables):
                 req.composeFail(id,variables).send(luadebug);
@@ -75,6 +86,7 @@ class InitBundle {
             default:
         }
         shouldAutoConnect = args.autoConnectLocalGmodClient.or(false);
+
         var clientFolder = args.clientFolder;
         if (clientFolder != null) {
             switch (validateClientFolder(clientFolder)) {
@@ -86,8 +98,17 @@ class InitBundle {
             clientFolder = HxPath.addTrailingSlash(clientFolder);
         }
         clientLocation = clientFolder;
+
         var programArgs = args.programArgs.or([]);
         argString = programArgs.join(" ");
+
+        var relative = args.copyAddonBaseFolder;
+        luaAddon = HxPath.join([luadebug.workspaceFolder,relative]);
+
+        addonName = args.copyAddonName;
+        luaAddonDestination = HxPath.join([serverFolder,"addons",addonName]);
+
+        serverAddonFolder = HxPath.join([serverFolder,"addons"]);
     }
 
 
