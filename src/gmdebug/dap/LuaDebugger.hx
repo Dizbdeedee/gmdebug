@@ -13,11 +13,13 @@ import js.node.Buffer;
 import haxe.io.Path as HxPath;
 import js.node.net.Socket;
 import vscode.debugAdapter.DebugSession;
-import js.node.ChildProcess;
+import js.node.child_process.ChildProcess;
 import gmdebug.GmDebugMessage;
 import gmdebug.dap.ResponseIntercepter;
 import gmdebug.dap.GmodClientOpener;
 import js.node.stream.Readable;
+import js.node.stream.Writable;
+import gmdebug.dap.LaunchProcessor;
 import gmdebug.dap.Log;
 
 using tink.CoreApi;
@@ -58,6 +60,8 @@ enum LineStore {
 
     var responseIntercepter:ResponseIntercepter;
 
+    var launchProcessor:LaunchProcessor;
+
     var workspaceFolder:String;
 
     var pokeClientCancel:Timeout;
@@ -75,6 +79,7 @@ enum LineStore {
         eventIntercepter = new EventIntercepterDef(this);
         responseIntercepter = new ResponseIntercepterDef();
         gmodClientOpener = new GmodClientOpenerMultirun();
+        launchProcessor = new LaunchProcessorDef();
         poking = false;
         Node.process.on("uncaughtException", uncaughtException);
         Node.process.on("SIGTRM", shutdown);
@@ -83,29 +88,77 @@ enum LineStore {
         checkPrograms();
     }
 
+    function initFromBundle(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments,initBundle:InitBundle) {
+        var launchProcessOpt = if (Sys.systemName() == "Linux") {
+            launchProcessor.launchLinux(initBundle.programPath,initBundle.argString);
+        } else {
+            launchProcessor.launchWindows(initBundle.programPath,initBundle.argString);
+        }
+        var childProcess = switch (launchProcessOpt) {
+            case Some(launchProcess):
+                launchProcess;
+            case None:
+                trace("initFromRequest: UNABLE TO LAUNCH PROCESS");
+                throw "InitFromRequest: Unable to launch process";
+        }
+        if (args.noDebug) {
+            dapMode = LAUNCH(childProcess);
+            final comp = (req : LaunchRequest).compose(launch,{});
+            comp.send(this);
+            return;
+        }
+        generateInitFiles(initBundle.serverFolder);
+        copyGmDebugLuaFiles(initBundle.serverFolder);
+        if (!args.noCopy) {
+            copyProjectFiles(args.copyAddonBaseFolder,args.copyAddonName);
+        }
+        dapMode = LAUNCH(childProcess);
+        childProcessSetup(childProcess);
+        final resp = req.compose(attach);
+        resp.send(this);
+        pokeServerTimeout().handle((result) -> {
+            switch (result) {
+                case Success(server):
+                    startPokeClients();
+                case Failure(err):
+                    shutdown();
+                    throw err;
+        }});
+    }
+
+    function childProcessSetup(childProcess:ChildProcess) {
+        childProcess.on("error", (err) -> {
+            new ComposedEvent(output, {
+                category: Stderr,
+                output: err.message + "\n" + err.stack,
+                data: null
+            }).send(this);
+            shutdown();
+        });
+        childProcess.on("exit", (sig) -> {
+            new ComposedEvent(output, {
+                category: Stderr,
+                output: "Gmod Server exited with code:" + sig,
+                data: null
+            }).send(this);
+            shutdown();
+        });
+        var createEventWritable = new Writable({
+            write: createEventFromStdout
+        });
+        childProcess.stdout.pipe(createEventWritable, {end: false});
+        childProcess.stderr.pipe(createEventWritable, {end: false});
+    }
+
     public function initFromRequest(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments) {
-        switch (InitBundle.initBundle(req,args,this)) {
+        initBundle = switch (InitBundle.initBundle(req,args,this)) {
             case Success(_initBundle):
-                initBundle = _initBundle;
-                var childProcess = new LaunchProcess(initBundle.programPath,this,initBundle.programArgs);
-                if (args.noDebug) {
-                    dapMode = LAUNCH(childProcess);
-                    final comp = (req : LaunchRequest).compose(launch,{});
-                    comp.send(this);
-                    return;
-                }
-                generateInitFiles(initBundle.serverFolder);
-                copyGmDebugLuaFiles(initBundle.serverFolder);
-                if (!args.noCopy) {
-                    copyProjectFiles(args.copyAddonBaseFolder,args.copyAddonName);
-                }
-                dapMode = LAUNCH(childProcess);
-                startServer(req);
+                _initBundle;
             case Failure(e):
                 trace(e);
                 throw "Couldn't create initBundle";
-
         };
+        initFromBundle(req,args,initBundle);
     }
 
     function copyGmDebugLuaFiles(serverFolder:String) {
@@ -142,26 +195,11 @@ enum LineStore {
         sys.io.File.saveContent(ourInitFile,initContents + appendContents);
     }
 
-    /**
-     * Async start server. Respond to attach request when attached.
-    **/
-    function startServer(attachReq:Request<Dynamic>) {
-        final resp = attachReq.compose(attach);
-        resp.send(this);
-        pokeServerTimeout().handle((result) -> {
-            switch (result) {
-                case Success(server):
-                    startPokeClients();
-                case Failure(err):
-                    shutdown();
-                    throw err;
-        }});
-    }
 
     function checkPrograms() {
         if (Sys.systemName() != "Linux") return;
         try {
-            ChildProcess.execSync("xdotool --help");
+            js.node.ChildProcess.execSync("xdotool --help");
             initBundle.programs.xdotool = true;
         } catch (e) {
             trace("Xdotool not found");
@@ -204,17 +242,21 @@ enum LineStore {
     function onReadableData(buff:global.Buffer,id:Int,lineStore:Array<LineStore>) {
         var str = buff.toString();
         var lineSplit = str.split("\r\n");
+        if (lineSplit.length == 1) {
+            lineStore[id] = switch (lineStore[id]) {
+                case LAST_SPLIT(lastline):
+                    LAST_SPLIT(lastline + lineSplit[0]);
+                case NO_SPLIT:
+                    LAST_SPLIT(lineSplit[0]);
+            }
+            return;
+        }
         trace(lineSplit);
         var firstLine = switch (lineStore[id]) {
             case LAST_SPLIT(lastline):
                 lastline + lineSplit[0];
             case NO_SPLIT:
                 lineSplit[0];
-        }
-        lineStore[id] = if (str.charAt(str.length - 1) == "\n") {
-            NO_SPLIT;
-        } else {
-            LAST_SPLIT(lineSplit[lineSplit.length - 2]);
         }
         new ComposedEvent(output, {
             category: Stdout,
@@ -228,12 +270,11 @@ enum LineStore {
                 data: null
             }).send(this);
         }
-        if (lineStore[id] == NO_SPLIT) {
-            new ComposedEvent(output, {
-                category: Stdout,
-                output: lineSplit[lineSplit.length - 1] + "\n",
-                data: null
-            }).send(this);
+        var lastLine = lineSplit[lineSplit.length - 1];
+        lineStore[id] = if (lastLine.length > 0) {
+            LAST_SPLIT(lastLine);
+        } else {
+            NO_SPLIT;
         }
     }
 
@@ -350,8 +391,8 @@ enum LineStore {
     public override function shutdown() {
         shutdownActive = true;
         switch (dapMode) {
-            case LAUNCH(child = {active : true}):
-                child.write("quit\n");
+            case LAUNCH(child = {connected : true}):
+                child.stdin.write("quit\n");
                 child.kill();
             default:
         }
@@ -366,7 +407,7 @@ enum LineStore {
         super.shutdown();
     }
 
-    public dynamic function childProcessWrite(chunk:Buffer, encoding, callback) {
+    function createEventFromStdout(chunk:Buffer, encoding, callback) {
         if (shutdownActive) return;
         var stringOutput = chunk.toString().replace("\r","");
         if (!stringOutput.contains(Cross.OUTPUT_INTERCEPTED)) {
@@ -407,5 +448,5 @@ typedef FileSocket = {
 
 enum DapMode {
     ATTACH;
-    LAUNCH(child:LaunchProcess);
+    LAUNCH(child:ChildProcess);
 }
