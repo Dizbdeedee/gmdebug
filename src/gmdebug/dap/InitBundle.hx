@@ -24,11 +24,11 @@ class InitBundle {
 
     public final requestArguments:Null<GmDebugLaunchRequestArguments>;
 
-    public final clientLocation:String;
+    public final clientLocation:Option<String>;
 
     public final programPath:String;
 
-    public final argString:Null<String>;
+    public final argString:String;
 
     public final luaAddonDestination:String;
 
@@ -37,6 +37,12 @@ class InitBundle {
     public final addonName:String;
 
     public final serverAddonFolder:String;
+
+    public final serverPort:String;
+
+    public final noDebug:Bool;
+
+    public final clients:Option<Int>;
 
     function new(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments,luadebug:LuaDebugger) {
         requestArguments = args;
@@ -87,17 +93,15 @@ class InitBundle {
         }
         shouldAutoConnect = args.autoConnectLocalGmodClient.or(false);
 
-        var clientFolder = args.clientFolder;
-        if (clientFolder != null) {
-            switch (validateClientFolder(clientFolder)) {
-                case Error(id, variables):
-                    req.composeFail(id,variables);
-                    throw new InitBundleException("Could not validate client folder");
-                default:
-            }
-            clientFolder = HxPath.addTrailingSlash(clientFolder);
+        clientLocation = switch(args.clientFolder) {
+            case null:
+                None;
+            case validateClientFolder(_) => Error(id, variables):
+                req.composeFail(id,variables);
+                throw new InitBundleException("Could not validate client folder");
+            case validateClientFolder(_) => None:
+                Some(args.clientFolder);
         }
-        clientLocation = clientFolder;
 
         var programArgs = args.programArgs.or([]);
         argString = programArgs.join(" ");
@@ -109,6 +113,18 @@ class InitBundle {
         luaAddonDestination = HxPath.join([serverFolder,"addons",addonName]);
 
         serverAddonFolder = HxPath.join([serverFolder,"addons"]);
+
+        serverPort = args.serverPort.or("27115");
+
+        noDebug = args.noDebug.or(false);
+
+        clients = if (args.nodebugClient) {
+            None;
+        } else if (args.clients == null) {
+            None;
+        } else {
+            Some(args.clients);
+        }
     }
 
 

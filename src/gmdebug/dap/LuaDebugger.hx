@@ -94,9 +94,9 @@ enum LineStore {
 
     function initFromBundle(req:Request<Dynamic>,args:GmDebugLaunchRequestArguments,initBundle:InitBundle) {
         var launchProcessOpt = if (Sys.systemName() == "Linux") {
-            launchProcessor.launchLinux(initBundle.programPath,initBundle.argString);
+            launchProcessor.launchLinux(initBundle.programPath,initBundle.argString,initBundle.serverPort);
         } else {
-            launchProcessor.launchWindows(initBundle.programPath,initBundle.argString);
+            launchProcessor.launchWindows(initBundle.programPath,initBundle.argString,initBundle.serverPort);
         }
         var childProcess = switch (launchProcessOpt) {
             case Some(launchProcess):
@@ -280,20 +280,26 @@ enum LineStore {
         }
     }
 
-    function serverInfoMessage(x:GMServerInfoMessage) {
-        final clientLoc = initBundle.requestArguments.clientFolder;
-        final mrOptions = initBundle.requestArguments.multirunOptions;
-        final noDebug = initBundle.requestArguments.noDebug;
-        final noClients = initBundle.requestArguments.clients;
-        final sp = x.ip.split(":");
-        final ip = if (x.isLan) {
-            gmdebug.lib.js.Ip.address();
-        } else {
-            sp[0];
+    function launchClients() {
+        var clfolder = switch (initBundle.clientLocation) {
+            case None:
+               return;
+            case Some(clfolder):
+                clfolder;
         }
-        final port = sp[1];
-        if (!noDebug && noClients < 1) return;
-        var promReadables = gmodClientOpener.open({ip: ip,port: port},clientLoc,mrOptions,noClients);
+        var clients = switch (initBundle.clients) {
+            case None:
+                return;
+            case Some(clients):
+                clients;
+        }
+        final mrOptions = initBundle.requestArguments.multirunOptions;
+        final noDebug = initBundle.noDebug;
+        final port = initBundle.serverPort;
+        final noClients = initBundle.clients;
+        final ip = gmdebug.lib.js.Ip.address();
+        if (!noDebug && clients < 1) return;
+        var promReadables = gmodClientOpener.open({ip: ip,port: port},clfolder,mrOptions,clients);
         promReadables.inSequence().handle((out) -> {
             switch (out) {
                 case Success(readables):
@@ -302,14 +308,6 @@ enum LineStore {
                     trace('gmodClientOpener&serverInfoMessage: Failure $err');
             }
         });
-    }
-
-    function processCustomMessages(x:GmDebugMessage<Dynamic>) {
-        switch (x.msg) {
-            case serverInfo:
-                serverInfoMessage(cast x.body);
-            default:
-        }
     }
 
     @:async function pokeServerTimeout() {
@@ -321,22 +319,34 @@ enum LineStore {
             case LAUNCH(_):
                 clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: initBundle.serverFolder, dapMode: Launch}));
         }
+        launchClients();
         return Noise; //or server. who cares.
     }
 
     //move to clientpoker
     function startPokeClients() {
-        if (initBundle.clientLocation == null) return;
+        var clfolder = switch (initBundle.clientLocation) {
+            case None:
+               return;
+            case Some(clfolder):
+                clfolder;
+        }
         poking = true;
         trace("Poking the client");
-        clients.firstClient(initBundle.clientLocation);
+        clients.firstClient(clfolder);
         haxe.Timer.delay(pokeClients,500);
     }
 
 
     function pokeClients() {
         if (!poking || shutdownActive) return;
-        clients.attemptClient(initBundle.clientLocation).handle((clients) -> {
+        var clfolder = switch (initBundle.clientLocation) {
+            case None:
+               return;
+            case Some(clfolder):
+                clfolder;
+        }
+        clients.attemptClient(clfolder).handle((clients) -> {
             for (newClient in clients) {
                 trace('Setting up player: ${newClient.clID}');
                 setupPlayer(newClient.clID);
@@ -349,7 +359,6 @@ enum LineStore {
     function stopPokeClients() {
         if (poking != null) {
             poking = false;
-            // js.node.
         }
     }
 
@@ -384,7 +393,6 @@ enum LineStore {
             case "gmdebug":
                 final cmd = (cast debugeeMessage : GmDebugMessage<Dynamic>).msg;
                 tracev('$time DEBUGEE: recieved gmdebug, $cmd');
-                processCustomMessages(cast debugeeMessage);
             default:
                 throw "unhandled"; // this would be dumb...
         }

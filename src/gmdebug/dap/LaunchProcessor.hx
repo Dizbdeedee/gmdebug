@@ -8,9 +8,9 @@ using tink.CoreApi;
 
 interface LaunchProcessor {
 
-    function launchLinux(programPath:String,argString:String):Option<ChildProcess>;
+    function launchLinux(programPath:String,argString:String,port:String):Option<ChildProcess>;
 
-    function launchWindows(programPath:String,argString:String):Option<ChildProcess>;
+    function launchWindows(programPath:String,argString:String,port:String):Option<ChildProcess>;
 
 }
 
@@ -21,9 +21,12 @@ class LaunchProcessorDef implements LaunchProcessor {
 
     static final EXTRA_ARGS_WINDOWS = "-console";
 
+    static final ARG_PORT = "-port";
+
     public function new () {}
 
-    public function launchLinux(programPath:String,argString:String):Option<ChildProcess> {
+    //way behind... and not updated
+    public function launchLinux(programPath:String,argString:String,port:String):Option<ChildProcess> {
         var childProcess = js.node.ChildProcess.spawn('script -c \'$programPath -norestart $argString $EXTRA_ARGS\' /dev/null', {
             cwd: haxe.io.Path.directory(programPath),
             env: Node.process.env,
@@ -32,8 +35,8 @@ class LaunchProcessorDef implements LaunchProcessor {
         return Some(childProcess);
     }
 
-    public function launchWindows(programPath:String,argString:String):Option<ChildProcess> {
-        var childProcess = RedirectWorker.makeChildProcess(programPath,[EXTRA_ARGS_WINDOWS,argString,EXTRA_ARGS]);
+    public function launchWindows(programPath:String,argString:String,port:String):Option<ChildProcess> {
+        var childProcess = RedirectWorker.makeChildProcess(programPath,[EXTRA_ARGS_WINDOWS,ARG_PORT,port,argString,EXTRA_ARGS]);
         return Some(childProcess);
     }
 }
