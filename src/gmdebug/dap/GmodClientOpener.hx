@@ -1,13 +1,14 @@
 package gmdebug.dap;
 
 import js.node.Fs;
-import haxe.io.Path;
+import haxe.io.Path as HxPath;
 import gmdebug.PromiseUtil;
 import js.node.stream.Readable;
 import js.node.Buffer;
 import haxe.Timer;
 import sys.FileSystem;
 import js.node.ChildProcess;
+
 
 using tink.CoreApi;
 using StringTools;
@@ -45,23 +46,35 @@ class GmodClientOpenerMultirun implements GmodClientOpener {
     public function new() {}
 
     public function open(server:GmodServerConnect,clientLoc:String,mrOptionsArr:Array<String>,requestClients:Int):PromiseArray<IReadable> {
+        final connectPth = HxPath.join([clientLoc,"connect.dat"]);
+        final idlePath = HxPath.join([clientLoc,"data"]);
         final mrOptions = if (mrOptionsArr != null) {
             mrOptionsArr.join(" ");
         } else {
             "";
         }
-        var idleClients = 0;
-        for (i in 1...100) {
-            if (!Fs.existsSync('$CLIENT_IDLE$i.dat')) break;
-            idleClients++;
+        var activeClientIDs = [];
+        for (i in 0...100) {
+            var idleFilePth = HxPath.join([idlePath,'$CLIENT_IDLE$i.dat']);
+            if (Fs.existsSync(idleFilePth)) {
+                activeClientIDs.push(i);
+            }
         }
+        var idleClients = activeClientIDs.length;
         var spawnDiff = requestClients - idleClients;
+        var attaching = cast Math.min(requestClients,idleClients);
+        activeClientIDs = activeClientIDs.slice(0,attaching);
         var pa = new PromiseArray();
-        Fs.writeFileSync(haxe.io.Path.join([clientLoc,"connect.dat"]),'${server.ip}:${server.port}');
-        for (i in 1...idleClients - 1) {
+        if (Fs.existsSync(connectPth)) {
+            Fs.unlinkSync(connectPth);
+        }
+        if (idleClients > 0) {
+            Fs.writeFileSync(haxe.io.Path.join([clientLoc,"connect.dat"]),'${server.ip}:${server.port}');
+        }
+        for (i in activeClientIDs) {
             pa.add(attachGmodClient(clientLoc,i));
         }
-        for (i in idleClients...requestClients) {
+        for (i in 0...spawnDiff) {
             pa.add(spawnGmodClient(server,clientLoc,mrOptions,i));
         }
         return pa;
@@ -119,7 +132,13 @@ class GmodClientOpenerMultirun implements GmodClientOpener {
                 var run:() -> Void;
                 run = function() {
                     var buff = new Buffer(maxBuff);
-                    var fd = Fs.openSync(file,null,null);
+                    var fd = try {
+                        Fs.openSync(file,null,null);
+                    } catch (e) {
+                        trace('/resolve()/run $file does not exist!!!');
+                        haxe.Timer.delay(run,90);
+                        return;
+                    }
                     Fs.read(fd,buff,0,maxBuff,bytesReached,(err,bytesRead,buf) -> {
                         Fs.closeSync(fd);
                         haxe.Timer.delay(run,90);

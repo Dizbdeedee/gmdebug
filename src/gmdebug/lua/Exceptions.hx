@@ -45,11 +45,11 @@ class Exceptions {
 
     public function hooks() {
         hookGamemode();
-        // hookEntities();
-        // hookHooks();
+        hookEntities();
+        hookHooks();
         // hookEffects();
         // hookPanels();
-        // hookTimers();
+        hookTimers();
     }
 
     public function addExcept(target:Function):Dynamic {
@@ -82,7 +82,7 @@ class Exceptions {
     function shouldUnexcept(x:Dynamic) {
         return Lua.type(x) == "function" && isExcepted(x);
     }
-    
+
     function getOldFunc(hook:Function) {
         return exceptFuncs.get(hook);
     }
@@ -141,18 +141,18 @@ class Exceptions {
     //change to use PreRegisterSent hook
     function hookEntities() {
         for (entName in Scripted_entsLib.GetList().keys()) {
-			final entTbl = Scripted_entsLib.GetStored(entName);
-			for (ind => val in entTbl.t) {
-				entTbl.t[ind] = processExcept(val);
-			}
-		}
-		replaceStorage.scripted_ents_lib_register = Scripted_entsLib.Register;
-		untyped Scripted_entsLib.Register = (ENT,name) -> {
-			for (ind => val in ENT) {
-				ENT[ind] = processExcept(val);
-			}
-			replaceStorage.scripted_ents_lib_register(ENT,name);
-		}
+            final entTbl = Scripted_entsLib.GetStored(entName);
+            for (ind => val in entTbl.t) {
+                entTbl.t[ind] = processExcept(val);
+            }
+        }
+        replaceStorage.scripted_ents_lib_register = Scripted_entsLib.Register;
+        untyped Scripted_entsLib.Register = (ENT,name) -> {
+            for (ind => val in ENT) {
+                ENT[ind] = processExcept(val);
+            }
+            replaceStorage.scripted_ents_lib_register(ENT,name);
+        }
     }
 
     function hookTimers() {
@@ -179,7 +179,7 @@ class Exceptions {
         #end
     }
 
-  
+
 
     function hookEffects() {
         #if client
@@ -202,7 +202,7 @@ class Exceptions {
         if (replaceStorage.hooklib_add != null) {
             untyped HookLib.Add = replaceStorage.hooklib_add;
         }
-       
+
     }
 
     function unhookGamemode() {
@@ -221,16 +221,16 @@ class Exceptions {
             untyped Scripted_entsLib.Register = replaceStorage.scripted_ents_lib_register;
         }
         for (entName in Scripted_entsLib.GetList().keys()) {
-			final entTbl = Scripted_entsLib.GetStored(entName);
-			for (ind => val in entTbl.t) {
+            final entTbl = Scripted_entsLib.GetStored(entName);
+            for (ind => val in entTbl.t) {
                 entTbl.t[ind] = processUnExcept(val);
-			}
+            }
         }
     }
 
     function unhookSweps() {
         HookLib.Remove("PreRegisterSWEP","gmdebug_present");
-        
+
     }
 
     //can't unhook already hooked timers. problems ahoy

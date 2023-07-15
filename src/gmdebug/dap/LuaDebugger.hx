@@ -22,6 +22,7 @@ import js.node.stream.Writable;
 import gmdebug.dap.LaunchProcessor;
 import gmdebug.dap.FileWatcher;
 import gmdebug.dap.Log;
+import gmdebug.dap.OutputFilterer;
 
 using tink.CoreApi;
 using gmdebug.composer.ComposeTools;
@@ -65,6 +66,8 @@ enum LineStore {
 
     var fileWatcher:FileWatcher;
 
+    var outputFilterer:OutputFilterer;
+
     public var workspaceFolder:String; //oh dear
 
     var pokeClientCancel:Timeout;
@@ -79,14 +82,15 @@ enum LineStore {
         prevRequests = new PreviousRequests();
         clients = new ClientStorageDef(readGmodBuffer,this);
         requestRouter = new RequestRouter(this,clients,prevRequests);
-        eventIntercepter = new EventIntercepterDef(this);
+        outputFilterer = new OutputFiltererDef();
+        eventIntercepter = new EventIntercepterDef(this,outputFilterer);
         responseIntercepter = new ResponseIntercepterDef();
         gmodClientOpener = new GmodClientOpenerMultirun();
         launchProcessor = new LaunchProcessorDef();
         fileWatcher = new FileWatcherDef();
         poking = false;
         Node.process.on("uncaughtException", uncaughtException);
-        Node.process.on("SIGTRM", shutdown);
+        Node.process.on("SIGTRM", () -> beginShutdown(SIGTERM));
         shutdownActive = false;
         Sys.setCwd(HxPath.directory(HxPath.directory(Sys.programPath())));
         checkPrograms();
@@ -126,7 +130,8 @@ enum LineStore {
                 case Success(server):
                     startPokeClients();
                 case Failure(err):
-                    shutdown();
+                    trace(err);
+                    beginShutdown(POKESERVER_TIMEOUT);
                     throw err;
         }});
     }
@@ -138,7 +143,8 @@ enum LineStore {
                 output: err.message + "\n" + err.stack,
                 data: null
             }).send(this);
-            shutdown();
+            trace("shutting down from childprocess failure");
+            beginShutdown(CHILDPROCESS_ERROR);
         });
         childProcess.on("exit", (sig) -> {
             new ComposedEvent(output, {
@@ -146,7 +152,7 @@ enum LineStore {
                 output: "Gmod Server exited with code:" + sig,
                 data: null
             }).send(this);
-            shutdown();
+            beginShutdown(CHILDPROCESS_SIGNAL);
         });
         var createEventWritable = new Writable({
             write: createEventFromStdout
@@ -212,7 +218,7 @@ enum LineStore {
     function uncaughtException(err:js.lib.Error, origin) {
         trace(err.message);
         trace(err.stack);
-        // shutdown();
+        beginShutdown(UNCAUGHT_EXCEPTION);
     }
 
     function setupPlayer(clientID:Int) {
@@ -260,17 +266,17 @@ enum LineStore {
             case NO_SPLIT:
                 lineSplit[0];
         }
-        new ComposedEvent(output, {
-            category: Stdout,
-            output: firstLine + "\n",
-            data: null
-        }).send(this);
+        switch (outputFilterer.filter(CLIENT_CONSOLE(id),firstLine)) {
+            case Some(event):
+                event.send(this);
+            default:
+        }
         for (y in 1...lineSplit.length - 1) {
-            new ComposedEvent(output, {
-                category: Stdout,
-                output: lineSplit[y] + "\n",
-                data: null
-            }).send(this);
+            switch (outputFilterer.filter(CLIENT_CONSOLE(id),lineSplit[y])) {
+                case Some(event):
+                    event.send(this);
+                default:
+            }
         }
         var lastLine = lineSplit[lineSplit.length - 1];
         lineStore[id] = if (lastLine.length > 0) {
@@ -398,6 +404,17 @@ enum LineStore {
         }
     }
 
+    public function beginShutdown(reason:ShutdownReasons) {
+        var event = new ComposedEvent(output, {
+            data: null,
+            category: Stderr,
+            output: 'Shutting down gmdebug due to $reason'
+        });
+        sendEvent(event);
+        trace('SHUTDOWN $reason');
+        shutdown();
+    }
+
     public override function shutdown() {
         shutdownActive = true;
         switch (dapMode) {
@@ -419,14 +436,19 @@ enum LineStore {
 
     function createEventFromStdout(chunk:Buffer, encoding, callback) {
         if (shutdownActive) return;
-        var stringOutput = chunk.toString().replace("\r","");
-        if (!stringOutput.contains(Cross.OUTPUT_INTERCEPTED)) {
-            new ComposedEvent(output, {
-                category: Stdout,
-                output: stringOutput,
-                data: null
-            }).send(this);
+        switch (outputFilterer.filter(SERVER_CONSOLE,chunk.toString())) {
+            case Some(event):
+                event.send(this);
+            default:
         }
+        // var stringOutput = chunk.toString().replace("\r","");
+        // if (!stringOutput.contains(Cross.OUTPUT_INTERCEPTED)) {
+        //     new ComposedEvent(output, {
+        //         category: Stdout,
+        //         output: stringOutput,
+        //         data: null
+        //     }).send(this);
+        // }
         callback(null);
     }
 
@@ -459,4 +481,13 @@ typedef FileSocket = {
 enum DapMode {
     ATTACH;
     LAUNCH(child:ChildProcess);
+}
+
+enum ShutdownReasons {
+    SIGTERM;
+    CHILDPROCESS_SIGNAL;
+    CHILDPROCESS_ERROR;
+    UNCAUGHT_EXCEPTION;
+    POKESERVER_TIMEOUT;
+
 }

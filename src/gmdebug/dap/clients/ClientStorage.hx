@@ -172,8 +172,8 @@ class ClientStorageDef implements ClientStorage {
                 reason: Exited,
                 threadId: client.clID
             }));
-            client.disconnect();
-            clients[clID] = null;
+            client.disconnect(); //mm...
+            // clients[clID] = null;
         });
         return client;
     }
@@ -190,7 +190,7 @@ class ClientStorageDef implements ClientStorage {
                 threadId: server.clID
             }));
             server.disconnect();
-            clients[clID] = null;
+            // clients[clID] = null;
         });
         return server;
     }

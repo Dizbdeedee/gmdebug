@@ -164,7 +164,6 @@ class Debugee {
         Mri.DumpMemorySnapshot("gmdebugdump", "Before", -1);
         #end
         #if server
-        hookPlayer();
         sendMessage(new ComposedEvent(continued, {threadId: 0, allThreadsContinued: true}));
         #end
         if (!startLoop()) {
@@ -191,32 +190,6 @@ class Debugee {
     public inline function sendMessage(message:ComposedProtocolMessage) {
         send(Json.stringify(message));
     }
-
-    #if server
-    function hookPlayer() {
-        var tbl = lua.Table.create();
-        for (x in tbl) {
-            trace(x);
-        }
-        // HookLib.Add(PlayerConnect, "gmdebug-newplayer", (name, ip) -> {
-        //  new ComposedGmDebugMessage(playerAdded, {
-        //      name : name,
-
-        //  }).send();
-        // });
-        // HookLib.Add(PlayerDisconnected, "gmdebug-byeplayer", (ply) -> {
-        //  sendMessage(new ComposedGmDebugMessage(playerRemoved, {
-        //      playerID: ply.UserID()
-        //  }));
-        // });
-        // for (ply in PlayerLib.GetAll()) {
-        //  sendMessage(new ComposedGmDebugMessage(playerAdded, {
-        //      name: ply.Name(),
-        //      playerID: ply.UserID()
-        //  }));
-        // }
-    }
-    #end
 
     public function traceback(err:Any) {
         final _err = err;
@@ -276,6 +249,7 @@ class Debugee {
             }
             switch (chooseHandler(msg)) {
                 case DISCONNECT:
+                    trace("poll()/Debugee - request for disconnect from poll");
                     shutdown();
                 case PAUSE(pauseReq):
                     var resp = pauseReq.compose(pause,{});
@@ -289,7 +263,7 @@ class Debugee {
             trace(err);
             DebugLib.Trace();
         });
-       
+
 
     }
 
@@ -336,7 +310,7 @@ class Debugee {
         #elseif client
         Gmod.RunConsoleCommand("cl_timeout", 999999);
         #end
-		Lua.print("Attempting connection to gmdebug... please wait");
+        Lua.print("Attempting connection to gmdebug... please wait");
         var timeout = Gmod.SysTime() + CONNECT_TIMEOUT;
         while (!socketActive && Gmod.SysTime() < timeout) {
             start();
@@ -405,7 +379,7 @@ class Debugee {
         hooksActive = false;
         socket = null;
         socketActive = false;
-        trace("Debugging aborted");
+        trace("Debugee - We've shutdown debugging");
     }
 
     function startLoop() {
@@ -434,6 +408,7 @@ class Debugee {
                     success = false;
                     break;
                 case DISCONNECT:
+                    trace("startLoop()/Debugee - request for disconnect from startloop");
                     shutdown();
                     success = false;
                     break;
@@ -470,6 +445,7 @@ class Debugee {
                 case CONTINUE:
                     break;
                 case DISCONNECT:
+                    trace("haltLoop()/Debugee - request for disconnect from haltLoop");
                     shutdown();
                     break;
             }
