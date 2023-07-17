@@ -28,46 +28,45 @@ typedef InitDebugLoop = {
 
 class DebugLoop {
 
-    static final DEBUG_NOW = true;
+    static var lineInfoFuncCache:haxe.ds.ObjectMap<Function, Bool> = new haxe.ds.ObjectMap(); ///why is this here?
 
-    static var debugNow = false;
+    static var currentFunc:Null<haxe.Constraints.Function> = null; //functionalbp
 
-    static var debugNowCount = 0;
+    static var highestStackHeight:Float = Math.POSITIVE_INFINITY; //swithc hook state
 
-    static var lineInfoFuncCache:haxe.ds.ObjectMap<Function, Bool> = new haxe.ds.ObjectMap();
+    static var escapeHatch:CatchOut = NONE; //switch hook state
 
-    static var currentFunc:Null<haxe.Constraints.Function> = null;
+    static var prevFunc:Null<Function> = null; //calculating stack height
 
-    static var highestStackHeight:Float = Math.POSITIVE_INFINITY;
+    static var prevStackHeight:Int = 0; //calculating stack height
 
-    static var escapeHatch:CatchOut = NONE;
+    static var debugStopExecution = 10; //debug debug loop
 
-    static var prevFunc:Null<Function> = null;
+    static var debugCheckRun = 0; //debug debug loop
 
-    static var prevStackHeight:Int = 0;
-
-    static var debugStopExecution = 10;
-
-    static var debugCheckRun = 0;
-
-    static var debugCheckRuns = 10000;
+    static var debugCheckRuns = 10000; //debug debug loop
 
     static final STACK_LIMIT = 65450; //could dynamically check this..
 
     //dee dee diane
-    static var lineSteppin:Bool = false;
+    static var lineSteppin:Bool = false; //switch hook state, set when changing to line stepping
 
-    static var supressCheckStack:Option<Int> = None;
+    static var bm:Null<BreakpointManager>; //check breakpoints, switch hook state
 
-    static var bm:Null<BreakpointManager>;
+    static var sc:Null<SourceContainer>;  //optimisation
 
-    static var sc:Null<SourceContainer>;
+    static var exceptions:Null<Exceptions>; //stop running debug when in except func
 
-    static var exceptions:Null<Exceptions>;
+    static var debugee:Debugee; //check for
 
-    static var debugee:Debugee;
+    /*
+        startHaltLoop
+        sendMessage
+        what state we're in?????
+        poll active and traceback active
+     */
 
-    static var fbm:Null<FunctionBreakpointManager>;
+    static var fbm:Null<FunctionBreakpointManager>; //functional breakpoints n all that
 
     public static function init(initDebugLoop:InitDebugLoop) {
         bm = initDebugLoop.bm;
