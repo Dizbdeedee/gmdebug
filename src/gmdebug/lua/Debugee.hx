@@ -279,9 +279,7 @@ class Debugee {
         sc = new SourceContainer({
             debugee: this
         });
-        customHandlers = new CustomHandlers({
-            debugee : this
-        });
+        customHandlers = new CustomHandlers();
         outputter = new Outputter({
             vm: vm,
             debugee: this
@@ -458,7 +456,15 @@ class Debugee {
             case null:
                 throw "message sent to us had a null type";
             case "gmdebug":
-                DebugContext.debugContext({customHandlers.handle(cast incoming);});
+                var result;
+                DebugContext.debugContext({result = customHandlers.handle(cast incoming);});
+                switch (result) {
+                    case CLIENT_ID(id):
+                        clientID = id;
+                    case INITIAL_INFO(_dest,_dapMode):
+                        dest = _dest;
+                        dapMode = _dapMode;
+                }
                 WAIT; // this is a safe option in all scenarios.
             case MessageType.Request:
                 DebugContext.debugContext({hc.handlers(cast incoming);});

@@ -7,40 +7,39 @@ import gmdebug.GmDebugMessage;
 import gmod.Gmod;
 
 
-typedef InitCustomHandlers = {
-    debugee : Debugee
-}
+
 class CustomHandlers {
 
-    final debugee:Debugee;
+    public function new() {}
 
-    public function new(initCustomHandlers:InitCustomHandlers) {
-        debugee = initCustomHandlers.debugee;
-    }
-
-    public function handle(x:GmDebugMessage<Dynamic>) {
-        switch (x.msg) {
+    public function handle(x:GmDebugMessage<Dynamic>):CustomHandlersResponse {
+        return switch (x.msg) {
             case clientID:
                 h_clientID(cast x);
             case intialInfo:
                 h_initalInfo(cast x);
             case playerAdded | playerRemoved | serverInfo:
-                throw "dur";
+                throw "Invalid customhandlers message";
+            default:
+                throw "Invalid customhandlers message";
         }
     }
 
     function h_clientID(x:GmDebugMessage<GMClientID>) {
         trace('recieved id ${x.body.id}');
-        debugee.clientID = x.body.id;
+        return CLIENT_ID(x.body.id);
     }
 
     function h_initalInfo(x:GmDebugMessage<GmDebugIntialInfo>) {
-        debugee.dest = x.body.location;
-        if (x.body.dapMode == Launch) {
-            //this is where we would send ip...
-            debugee.dapMode = Launch;
+        return if (x.body.dapMode == Launch) { //previously send IP
+            INITIAL_INFO(x.body.location,Launch);
         } else {
-            debugee.dapMode = Attach;
+            INITIAL_INFO(x.body.location,Attach);
         }
     }
+}
+
+enum CustomHandlersResponse {
+    CLIENT_ID(id:Int);
+    INITIAL_INFO(dest:String,dapMode:DapModeStr);
 }

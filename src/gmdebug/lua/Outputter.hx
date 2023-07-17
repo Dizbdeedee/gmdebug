@@ -33,9 +33,15 @@ class Outputter {
 
     final cacheOutputResults:Array<Dynamic> = [];
 
+    var socket:SocketSend;
+
     public function new(initOutputter:InitOutputter) {
         vm = initOutputter.vm;
         debugee = initOutputter.debugee;
+    }
+
+    public function setSocket(_socket:SocketSend) {
+        socket = _socket;
     }
 
     public function hookPrint() {

@@ -36,7 +36,6 @@ class EventIntercepterDef implements EventIntercepter {
                 } else {
                     SERVER_LUA;
                 }
-                trace("whatever");
                 switch (outputFilterer.filter(filterType,outputEvent.body.output)) {
                     case Some(event):
                         event.send(luaDebug);
