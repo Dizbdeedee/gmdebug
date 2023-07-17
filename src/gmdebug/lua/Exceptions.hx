@@ -27,18 +27,20 @@ typedef ReplaceStorage = {
     ?effectslib_register : Function
 }
 
+typedef TracebackFunction = (err:Dynamic) -> Dynamic;
+
 class Exceptions {
 
     final exceptFuncs:ObjectMap<Dynamic,Dynamic> = new ObjectMap();
 
-    final debugee:Debugee;
-
     final replaceStorage:ReplaceStorage = {};
+
+    final tracebackFunc:TracebackFunction;
 
     var xpCallActive = false;
 
-    public function new(_debugee:Debugee) {
-        debugee = _debugee;
+    public function new(_tracebackFunc:TracebackFunction) {
+        tracebackFunc = _tracebackFunc;
         exceptFuncs.setWeakKeyValuesM();
         WeakTools.setGCMethod(cast this,__gc);
     }
@@ -53,7 +55,7 @@ class Exceptions {
     }
 
     public function addExcept(target:Function):Dynamic {
-        final traceback:(err:String) -> Void = (err) -> debugee.traceback(err);
+        final traceback:(err:String) -> Void = (err) -> tracebackFunc(err);
         final exceptSelf = this;
         var catchError = untyped __lua__(embedResource("Catch"),exceptSelf);
         var xpCall = untyped __lua__(embedResource("XPCall"),target,traceback,catchError,exceptSelf);

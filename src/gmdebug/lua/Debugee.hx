@@ -287,7 +287,7 @@ class Debugee {
         bm = new BreakpointManager({
             debugee: this
         });
-        exceptions = new Exceptions(this);
+        exceptions = new Exceptions(this.traceback);
         fbm = new FunctionBreakpointManager();
         hc = new HandlerContainer({
             vm : vm,
