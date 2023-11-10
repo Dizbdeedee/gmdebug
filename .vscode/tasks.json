@@ -7,7 +7,7 @@
             "label": "custom buildall",
             "type": "shell",
             "options": {"shell": {"executable": "cmd", "args": []}},
-            "command": "/C \"haxe buildall.hxml\""
+            "command": "/C \"lix buildall.hxml\""
         },
         {
             "label": "custom dogfood",

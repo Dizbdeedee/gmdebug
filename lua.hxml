@@ -18,4 +18,4 @@
 -dce full
 --macro gmod.helpers.macros.InitMacro.init()
 --macro gmdebug.lua.macros.InitMacro.addDebugContext()
---cmd haxe -lib gmodhaxe --run gmod.helpers.macros.PostCompileMacro
+--cmd lix -lib gmodhaxe --run gmod.helpers.macros.PostCompileMacro
