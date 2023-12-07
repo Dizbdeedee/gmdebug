@@ -24,7 +24,7 @@ class GmodClientOpenerSteam implements GmodClientOpener {
 
 }
 
-final CLIENT_DASH_OPTIONS = "-multirun -condebug";
+final CLIENT_DASH_OPTIONS = "-multirun -condebug -w 800 -h 600 -windowed";
 
 final CLIENT_PLUS_OPTIONS = "+sv_lan 1";
 
@@ -147,7 +147,7 @@ class GmodClientOpenerMultirun implements GmodClientOpener {
                             var push = untyped readable.push(sliceBuff);
                             bytesReached += bytesRead;
                             if (!push) bytesReached -= bytesRead;
-                            trace('$bytesReached bytesReached');
+                            //trace('$bytesReached bytesReached');
                         }
                     });
                 }

@@ -259,7 +259,7 @@ enum LineStore {
             }
             return;
         }
-        trace(lineSplit);
+        // trace(lineSplit);
         var firstLine = switch (lineStore[id]) {
             case LAST_SPLIT(lastline):
                 lastline + lineSplit[0];

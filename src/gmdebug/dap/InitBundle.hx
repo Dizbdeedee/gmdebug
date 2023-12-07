@@ -96,8 +96,9 @@ class InitBundle {
         clientLocation = switch(args.clientFolder) {
             case null:
                 None;
-            case validateClientFolder(_) => Error(id, variables):
+            case validateClientFolder(_) => e = Error(id, variables):
                 req.composeFail(id,variables);
+                trace(e);
                 throw new InitBundleException("Could not validate client folder");
             case validateClientFolder(_) => None:
                 Some(args.clientFolder);
@@ -177,7 +178,7 @@ class InitBundle {
             Error(DEBUGGER_INVALID_CLIENTFOLDER_NOTEXIST,{folder : folder});
         } else if (!Fs.statSync(folder).isDirectory()) {
             Error(DEBUGGER_INVALID_CLIENTFOLDER_NOTDIR,{folder : folder});
-        } else if (!Fs.existsSync(addonFolder) || !Fs.statSync(addonFolder).isDirectory()) {
+        } else if (!Fs.existsSync(addonFolder) || !Fs.statSync(addonFolder).isDirectory()) { //BY DEFAULT ADDONS FOLDER IS NOT CREATED (slap)
             Error(DEBUGGER_INVALID_CLIENTFOLDER_NOTGMOD, {folder : folder});
         } else {
             None;

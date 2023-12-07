@@ -15,6 +15,7 @@
 -D lua-ver=5.1
 --resource src/gmdebug/lua/include/XPCall.lua@XPCall
 --resource src/gmdebug/lua/include/Catch.lua@Catch
+--resource src/gmdebug/lua/include/FakeXPCall.lua@FakeXPCall
 -dce full
 --macro gmod.helpers.macros.InitMacro.init()
 --macro gmdebug.lua.macros.InitMacro.addDebugContext()

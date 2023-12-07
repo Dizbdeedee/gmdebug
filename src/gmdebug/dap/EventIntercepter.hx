@@ -30,18 +30,18 @@ class EventIntercepterDef implements EventIntercepter {
     public function event(ceptedEvent:Event<Dynamic>, threadId:Int):EventResult {
         return switch ((ceptedEvent.event : EventString<Dynamic>)) {
             case output:
-                final outputEvent:OutputEvent = cast ceptedEvent;
-                var filterType:FilterSource = if (threadId > 0) {
-                    CLIENT_LUA(threadId);
-                } else {
-                    SERVER_LUA;
-                }
-                switch (outputFilterer.filter(filterType,outputEvent.body.output)) {
-                    case Some(event):
-                        event.send(luaDebug);
-                    default:
-                }
-                NoSend;
+                // final outputEvent:OutputEvent = cast ceptedEvent;
+                // var filterType:FilterSource = if (threadId > 0) {
+                //     CLIENT_LUA(threadId);
+                // } else {
+                //     SERVER_LUA;
+                // }
+                // switch (outputFilterer.filter(filterType,outputEvent.body.output)) {
+                //     case Some(event):
+                //         event.send(luaDebug);
+                //     default:
+                // }
+                Send;
             case stopped:
                 final stoppedEvent:StoppedEvent = cast ceptedEvent;
                 if (luaDebug.initBundle.programs.xdotool && stoppedEvent.body.threadId > 0) {

@@ -9,6 +9,8 @@ import gmdebug.lua.managers.VariableManager;
 import gmod.Gmod;
 import gmdebug.composer.*;
 import gmdebug.Cross.OUTPUT_INTERCEPTED;
+import gmdebug.Cross.OUTPUT_INTERCEPTED_END;
+
 import haxe.Constraints.Function;
 import lua.Table;
 import gmod.libs.DebugLib;
@@ -43,7 +45,7 @@ class Outputter {
         if (G.__oldprint == null) {
             G.__oldprint = G.print;
         }
-        G.print = printFunc;
+        G.print = overridePrintFunc;
     }
 
     public function unhookPrint() {
@@ -63,7 +65,7 @@ class Outputter {
     }
 
 
-    function printFunc(...rest:Dynamic) {
+    function overridePrintFunc(...rest:Dynamic) {
         if (ignoreTrace) {
             G.__oldprint(rest);
             return;
@@ -80,18 +82,19 @@ class Outputter {
             sh += outputOffset.get(info.func);
         }
         sh += 1;//pcall, output
-        printOutput(sh,rest.toArray());
+        cleanupOutputAndSend(sh,rest.toArray());
         var hookedRest = rest.prepend(OUTPUT_INTERCEPTED);
+        hookedRest.append(OUTPUT_INTERCEPTED_END);
         G.__oldprint(TableTools.unpack(cast hookedRest));
         ignoreTrace = false;
     }
 
-    function printOutput(sh:Int,vargs:Array<Dynamic>) {
+    function cleanupOutputAndSend(sh:Int,vargs:Array<Dynamic>) {
         var out:String = "";
         for (dyn in vargs) {
             out += Gmod.tostring(dyn) + "\t";
         }
-        // out += "\n"; //mmm...
+        out += "\n"; //mmm...
 
         final body:TOutputEvent = {
             category: Stdout,

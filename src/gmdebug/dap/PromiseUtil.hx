@@ -7,7 +7,8 @@ import js.node.util.Promisify;
 using tink.CoreApi;
 
 //NO
-extern class PromiseUtil {
+//^ ominous...
+class PromiseUtil {
 
     public static extern inline function prom_open(cl:Class<Fs>,rest:Rest<Dynamic>):Promise<Dynamic> {
         return Promisify.promisify(Fs.open)(rest).toPromise();

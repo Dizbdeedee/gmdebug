@@ -6,7 +6,7 @@ using StringTools;
 
 interface OutputFilterer {
     function filter(source:FilterSource,msg:String):Option<ComposedEvent<Dynamic>>;
-    function setFlags(flag:Array<FilterFilter>):Void;
+    function setFlags(flag:Array<FilterFilterFilter>):Void;
 }
 
 enum FilterSource {
@@ -16,6 +16,10 @@ enum FilterSource {
     SERVER_LUA;
 }
 
+enum FilterFilterFilter {
+    ACTIVE(fl:FilterFilter);
+    NOT_ACTIVE(fl:FilterFilter);
+}
 enum FilterFilter {
     CLIENT_CONSOLE(ids:Array<Int>);
     CLIENT_LUA(ids:Array<Int>);
@@ -27,7 +31,7 @@ class OutputFiltererDef implements OutputFilterer {
 
     public function new() {}
 
-    var flags = [null,CLIENT_LUA([]),SERVER_CONSOLE,SERVER_LUA];
+    var flags = [NOT_ACTIVE(CLIENT_CONSOLE(null)),NOT_ACTIVE(CLIENT_LUA(null)),ACTIVE(SERVER_CONSOLE),ACTIVE(SERVER_LUA)];
 
     public function filter(source:FilterSource,msg:String):Option<ComposedEvent<Dynamic>> {
         if (!shouldPublish(source)) return None;
@@ -38,33 +42,50 @@ class OutputFiltererDef implements OutputFilterer {
                 return None;
         }
         var outputBuf = new StringBuf();
-        switch (source) {
-            case CLIENT_CONSOLE(id) | CLIENT_LUA(id):
-                outputBuf.add("[C");
-                outputBuf.add(id);
-                outputBuf.add("] - ");
-            case SERVER_CONSOLE | SERVER_LUA:
-                outputBuf.add("[S] - ");
-        }
         outputBuf.add(newmsg);
-        outputBuf.add("\n");
-        return Some(new ComposedEvent(output,{
-            category: Stdout,
-            output: outputBuf.toString(),
-            data: null
-        }));
+        return Some(new ComposedEvent(output,consoleSource(source,outputBuf)));
+    }
+
+    function consoleSource(source:FilterSource,outputbuf:StringBuf):TOutputEvent {
+        switch source {
+            case CLIENT_CONSOLE(id):
+                return {
+                    category: Stdout,
+                    output: outputbuf.toString(),
+                    source: {
+                        name: 'client_console_$id'
+                    },
+                    data: null
+                }
+            case SERVER_CONSOLE:
+                return {
+                    category: Stdout,
+                    output: outputbuf.toString(),
+                    source: {
+                        name: "server_console"
+                    },
+                    data: null
+                }
+            default:
+                return {
+                    category: Stdout,
+                    output: outputbuf.toString(),
+                    data: null
+                }
+        }
     }
 
     function handleOutputIntercept(source:FilterSource,msg:String):Option<String> {
         if (!msg.contains(Cross.OUTPUT_INTERCEPTED)) return Some(msg);
         var newmsg = msg.replace(Cross.OUTPUT_INTERCEPTED,"");
+        // we want to print the intercepted messages if we aren't displaying the cleaned output version
         switch [source,flags] {
-            case [CLIENT_CONSOLE(_),[_,null,_,_]]:
+            case [CLIENT_CONSOLE(_),[_,NOT_ACTIVE(CLIENT_LUA(_)),_,_]]:
                 return Some(newmsg);
             default:
         }
         switch [source,flags] {
-            case [SERVER_CONSOLE,[_,_,null,_]]:
+            case [SERVER_CONSOLE,[_,_,_,NOT_ACTIVE(SERVER_LUA)]]: //SEE! I GOT IT WRONG
                 return Some(newmsg);
             default:
         }
@@ -74,7 +95,7 @@ class OutputFiltererDef implements OutputFilterer {
 
     function shouldPublish(source:FilterSource) {
         switch [source,flags] {
-            case [CLIENT_CONSOLE(id),[CLIENT_CONSOLE(filters),_,_,_]]:
+            case [CLIENT_CONSOLE(id),[ACTIVE(CLIENT_CONSOLE(filters)),_,_,_]]:
                 return if (filters.contains(id)) {
                     false;
                 } else {
@@ -83,7 +104,7 @@ class OutputFiltererDef implements OutputFilterer {
             default:
         }
         switch [source,flags] {
-            case [CLIENT_LUA(id),[_,CLIENT_LUA(filters),_,_]]:
+            case [CLIENT_LUA(id),[_,ACTIVE(CLIENT_LUA(filters)),_,_]]:
                 return if (filters.contains(id)) {
                     false;
                 } else {
@@ -92,19 +113,19 @@ class OutputFiltererDef implements OutputFilterer {
             default:
         }
         switch [source,flags] {
-            case [SERVER_CONSOLE,[_,_,SERVER_CONSOLE,_]]:
+            case [SERVER_CONSOLE,[_,_,ACTIVE(SERVER_CONSOLE),_]]:
                 return true;
             default:
         }
         switch [source,flags] {
-            case [SERVER_LUA,[_,_,_,SERVER_LUA]]:
+            case [SERVER_LUA,[_,_,_,ACTIVE(SERVER_LUA)]]:
                 return true;
             default:
         }
         return false;
     }
 
-    public function setFlags(arr:Array<FilterFilter>) {
+    public function setFlags(arr:Array<FilterFilterFilter>) {
         flags = arr;
     }
 

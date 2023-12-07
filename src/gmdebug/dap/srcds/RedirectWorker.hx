@@ -153,7 +153,6 @@ class RedirectWorker {
                 }
                 if (firstNewLine < 0) {
                     if (hist) {
-
                         HandleCommandLineDisplay(r,screenSize);
                         return;
                     } else {
@@ -171,7 +170,7 @@ class RedirectWorker {
                         "\n";
                     }
                 
-                    Node.process.stdout.write(outputBuffer[i] + newline);
+                    Node.process.stdout.write(outputBuffer[i] + "\n"); //ignore above for now, are we missing something?
                 }
 
                 final sizeDiff = oldOutput.length - screenSize;
@@ -193,7 +192,7 @@ class RedirectWorker {
                 canLoop = false;
             }
             if (canLoop) {
-                Timers.setTimeout(mainLoop,25);
+                Timers.setTimeout(mainLoop,1);
             } else {
                 r.Destroy();
                 Node.process.exit(1);

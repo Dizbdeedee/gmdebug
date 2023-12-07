@@ -56,7 +56,7 @@ class Util {
 	public static function traceStack(?desired:Int) {
 		trace('0 | This func... (getinfo + 1)');
 		for (i in 1...99999) {
-			var info = DebugLib.getinfo((i + 1), "lnSfu");
+			var info = DebugLib.getinfo(i, "lnSfu");
 			if (info == null) break;
 			var target = if (i == desired) {
 				"| TARGET";

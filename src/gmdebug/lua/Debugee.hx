@@ -191,7 +191,7 @@ class Debugee {
         send(Json.stringify(message));
     }
 
-    public function traceback(err:Any) {
+    public function traceback(err:Any, ?alt:Int) {
         final _err = err;
         if (pollActive) return err;
         if (pauseLoopActive || tracebackActive) {
@@ -201,7 +201,10 @@ class Debugee {
         if (!hooksActive || !socketActive)
             return _err;
         tracebackActive = true;
-        DebugContext.enterDebugContext();
+        Lua.print('ALT $alt');
+        Util.traceStack();
+        if (alt == null) alt = 0;
+        DebugContext.enterDebugContextSet(3 + alt);
         if (err is haxe.Exception) {
             DebugContext.debugContext({startHaltLoop(Exception, (err : haxe.Exception).message);});
         } else {
@@ -490,7 +493,7 @@ typedef LineMap = Map<Int, Bool>;
 @:native("_G") private extern class G {
     static var previousSocket:Null<DebugIO>;
 
-    static dynamic function __gmdebugTraceback(err:Any):Any;
+    static dynamic function __gmdebugTraceback(err:Any,?alt:Int):Any;
 }
 
 enum DebugState {

@@ -24,10 +24,12 @@ typedef ReplaceStorage = {
     ?timerlib_create : Function,
     ?timerlib_simple : Function,
     ?vguilib_register : Function,
-    ?effectslib_register : Function
+    ?effectslib_register : Function,
+    ?include : Function,
+    ?xpcall : Dynamic
 }
 
-typedef TracebackFunction = (err:Dynamic) -> Dynamic;
+typedef TracebackFunction = (err:Dynamic, ?alt:Int) -> Dynamic;
 
 class Exceptions {
 
@@ -49,16 +51,33 @@ class Exceptions {
         hookGamemode();
         hookEntities();
         hookHooks();
+        hookInclude();
         // hookEffects();
         // hookPanels();
         hookTimers();
     }
 
+    function fakeXPCall(xpcall:Function,traceback:Function) {
+        var exceptSelf = this;
+        var realxcall = xpcall;
+        final traceback:(err:String,?alt:Int) -> Void = (err,?alt) -> tracebackFunc(err,alt);
+        var fakexcall = untyped __lua__(embedResource("FakeXPCall"),exceptSelf,traceback,realxcall);
+        exceptFuncs.set(traceback,xpcall);
+        exceptFuncs.set(fakexcall,xpcall);
+        return fakexcall;
+    }
+
     public function addExcept(target:Function):Dynamic {
+        if (replaceStorage.xpcall == null) {
+            replaceStorage.xpcall = cast Gmod.xpcall;
+            untyped Gmod.xpcall = fakeXPCall(cast replaceStorage.xpcall,traceback);
+            // untyped Gmod.xpcall = addExcept(replaceStorage.xpcall); //woah
+        }
+        final xcall = cast replaceStorage.xpcall;
         final traceback:(err:String) -> Void = (err) -> tracebackFunc(err);
         final exceptSelf = this;
         var catchError = untyped __lua__(embedResource("Catch"),exceptSelf);
-        var xpCall = untyped __lua__(embedResource("XPCall"),target,traceback,catchError,exceptSelf);
+        var xpCall = untyped __lua__(embedResource("XPCall"),target,traceback,catchError,exceptSelf,xcall);
         exceptFuncs.set(traceback,target);
         exceptFuncs.set(catchError,target);
         exceptFuncs.set(xpCall,target);
@@ -166,6 +185,11 @@ class Exceptions {
         untyped TimerLib.Simple = (delay, func) -> {
             replaceStorage.timerlib_simple(delay,processExcept(func));
         }
+    }
+
+    function hookInclude() {
+        replaceStorage.include = cast Gmod.include;
+        untyped Gmod.include = processExcept(cast replaceStorage.include);
     }
 
     function hookPanels() {
