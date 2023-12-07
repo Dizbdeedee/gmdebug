@@ -53,8 +53,11 @@ class OutputFiltererDef implements OutputFilterer {
                     category: Stdout,
                     output: outputbuf.toString(),
                     source: {
-                        name: 'client_console_$id'
+                        name: 'client_console_$id',
+                        path: 'client_console_$id.lua',
+                        // line: 1
                     },
+                    line: 1,
                     data: null
                 }
             case SERVER_CONSOLE:
@@ -62,8 +65,11 @@ class OutputFiltererDef implements OutputFilterer {
                     category: Stdout,
                     output: outputbuf.toString(),
                     source: {
-                        name: "server_console"
+                        name: "server_console",
+                        path: "server_console.lua",
+                        // line: 1
                     },
+                    line: 1,
                     data: null
                 }
             default:

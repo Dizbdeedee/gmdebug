@@ -72,7 +72,7 @@ class Outputter {
         }
         ignoreTrace = true;
         var sh = 2; //2 referring to the one above
-        final info = DebugLib.getinfo(sh,"f");
+        final info = DebugLib.getinfo(sh,"fn");
         if (info == null) {
             trace("Func does not exist...");
             ignoreTrace = false;
@@ -80,6 +80,9 @@ class Outputter {
         }
         if (outputOffset.get(info.func) != null) {
             sh += outputOffset.get(info.func);
+        }
+        if (info.name == "trace") {
+            sh += 1;
         }
         sh += 1;//pcall, output
         cleanupOutputAndSend(sh,rest.toArray());
@@ -101,7 +104,7 @@ class Outputter {
             output: out,
             variablesReference: null
         }
-        var lineInfo = DebugLib.getinfo(sh, "Slf"); // + 1 for handler functions ect.
+        var lineInfo = DebugLib.getinfo(sh, "nSlf"); // + 1 for handler functions ect.
         if (lineInfo != null && lineInfo.source != "") {
             final pth = @:nullSafety(Off) lineInfo.source.split("/");
             body.source = {

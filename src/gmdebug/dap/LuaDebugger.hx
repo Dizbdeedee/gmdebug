@@ -441,14 +441,6 @@ enum LineStore {
                 event.send(this);
             default:
         }
-        // var stringOutput = chunk.toString().replace("\r","");
-        // if (!stringOutput.contains(Cross.OUTPUT_INTERCEPTED)) {
-        //     new ComposedEvent(output, {
-        //         category: Stdout,
-        //         output: stringOutput,
-        //         data: null
-        //     }).send(this);
-        // }
         callback(null);
     }
 
