@@ -42,7 +42,7 @@ enum LineStore {
 
 @:keep @:await class LuaDebugger extends DebugSession {
 
-    static final SERVER_TIMEOUT = 15; //thanks peanut brain
+    static final SERVER_TIMEOUT = 20; //thanks peanut brain
 
     public var dapMode:DapMode;
 
@@ -89,7 +89,7 @@ enum LineStore {
         outputFilterer = new OutputFiltererDef();
         fileTracker = new FileTrackerDef();
         eventIntercepter = new EventIntercepterDef(this,outputFilterer,fileTracker);
-        responseIntercepter = new ResponseIntercepterDef();
+        responseIntercepter = new ResponseIntercepterDef(fileTracker);
         gmodClientOpener = new GmodClientOpenerMultirun();
         launchProcessor = new LaunchProcessorDef();
         fileWatcher = new FileWatcherDef();
@@ -135,8 +135,13 @@ enum LineStore {
                 case Success(server):
                     startPokeClients();
                 case Failure(err):
-                    trace(err);
-                    beginShutdown(POKESERVER_TIMEOUT);
+                    switch (err.code) {
+                        case 0:
+                            beginShutdown(POKESERVER_TIMEOUT(TIMED_OUT));
+                        default:
+                            beginShutdown(POKESERVER_TIMEOUT(
+                                OTHER_ERROR_NOT_TIMEOUT(new DoNotPrintStr(err.exceptionStack))));
+                    }
                     throw err;
         }});
     }
@@ -236,7 +241,7 @@ enum LineStore {
     function uncaughtException(err:js.lib.Error, origin) {
         trace(err.message);
         trace(err.stack);
-        beginShutdown(UNCAUGHT_EXCEPTION);
+        beginShutdown(UNCAUGHT_EXCEPTION(new DoNotPrintStr(err.stack)));
     }
 
     function setupPlayer(clientID:Int) {
@@ -344,6 +349,7 @@ enum LineStore {
                 clients.sendServer(new ComposedGmDebugMessage(intialInfo, {location: initBundle.serverFolder, dapMode: Launch}));
         }
         launchClients();
+        fileTracker.addLuaContext(initBundle.serverFolder,0);
         return Noise; //or server. who cares.
     }
 
@@ -361,6 +367,14 @@ enum LineStore {
         haxe.Timer.delay(pokeClients,500);
     }
 
+    function postClientSetup(clID:Int) {
+        switch(initBundle.clientLocation) {
+            case Some(cl):
+                fileTracker.addLuaContext(cl,clID);
+            default:
+                trace("postClientSetup/ initBundle.clientLocation is null!");
+        }
+    }
 
     function pokeClients() {
         if (!poking || shutdownActive) return;
@@ -374,6 +388,7 @@ enum LineStore {
             for (newClient in clients) {
                 trace('Setting up player: ${newClient.clID}');
                 setupPlayer(newClient.clID);
+                postClientSetup(newClient.clID);
             }
             haxe.Timer.delay(pokeClients,500);
         });
@@ -423,12 +438,29 @@ enum LineStore {
     }
 
     public function beginShutdown(reason:ShutdownReasons) {
-        var event = new ComposedEvent(output, {
+        var sendPreReason = new ComposedEvent(output, {
             data: null,
             category: Stderr,
-            output: 'Shutting down gmdebug due to $reason'
+            output: 'Shutting down gmdebug due to $reason. Further details may be below'
         });
-        sendEvent(event);
+        sendEvent(sendPreReason);
+        final furtherReason:Option<String> = switch (reason) {
+            case POKESERVER_TIMEOUT(OTHER_ERROR_NOT_TIMEOUT(details)):
+                Some(details.str);
+            default:
+                None;
+        }
+        switch (furtherReason) {
+            case Some(furthererr):
+                var sendReason = new ComposedEvent(output, {
+                    data: null,
+                    category: Stderr,
+                    output: '--------\n $furthererr'
+                });
+                sendEvent(sendReason);
+            default:
+        }
+
         trace('SHUTDOWN $reason');
         shutdown();
     }
@@ -497,7 +529,21 @@ enum ShutdownReasons {
     SIGTERM;
     CHILDPROCESS_SIGNAL;
     CHILDPROCESS_ERROR;
-    UNCAUGHT_EXCEPTION;
-    POKESERVER_TIMEOUT;
+    UNCAUGHT_EXCEPTION(details:DoNotPrintStr);
+    POKESERVER_TIMEOUT(r:PokeServerReasons);
+}
+
+enum PokeServerReasons {
+    TIMED_OUT;
+    OTHER_ERROR_NOT_TIMEOUT(details:DoNotPrintStr);
+}
+
+private class DoNotPrintStr {
+
+    public var str:String;
+
+    public function new(_str:String) {
+        str = _str;
+    }
 
 }

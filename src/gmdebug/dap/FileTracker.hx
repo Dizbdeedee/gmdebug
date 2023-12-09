@@ -48,6 +48,8 @@ class FileTrackerDef implements FileTracker {
             trace("findAbsLuaFile/ CONTEXT STORAGE DOES NOT EXIST!!");
             return None;
         }
+        trace(contextStorage);
+        trace(luafilestring);
         final cleanluafilestring = if (luafilestring.charAt(0) == "@") {
             luafilestring.substr(1);
         } else {

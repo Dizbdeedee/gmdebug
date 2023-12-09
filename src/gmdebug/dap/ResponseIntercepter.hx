@@ -9,8 +9,10 @@ interface ResponseIntercepter {
 
 class ResponseIntercepterDef implements ResponseIntercepter {
 
-    public function new() {
-        
+    final fileTracker:FileTracker;
+
+    public function new(_fileTracker:FileTracker) {
+        fileTracker = _fileTracker;
     }
 
 
@@ -36,8 +38,21 @@ class ResponseIntercepterDef implements ResponseIntercepter {
                     }
                 });
                 // for (v in variablesResp.body.variables) {
-        
+
                 // }
+            case stackTrace:
+                final stackTraceResp:StackTraceResponse = ceptedResponse;
+                final stackTraces = stackTraceResp.body.stackFrames;
+                for (stack in stackTraces) {
+                    if (stack.source == null) continue;
+                    stack.source.path =
+                        switch(fileTracker.findAbsLuaFile(stack.source.path,threadId)) {
+                            case Some(pth):
+                                pth;
+                            default:
+                                stack.source.path;
+                    }
+                }
             default:
         }
     }

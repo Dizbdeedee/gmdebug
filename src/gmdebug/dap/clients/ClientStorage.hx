@@ -216,7 +216,7 @@ class ClientStorageDef implements ClientStorage {
             }
 
             if (haxe.Timer.stamp() > timeoutTime) {
-                return Promise.reject(new Error("timeout"));
+                return Promise.reject(new Error(0,"timeout"));
             }
             trace("Running again.");
             return connectionProcess(serverLoc,serverSlots).inSequence().next(nextConnection);

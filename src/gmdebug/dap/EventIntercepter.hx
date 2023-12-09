@@ -36,30 +36,9 @@ class EventIntercepterDef implements EventIntercepter {
                 final loadedEvent:LoadedSourceEvent = cast ceptedEvent;
                 var sourceFound = loadedEvent.body.source.path;
                 var context = threadId;
-                // switch (fileTracker.findAbsLuaFile(sourceFound)) {
-                //     case Some(luafile):
-
-                // }
-                // switch (fileTracker.lookupFile(sourceFound)) {
-                //     case Some(superiorFile):
-                //     case None:
-
-                //         fileTracker.storeLookupFile()
-                // }
+                trace(fileTracker.findAbsLuaFile(sourceFound,context));
                 Send;
             case output:
-
-                // final outputEvent:OutputEvent = cast ceptedEvent;
-                // var filterType:FilterSource = if (threadId > 0) {
-                //     CLIENT_LUA(threadId);
-                // } else {
-                //     SERVER_LUA;
-                // }
-                // switch (outputFilterer.filter(filterType,outputEvent.body.output)) {
-                //     case Some(event):
-                //         event.send(luaDebug);
-                //     default:
-                // }
                 Send;
             case stopped:
                 final stoppedEvent:StoppedEvent = cast ceptedEvent;
