@@ -45,15 +45,34 @@ class ResponseIntercepterDef implements ResponseIntercepter {
                 final stackTraces = stackTraceResp.body.stackFrames;
                 for (stack in stackTraces) {
                     if (stack.source == null) continue;
-                    stack.source.path =
-                        switch(fileTracker.findAbsLuaFile(stack.source.path,threadId)) {
-                            case Some(pth):
-                                pth;
-                            default:
-                                stack.source.path;
+                    newpth = switch(fileTracker.findAbsLuaFile(stack.source.path,threadId)) {
+                        case Some(abspth):
+                            lookupFromAbs(abspth);
+                        default:
+                            //ERROR! ahhhh
+                            trace("COULD NOT LOOKUP PATH!!!");
+                            stack.source.path;
                     }
                 }
             default:
+        }
+    }
+
+    function lookupFromAbs(abs:String) {
+        return switch (fileTracker.lookupFile(abs)) {
+            case Some(superiorFile):
+                superiorFile;
+            case None:
+                final hshFunc = NodeCrypto.createHash("md5");
+                final contents = Fs.readFileSync(abs);
+                hshFunc.update(contents.toString());
+                fileTracker.storeLookupFile(abs,hshFunc.digest());
+                switch (fileTracker.lookupFile(abs)) {
+                    case Some(superiorFile):
+                        superiorFile;
+                    default:
+                        abs;
+                }
         }
     }
 }
