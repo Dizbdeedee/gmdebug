@@ -338,14 +338,6 @@ class Debugee {
         });
     }
 
-    public function normalPath(x:String):String {
-        if (x.charAt(0) == "@") {
-            x = @:nullSafety(Off) x.substr(1);
-        }
-        x = '$dest$x';
-        return x;
-    }
-
     public function startHaltLoop(reason:StopReason, ?txt:String) {
         if (pauseLoopActive) return;
         pauseLoopActive = true;

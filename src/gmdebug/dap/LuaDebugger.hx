@@ -1,5 +1,6 @@
 package gmdebug.dap;
 
+import node.NodeCrypto;
 import gmdebug.dap.EventIntercepter;
 import js.node.Timers;
 import gmdebug.dap.clients.ClientStorage;
@@ -23,6 +24,7 @@ import gmdebug.dap.LaunchProcessor;
 import gmdebug.dap.FileWatcher;
 import gmdebug.dap.Log;
 import gmdebug.dap.OutputFilterer;
+import gmdebug.dap.FileTracker;
 
 using tink.CoreApi;
 using gmdebug.composer.ComposeTools;
@@ -68,6 +70,8 @@ enum LineStore {
 
     var outputFilterer:OutputFilterer;
 
+    var fileTracker:FileTracker;
+
     public var workspaceFolder:String; //oh dear
 
     var pokeClientCancel:Timeout;
@@ -83,7 +87,8 @@ enum LineStore {
         clients = new ClientStorageDef(readGmodBuffer,this);
         requestRouter = new RequestRouter(this,clients,prevRequests);
         outputFilterer = new OutputFiltererDef();
-        eventIntercepter = new EventIntercepterDef(this,outputFilterer);
+        fileTracker = new FileTrackerDef();
+        eventIntercepter = new EventIntercepterDef(this,outputFilterer,fileTracker);
         responseIntercepter = new ResponseIntercepterDef();
         gmodClientOpener = new GmodClientOpenerMultirun();
         launchProcessor = new LaunchProcessorDef();
@@ -180,7 +185,20 @@ enum LineStore {
         if (!Fs.existsSync(initBundle.luaAddonDestination)) {
             Fs.mkdirSync(initBundle.luaAddonDestination);
         }
-        recurseCopy(initBundle.luaAddon,initBundle.luaAddonDestination,(file -> {trace(file); return file.charAt(0) != ".";}));
+        function copFile(filePth:String) {
+            if (filePth.charAt(0) == ".") return false;
+            if (!node.Fs.existsSync(filePth)) {
+                trace("copyProjectFiles/ PATH DOES NOT EXIST!!!!");
+                return false;
+            }
+            if (FileSystem.isDirectory(filePth)) return false;
+            var hshFunc = NodeCrypto.createHash("md5");
+            var fileContent = node.Fs.readFileSync(filePth);
+            hshFunc.update(fileContent.toString());
+            fileTracker.storeFile(filePth,hshFunc.digest('hex'));
+            return true;
+        }
+        recurseCopy(initBundle.luaAddon,initBundle.luaAddonDestination,copFile);
     }
 
     function generateInitFiles(serverFolder:String) {

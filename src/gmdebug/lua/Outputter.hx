@@ -109,7 +109,7 @@ class Outputter {
             final pth = @:nullSafety(Off) lineInfo.source.split("/");
             body.source = {
                 name: pth[pth.length - 1],
-                path: debugee.normalPath(lineInfo.source),
+                path: lineInfo.source, //NORMAL PATH
             };
             body.line = lineInfo.currentline;
 

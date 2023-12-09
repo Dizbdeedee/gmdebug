@@ -20,67 +20,67 @@ import vscode.debugProtocol.DebugProtocol;
 #end
 
 typedef InitSourceContainer = {
-	debugee : Debugee
+    debugee : Debugee
 }
 
 class SourceContainer {
-	
-	final uniqueSources:Map<String, Null<Source>> = [];
 
-	public var sources:Array<Source> = [];
+    final uniqueSources:Map<String, Null<Source>> = [];
 
-	public var sourceCache:ObjectMap<Function,SourceInfo>;
+    public var sources:Array<Source> = [];
 
-	final debugee:Debugee;
+    public var sourceCache:ObjectMap<Function,SourceInfo>;
 
-	public function new(initSourceContainer:InitSourceContainer) {
-		HookLib.Add(GMHook.Think, "gmdebug-source-get", () -> {
-			if (Gmod.CurTime() > readSourceTime) {
-				readSourceTime = Gmod.CurTime() + 1;
-				readSourceInfo();
-			}
-		});
-		sourceCache = makeSourceCache();
-		debugee = initSourceContainer.debugee;
-	}
+    final debugee:Debugee;
 
-	function makeSourceCache() {
-		final sc = new haxe.ds.ObjectMap<haxe.Constraints.Function, SourceInfo>();
-		sc.setWeakKeysM();
-		return sc;
-	}
+    public function new(initSourceContainer:InitSourceContainer) {
+        HookLib.Add(GMHook.Think, "gmdebug-source-get", () -> {
+            if (Gmod.CurTime() > readSourceTime) {
+                readSourceTime = Gmod.CurTime() + 1;
+                readSourceInfo();
+            }
+        });
+        sourceCache = makeSourceCache();
+        debugee = initSourceContainer.debugee;
+    }
 
-	function readSourceInfo() {
-		if (debugee.dest == "")
-			return;
-		for (si in sourceCache) {
-			if (!uniqueSources.exists(si.source)) {
-				final result = infoToSource(si);
-				if (result != null) {
-					debugee.sendMessage(new ComposedEvent(loadedSource, {
-						reason: New,
-						source: result
-					}));
-					sources.push(result);
-				}
-				uniqueSources.set(si.source, result);
-			}
-		}
-	}
+    function makeSourceCache() {
+        final sc = new haxe.ds.ObjectMap<haxe.Constraints.Function, SourceInfo>();
+        sc.setWeakKeysM();
+        return sc;
+    }
 
-	var readSourceTime:Float = 0;
+    function readSourceInfo() {
+        if (debugee.dest == "")
+            return;
+        for (si in sourceCache) {
+            if (!uniqueSources.exists(si.source)) {
+                final result = infoToSource(si);
+                if (result != null) {
+                    debugee.sendMessage(new ComposedEvent(loadedSource, {
+                        reason: New,
+                        source: result
+                    }));
+                    sources.push(result);
+                }
+                uniqueSources.set(si.source, result);
+            }
+        }
+    }
 
-	function infoToSource(info:SourceInfo):Null<Source> {
-		return switch (info.source) {
-			case src if (Util.isCSource(src)):
-				null;
-			case src:
-				final pathStr = debugee.normalPath(src);
-				final path = new HxPath(pathStr);
-				{
-					name: path.file,
-					path: path.toString(),
-				};
-		}
-	}
+    var readSourceTime:Float = 0;
+
+    function infoToSource(info:SourceInfo):Null<Source> {
+        return switch (info.source) {
+            case src if (Util.isCSource(src)):
+                null;
+            case src:
+                final pathStr = src; //NORMAL PATH
+                final path = new HxPath(pathStr);
+                {
+                    name: path.file,
+                    path: path.toString(),
+                };
+        }
+    }
 }
