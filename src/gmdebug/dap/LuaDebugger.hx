@@ -203,10 +203,10 @@ enum LineStore {
             var hshFunc = NodeCrypto.createHash("md5");
             var fileContent = node.Fs.readFileSync(filePth,{encoding: 'utf8'});
             hshFunc.update(fileContent.toString());
-            trace(filePth);
-            trace("-----------------");
-            trace(fileContent.toString());
-            trace("-----------------");
+            // trace(filePth);
+            // trace("-----------------");
+            // trace(fileContent.toString());
+            // trace("-----------------");
             fileTracker.storeFile(filePth,hshFunc.digest('hex'));
             // return true;
         }

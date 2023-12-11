@@ -38,6 +38,7 @@ class EventIntercepterDef implements EventIntercepter {
                 final loadedEvent:LoadedSourceEvent = cast ceptedEvent;
                 var sourceFound = loadedEvent.body.source.path;
                 var context = threadId;
+                trace("LOADED SOURCE");
                 trace(fileTracker.findAbsLuaFile(sourceFound,context));
                 Send;
             case output:

@@ -186,6 +186,8 @@ class InitBundle {
     }
 }
 
+//what?
+//refactor to use tink error. DUMMY
 @:using(gmdebug.dap.InitBundle.InitErrorUsing)
 private enum InitError {
     None;

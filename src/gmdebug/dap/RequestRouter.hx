@@ -140,13 +140,9 @@ class RequestRouter {
 
     static final addonPath = ["garrysmod","addons"];
 
-    function makeRelativeToLua() {
-
-    }
-
     function h_setBreakpoints(req:SetBreakpointsRequest) {
         final source = req.arguments.source;
-
+        //hm.
     }
 
     function h_initialize(req:InitializeRequest) {

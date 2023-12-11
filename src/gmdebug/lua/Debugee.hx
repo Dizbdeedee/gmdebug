@@ -97,6 +97,8 @@ class Debugee {
         return socket = sock;
     }
 
+    var aquiringSocket:PipeSocket;
+
     public var pollActive = false;
 
     final outputter:Null<Outputter>;
@@ -114,6 +116,75 @@ class Debugee {
     final fbm:Null<FunctionBreakpointManager>;
 
     final customHandlers:Null<CustomHandlers>;
+
+    public function new() {
+        Logger.init();
+        DebugHook.addHook();
+        if (G.previousSocket != null) {
+            G.previousSocket.close();
+        }
+        vm = new VariableManager({
+            debugee: this
+        });
+        sc = new SourceContainer({
+            debugee: this
+        });
+        customHandlers = new CustomHandlers();
+        outputter = new Outputter({
+            vm: vm,
+            debugee: this
+        });
+        bm = new BreakpointManager({
+            debugee: this
+        });
+        exceptions = new Exceptions(this.traceback);
+        fbm = new FunctionBreakpointManager();
+        hc = new HandlerContainer({
+            vm : vm,
+            debugee: this,
+            fbm : fbm,
+            bm : bm,
+            exceptions: exceptions,
+            sc : sc
+        });
+        DebugLoop.init({
+            bm: bm,
+            debugee: this,
+            fbm: fbm,
+            sc: sc,
+            exceptions: exceptions
+        });
+        #if server
+        GameLib.ConsoleCommand("sv_timeout 999999\n");
+        #elseif client
+        Gmod.RunConsoleCommand("cl_timeout", 999999);
+        #end
+        Lua.print("Attempting connection to gmdebug... please wait");
+        var timeout = Gmod.SysTime() + CONNECT_TIMEOUT;
+        while (!socketActive && Gmod.SysTime() < timeout) {
+            start();
+        }
+        if (!socketActive) {
+            trace("GMDEBUG FAILED TO CONNECT");
+            Logger.log("GMDEBUG FAILED TO CONNECT");
+            aquiringSocket.close();
+            shutdown();
+            throw "Failed to connect to server";
+        }
+        Logger.log("GMDEBUG CONNECTED SUCCESSFULLY");
+        TimerLib.Create("report-profling", 3, 0, () -> {
+            DebugLoopProfile.report();
+        });
+        var pollTime = 0.0;
+        HookLib.Add(GMHook.Think, "gmdebug-poll", () -> {
+            if (Gmod.CurTime() > pollTime) {
+                pollTime = Gmod.CurTime() + POLL_TIME;
+                pollActive = true;
+                poll();
+                pollActive = false;
+            }
+        });
+    }
 
     function freeFolder(folder:String):Bool {
         return if (!FileLib.Exists(folder,DATA)) {
@@ -141,8 +212,6 @@ class Debugee {
         FileLib.CreateDir(folder);
         return generatePipeLocations(folder);
     }
-
-    var aquiringSocket:PipeSocket;
 
     public function start() {
         if (socketActive)
@@ -270,73 +339,6 @@ class Debugee {
 
     }
 
-    public function new() {
-        Logger.init();
-        DebugHook.addHook();
-        if (G.previousSocket != null) {
-            G.previousSocket.close();
-        }
-        vm = new VariableManager({
-            debugee: this
-        });
-        sc = new SourceContainer({
-            debugee: this
-        });
-        customHandlers = new CustomHandlers();
-        outputter = new Outputter({
-            vm: vm,
-            debugee: this
-        });
-        bm = new BreakpointManager({
-            debugee: this
-        });
-        exceptions = new Exceptions(this.traceback);
-        fbm = new FunctionBreakpointManager();
-        hc = new HandlerContainer({
-            vm : vm,
-            debugee: this,
-            fbm : fbm,
-            bm : bm,
-            exceptions: exceptions
-        });
-        DebugLoop.init({
-            bm: bm,
-            debugee: this,
-            fbm: fbm,
-            sc: sc,
-            exceptions: exceptions
-        });
-        #if server
-        GameLib.ConsoleCommand("sv_timeout 999999\n");
-        #elseif client
-        Gmod.RunConsoleCommand("cl_timeout", 999999);
-        #end
-        Lua.print("Attempting connection to gmdebug... please wait");
-        var timeout = Gmod.SysTime() + CONNECT_TIMEOUT;
-        while (!socketActive && Gmod.SysTime() < timeout) {
-            start();
-        }
-        if (!socketActive) {
-            trace("GMDEBUG FAILED TO CONNECT");
-            Logger.log("GMDEBUG FAILED TO CONNECT");
-            aquiringSocket.close();
-            shutdown();
-            throw "Failed to connect to server";
-        }
-        Logger.log("GMDEBUG CONNECTED SUCCESSFULLY");
-        TimerLib.Create("report-profling", 3, 0, () -> {
-            DebugLoopProfile.report();
-        });
-        var pollTime = 0.0;
-        HookLib.Add(GMHook.Think, "gmdebug-poll", () -> {
-            if (Gmod.CurTime() > pollTime) {
-                pollTime = Gmod.CurTime() + POLL_TIME;
-                pollActive = true;
-                poll();
-                pollActive = false;
-            }
-        });
-    }
 
     public function startHaltLoop(reason:StopReason, ?txt:String) {
         if (pauseLoopActive) return;
