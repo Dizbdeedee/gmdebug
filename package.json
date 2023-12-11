@@ -12,6 +12,7 @@
         "@types/ffi-napi": "4.0.3",
         "@types/node": "^16.9.1",
         "@types/ref-array-di": "^1.2.3",
+        "crc-32": "^1.2.2",
         "ffi-napi": "4.0.3",
         "ip": "^1.1.5",
         "ref-array-di": "^1.2.2",
@@ -68,7 +69,7 @@
                                 "description": "An array of other addons you wish to automatically download(and debug) alongside this one",
                                 "default": [
                                     {
-                                        "url/id" : "2586573261",
+                                        "url/id": "2586573261",
                                         "folderName": "install_at_your_peril"
                                     },
                                     {
@@ -80,8 +81,6 @@
                                         "url/id": ""
                                     }
                                 ]
-
-
                             },
                             "programArgs": {
                                 "type": "array",
@@ -134,30 +133,26 @@
                                 "description": "Specify the gmod server port, if necessary",
                                 "default": "27115"
                             }
-
                         }
                     }
                 },
                 "initialConfigurations": [
                     {
-
                         "type": "gmdebug",
                         "request": "launch",
                         "name": "gmdebug : Launch server",
                         "serverFolder": "/path_to_server_from_root/garrysmod",
                         "programPath": "auto",
-                        "programArgs" : [
+                        "programArgs": [
                             "+map",
                             "gm_flatgrass",
                             "+sv_lan",
                             "1"
                         ],
-                        "nodebugClient" : true,
-                        "clients" : 1,
+                        "nodebugClient": true,
+                        "clients": 1,
                         "copyAddonName": "my_really_cool_addon",
                         "copyAddonBaseFolder": "src/"
-
-
                     }
                 ],
                 "configurationSnippets": [
@@ -170,8 +165,8 @@
                             "name": "gmdebug : Launch server",
                             "serverFolder": "/path_to_server_from_root/garrysmod",
                             "programPath": "auto",
-                            "nodebugClient" : true,
-                            "clients" : 1,
+                            "nodebugClient": true,
+                            "clients": 1,
                             "copyAddonName": "my_really_cool_addon",
                             "copyAddonBaseFolder": "src/"
                         }

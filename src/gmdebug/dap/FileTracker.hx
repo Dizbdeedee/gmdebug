@@ -6,10 +6,16 @@ import node.Fs;
 
 interface FileTracker {
     function storeFile(filePath:String,hash:String):Void;
-    function storeLookupFile(filePath:String,hash:String):Void;
-    function lookupFile(filePath:String):Option<String>;
+    function storeLookupFile(filePath:String,hash:String):Void; //storeLookedupFile
+    function lookupFile(filePath:String):LookupResult;
     function addLuaContext(directory:String,context:Int):Void;
     function findAbsLuaFile(filePath:String,context:Int):Option<String>;
+}
+
+enum LookupResult {
+    NOT_STORED;
+    CANT_FIND;
+    SUPERIOR_FILE(path:String);
 }
 
 class FileTrackerDef implements FileTracker {
@@ -17,10 +23,12 @@ class FileTrackerDef implements FileTracker {
     var hashToSuperiorFile:Map<String,String> = [];
     var inferiorFileToHash:Map<String,String> = [];
     var contextStorage:Map<Int,String> = [];
+    var existsCache:Map<String,Bool> = [];
 
     public function new() {}
 
     public function storeFile(filePath:String,hash:String) {
+        trace('storeFile/ stored hash $hash');
         hashToSuperiorFile.set(hash,filePath);
     }
 
@@ -28,16 +36,30 @@ class FileTrackerDef implements FileTracker {
         inferiorFileToHash.set(path,hash);
     }
 
-    public function lookupFile(path:String):Option<String> {
-        return switch (inferiorFileToHash.get(path)) {
-            case null:
-                None;
-            case hashToSuperiorFile.get(_) => null:
-                None;
-            case hashToSuperiorFile.get(_) => superiorFile:
-                Some(superiorFile);
+    public function lookupFile(path:String):LookupResult {
+        var inferiorHash = inferiorFileToHash.get(path);
+        return if (inferiorHash != null) {
+            var superiorFile = hashToSuperiorFile.get(inferiorHash);
+            if (superiorFile != null) {
+                SUPERIOR_FILE(superiorFile);
+            } else {
+                trace('lookupFile/ our hash $inferiorHash');
+                CANT_FIND;
+            }
+        } else {
+            NOT_STORED;
         }
     }
+
+    // return switch (inferiorFileToHash.get(path)) {
+    //     case null:
+    //         NOT_STORED;
+    //     case hashToSuperiorFile.get(_) => null:
+    //         trace('lookupFIle $hashToSuperiorFile');
+    //         CANT_FIND;
+    //     case hashToSuperiorFile.get(_) => superiorFile:
+    //         SUPERIOR_FILE(superiorFile);
+    // }
 
     public function addLuaContext(directory:String,context:Int) {
         contextStorage.set(context,directory);
@@ -57,7 +79,10 @@ class FileTrackerDef implements FileTracker {
         }
         final absContextPath = contextStorage.get(context);
         final absLuaFilePath = HxPath.join([absContextPath,cleanluafilestring]);
-        return if (Fs.existsSync(absLuaFilePath)) {
+        return if (existsCache.exists(absLuaFilePath)) {
+            Some(absLuaFilePath);
+        } else if (Fs.existsSync(absLuaFilePath)) {
+            existsCache.set(absLuaFilePath,true);
             Some(absLuaFilePath);
         } else {
             trace('not exist $absLuaFilePath');

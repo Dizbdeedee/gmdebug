@@ -33,6 +33,8 @@ class SourceContainer {
 
     final debugee:Debugee;
 
+    var readSourceTime:Float = 0;
+
     public function new(initSourceContainer:InitSourceContainer) {
         HookLib.Add(GMHook.Think, "gmdebug-source-get", () -> {
             if (Gmod.CurTime() > readSourceTime) {
@@ -51,12 +53,11 @@ class SourceContainer {
     }
 
     function readSourceInfo() {
-        if (debugee.dest == "")
-            return;
         for (si in sourceCache) {
             if (!uniqueSources.exists(si.source)) {
                 final result = infoToSource(si);
                 if (result != null) {
+                    trace("SENDING SOURCE");
                     debugee.sendMessage(new ComposedEvent(loadedSource, {
                         reason: New,
                         source: result
@@ -67,8 +68,6 @@ class SourceContainer {
             }
         }
     }
-
-    var readSourceTime:Float = 0;
 
     function infoToSource(info:SourceInfo):Null<Source> {
         return switch (info.source) {

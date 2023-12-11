@@ -192,18 +192,25 @@ enum LineStore {
         }
         function copFile(filePth:String) {
             if (filePth.charAt(0) == ".") return false;
-            if (!node.Fs.existsSync(filePth)) {
-                trace("copyProjectFiles/ PATH DOES NOT EXIST!!!!");
-                return false;
-            }
-            if (FileSystem.isDirectory(filePth)) return false;
-            var hshFunc = NodeCrypto.createHash("md5");
-            var fileContent = node.Fs.readFileSync(filePth);
-            hshFunc.update(fileContent.toString());
-            fileTracker.storeFile(filePth,hshFunc.digest('hex'));
             return true;
         }
-        recurseCopy(initBundle.luaAddon,initBundle.luaAddonDestination,copFile);
+        function onCpy(filePth:String) {
+            if (!node.Fs.existsSync(filePth)) {
+                trace('copyProjectFiles/ PATH DOES NOT EXIST!!!! $filePth');
+                return;
+            }
+            if (FileSystem.isDirectory(filePth)) return;
+            var hshFunc = NodeCrypto.createHash("md5");
+            var fileContent = node.Fs.readFileSync(filePth,{encoding: 'utf8'});
+            hshFunc.update(fileContent.toString());
+            trace(filePth);
+            trace("-----------------");
+            trace(fileContent.toString());
+            trace("-----------------");
+            fileTracker.storeFile(filePth,hshFunc.digest('hex'));
+            // return true;
+        }
+        recurseCopy(initBundle.luaAddon,initBundle.luaAddonDestination,copFile,onCpy);
     }
 
     function generateInitFiles(serverFolder:String) {
@@ -441,11 +448,18 @@ enum LineStore {
         var sendPreReason = new ComposedEvent(output, {
             data: null,
             category: Stderr,
-            output: 'Shutting down gmdebug due to $reason. Further details may be below'
+            output: 'Shutting down gmdebug due to $reason. Further details may be below\n'
         });
         sendEvent(sendPreReason);
         final furtherReason:Option<String> = switch (reason) {
             case POKESERVER_TIMEOUT(OTHER_ERROR_NOT_TIMEOUT(details)):
+                Some(details.str);
+            case MESSAGE_INTERP_FAILURE(msg, details):
+                sendEvent(new ComposedEvent(output, {
+                    data: null,
+                    category: Stderr,
+                    output: '----Message----\n $msg\n ---EndMessage---\n'
+                }));
                 Some(details.str);
             default:
                 None;
@@ -505,8 +519,11 @@ enum LineStore {
                 } catch (e) {
                     trace('Failed to handle message ${e.toString()}');
                     trace(e.stack);
+                    beginShutdown(
+                        MESSAGE_INTERP_FAILURE(message,new DoNotPrintStr(e.toString())));
                     final fail = (cast message : Request<Dynamic>).composeFail(DEBUGGER_UNSPECIFIED_ERROR, {err : e.toString()});
                     fail.send(this);
+
                     throw e;
                 }
             default:
@@ -529,6 +546,7 @@ enum ShutdownReasons {
     SIGTERM;
     CHILDPROCESS_SIGNAL;
     CHILDPROCESS_ERROR;
+    MESSAGE_INTERP_FAILURE(msg:ProtocolMessage,details:DoNotPrintStr);
     UNCAUGHT_EXCEPTION(details:DoNotPrintStr);
     POKESERVER_TIMEOUT(r:PokeServerReasons);
 }
@@ -544,6 +562,10 @@ private class DoNotPrintStr {
 
     public function new(_str:String) {
         str = _str;
+    }
+
+    public function toString() {
+        return "";
     }
 
 }

@@ -279,7 +279,10 @@ class DebugLoop {
             tmp;
         }
         DebugLoopProfile.profile("step");
-        @:privateAccess if (exceptions.exceptFuncs != null && func != null && exceptions.exceptFuncs.exists(func)) {
+        @:privateAccess if (
+            exceptions.exceptFuncs != null
+            && func != null
+            && exceptions.exceptFuncs.exists(func)) {
             DebugContext.exitDebugContext();
             return;
         }

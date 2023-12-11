@@ -9,6 +9,8 @@ import vscode.debugProtocol.DebugProtocol;
 import gmdebug.composer.EventString;
 import js.node.ChildProcess;
 import gmdebug.dap.OutputFilterer;
+import node.Fs;
+import node.NodeCrypto;
 using StringTools;
 
 interface EventIntercepter {
@@ -39,6 +41,22 @@ class EventIntercepterDef implements EventIntercepter {
                 trace(fileTracker.findAbsLuaFile(sourceFound,context));
                 Send;
             case output:
+                final outputEvent:OutputEvent = cast ceptedEvent;
+                var source = outputEvent.body.source;
+                if (source != null) {
+                    var pth = source.path;
+                    if (pth != null) {
+                        final newPth = switch (fileTracker.findAbsLuaFile(pth,threadId)) {
+                            case Some(abspth):
+                                lookupFromAbs(abspth);
+                            default:
+                                trace("eventIntercepter/event/output Could not lookup path!");
+                                trace(pth);
+                                pth;
+                        }
+                        source.path = newPth;
+                    }
+                }
                 Send;
             case stopped:
                 final stoppedEvent:StoppedEvent = cast ceptedEvent;
@@ -52,6 +70,42 @@ class EventIntercepterDef implements EventIntercepter {
                 Send;
         }
     }
+
+    function lookupFromAbs(abs:String) {
+        final result = switch (fileTracker.lookupFile(abs)) {
+            case SUPERIOR_FILE(superiorFile):
+                trace("lookupFromAbs/ using superiror file");
+                superiorFile;
+            case CANT_FIND:
+                trace("lookupFromAbs/ can't find calculated md5 succ");
+                abs;
+            case NOT_STORED:
+                trace("lookupFromAbs/ none");
+                final hshFunc = NodeCrypto.createHash("md5");
+                final contents = Fs.readFileSync(abs,{encoding: 'utf8'});
+                // trace(abs);
+                // trace("-----------------");
+                // trace(contents.toString());
+                // trace("-----------------");
+                hshFunc.update(contents.toString());
+                fileTracker.storeLookupFile(abs,hshFunc.digest('hex'));
+                null;
+        }
+        if (result != null) return result;
+        return switch (fileTracker.lookupFile(abs)) {
+            case SUPERIOR_FILE(superiorFile):
+                trace("lookupFromAbs/ looked up calculated md5 lookup 2");
+                superiorFile;
+            case CANT_FIND:
+                trace("lookupFromAbs/ can't find calculated md5 lookup 2");
+                abs;
+            case NOT_STORED:
+                trace("lookupFromAbs/ something went bery wrong");
+                throw "lookupFromAbs/ something went bery wrong";
+                return null;
+        }
+    }
+
 }
 
 enum EventResult {
