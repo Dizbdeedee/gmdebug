@@ -46,7 +46,6 @@ class RequestRouter {
             case attach:
                 h_attach(req);
             case disconnect:
-                trace("disconnect");
                 h_disconnect(req);
             case launch:
                 h_launch(req);

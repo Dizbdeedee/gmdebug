@@ -32,13 +32,14 @@ class HStackTrace implements IHandler<StackTraceRequest> {
         final sh = debugee.stackHeight;
         final offsetHeight = DebugContext.getHeight();
         final args = x.arguments.unsafe();
-        if (!debugee.pauseLoopActive) {
+        if (!debugee.pauseLoopActive) { //OH DEAR
             var response = x.compose(stackTrace, {
                 stackFrames: [],
                 totalFrames: 0
             });
             final jsonStackTraceResp = tink.Json.stringify((cast response : StackTraceResponse)); // in pratical terms they're the same
             debugee.send(jsonStackTraceResp);
+            trace("SUSPECT IDENTIFIED");
             debugee.sendMessage(new ComposedEvent(continued, {
                 threadId: debugee.clientID,
                 allThreadsContinued: false

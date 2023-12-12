@@ -155,7 +155,6 @@ class ClientStorageDef implements ClientStorage {
                         clientsAquired.push(newClient(ps));
                     case Failure(err):
                         trace('aquireClients/ ERROR ${err.message}');
-                        throw err;
                 }
             }
             return clientsAquired;
@@ -215,7 +214,6 @@ class ClientStorageDef implements ClientStorage {
                 var server = newServer(chosenServer);
                 return Promise.resolve(server);
             }
-
             if (haxe.Timer.stamp() > timeoutTime) {
                 return Promise.reject(new Error(0,"timeout"));
             }

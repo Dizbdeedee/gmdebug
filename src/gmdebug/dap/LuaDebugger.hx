@@ -425,7 +425,7 @@ enum LineStore {
         switch (debugeeMessage.type) {
             case Event:
                 final cmd = (cast debugeeMessage : Event<Dynamic>).event;
-                tracev('$time DEBUGEE: recieved event, $cmd');
+                trace('$time DEBUGEE: recieved event, $cmd');
                 switch (eventIntercepter.event(cast debugeeMessage, threadId)) {
                     case NoSend:
                     case Send:
@@ -475,7 +475,6 @@ enum LineStore {
                 sendEvent(sendReason);
             default:
         }
-
         trace('SHUTDOWN $reason');
         shutdown();
     }

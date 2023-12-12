@@ -339,10 +339,10 @@ class Debugee {
 
     }
 
-
     public function startHaltLoop(reason:StopReason, ?txt:String) {
         if (pauseLoopActive) return;
         pauseLoopActive = true;
+        trace(clientID);
         final tstop:TStoppedEvent = {
             threadId: clientID,
             reason: reason,

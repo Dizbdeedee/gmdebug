@@ -61,6 +61,10 @@ class EventIntercepterDef implements EventIntercepter {
                 Send;
             case stopped:
                 final stoppedEvent:StoppedEvent = cast ceptedEvent;
+                if (stoppedEvent.body.threadId != threadId) {
+                    stoppedEvent.body.threadId = threadId; //why does the client need to know it's id anyways??
+                    //TODO refactor this
+                }
                 if (luaDebug.initBundle.programs.xdotool && stoppedEvent.body.threadId > 0) {
                     trace("free my mousepointer please!!");
                     ChildProcess.execSync("setxkbmap -option grab:break_actions");
