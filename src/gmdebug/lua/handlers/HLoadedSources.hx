@@ -1,22 +1,33 @@
 package gmdebug.lua.handlers;
 
+import gmdebug.lua.SourceContainer;
+
 typedef InitHLoadedSources = {
     debugee : Debugee,
-    sourceCache: SourceContainer
+    sc: SourceContainer
 }
 
 class HLoadedSources implements IHandler<LoadedSourcesRequest> {
 
     final debugee:Debugee;
 
+    final sc:SourceContainer;
+
     public function new(init:InitHLoadedSources) {
         debugee = init.debugee;
+        sc = init.sc;
     }
 
     public function handle(load:LoadedSourcesRequest) {
-        for (si in
+        final sourceArr = [];
+        for (si in sc.sourceCache) {
+            final result = sc.infoToSource(si);
+            if (result != null) {
+                sourceArr.push(result);
+            }
+        }
         var resp = load.compose(loadedSources, {
-            sources: []
+            sources: sourceArr
         });
         debugee.sendMessage(resp);
         return WAIT;

@@ -107,7 +107,7 @@ class PipeSocket implements DebugIO {
     public function close() {
         input.close();
         output.close();
-        final results = FileLib.Find('${locs.folder}/*',DATA);
+        final results = FileLib.Find('${locs.folder}/ star',DATA);
         for (file in results.files) {
             trace(file);
             FileLib.Delete('${locs.folder}/$file');
@@ -129,9 +129,9 @@ class PipeInput extends Input {
     }
 
     public function aquire():AquireProcess {
-        if (!FileLib.Exists(locs.input, DATA)) {
-            return WAITING_FOR_INPUT;
-        }
+        // if (!FileLib.Exists(locs.input, DATA)) {
+        //     return WAITING_FOR_INPUT; //suspect
+        // }
         final f = FileLib.Open(locs.input, FileOpenMode.bin_read, DATA);
         if (f == null)
             return WAITING_FOR_INPUT;

@@ -52,6 +52,9 @@ class SourceContainer {
         return sc;
     }
 
+    function getNewSources() {
+    }
+
     function readSourceInfo() {
         for (si in sourceCache) {
             if (!uniqueSources.exists(si.source)) {
@@ -69,7 +72,7 @@ class SourceContainer {
         }
     }
 
-    function infoToSource(info:SourceInfo):Null<Source> {
+    public function infoToSource(info:SourceInfo):Null<Source> {
         return switch (info.source) {
             case src if (Util.isCSource(src)):
                 null;

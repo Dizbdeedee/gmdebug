@@ -96,6 +96,7 @@ enum LineStore {
         poking = false;
         Node.process.on("uncaughtException", uncaughtException);
         Node.process.on("SIGTRM", () -> beginShutdown(SIGTERM));
+        Node.process.on("SIGPIPE", () -> trace("Gay sigpipe"));
         shutdownActive = false;
         Sys.setCwd(HxPath.directory(HxPath.directory(Sys.programPath())));
         checkPrograms();

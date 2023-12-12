@@ -7,6 +7,7 @@ import js.node.ChildProcess;
 import js.node.Net;
 import sys.FileSystem;
 import js.node.net.Socket;
+import haxe.io.Path as HxPath; //temp
 using tink.CoreApi;
 using gmdebug.dap.PromiseUtil;
 using StringTools;
@@ -42,6 +43,8 @@ enum ConnStatus {
 
 @:await
 class PipeSocket {
+
+    static final WAIT_FOR_VALID_CONNECTION = 500; //ms
 
     static final WATCH_FILE_TIMEOUT = 5;
 
@@ -96,7 +99,6 @@ class PipeSocket {
             });
         });
     }
-
 
     function resolveReadiness(timeout:Int) {
         return new Promise(function (success,failure) {
@@ -199,7 +201,6 @@ class PipeSocket {
     }
 
     function makeFifos(input:String, output:String) {
-
         if (!FileSystem.exists(input) && !FileSystem.exists(output)) {
             js.node.ChildProcess.execSync('mkfifo $input');
             js.node.ChildProcess.execSync('mkfifo $output');
@@ -221,8 +222,6 @@ class PipeSocket {
             return null; //noop
         });
     }
-
-
 
     function makeLinksWindows(args:MakeLinksWin):Promise<Noise> {
         final inpPath = js.node.Path.normalize(args.debugee_input);
@@ -248,14 +247,17 @@ class PipeSocket {
 
     //ignorance: probing the file details, or checking it exists counts as opening and closing the file
     //we try and avoid invalid connections by waiting to see if they instantly close
-    function getValidSocket(server:js.node.net.Server):Promise<Socket> {
+    function getValidSocket(server:js.node.net.Server,?details:String):Promise<Socket> {
         return new Promise(function (success,failure) {
             trace("getValidSocket");
             var socketsStatus:Array<Socket> = [];
             haxe.Timer.delay(() -> {
-                trace(socketsStatus);
+                var i = 0;
                 for (socket in socketsStatus) {
+                    Fs.appendFileSync(HxPath.join(["log.txt"]),'getValidSocket/delayValidConnection iterate socket $socket');
+                    trace('getValidSocket/delayValidConnection iterate socket ${i}');
                     if (socket != null) {
+                        trace('getValidSocket/good connection iterate socket ${i++}');
                         server.close();
                         socket.removeAllListeners(End);
                         success(socket);
@@ -264,13 +266,24 @@ class PipeSocket {
                 }
                 failure(new Error("Timeout for connection"));
                 // }
-            },500);
+            },WAIT_FOR_VALID_CONNECTION);
             server.on('connection',(socket:Socket) -> {
+                Fs.appendFileSync(HxPath.join(["log.txt"]),'getValidSocket/onConnection/socket $details socket $socket aquired');
+                // try {
+                //     socket.write("\004\r\n");
+                // } catch (e) {
+                //     trace("Can't write");
+                // }
+                // trace("Can write");
                 var id = socketsStatus.length;
+                trace('getValidSocket/onConnection/socket $details socket aquired $id');
                 var invalidateSocket = () -> {
+                    Fs.appendFileSync(HxPath.join(["log.txt"]),'getValidSocket/onConnection/invalidSocket $details socket $socket lost!');
+                    trace('getValidSocket/onConnection/invalidSocket $details socket lost!');
                     socketsStatus[id] = null;
                 };
                 socketsStatus.push(socket);
+                socket.on("ready",() -> trace('Im ready!! $id'));
                 socket.on(End,invalidateSocket);
             });
             return function () {
@@ -282,7 +295,7 @@ class PipeSocket {
 
     @:async function aquireWindowsSocket(serverIn:js.node.net.Server,serverOut:js.node.net.Server):{sockIn : Socket, sockOut : Socket} {
         trace("AquireWindowsSock");
-        final socks = @:await Promise.inParallel([getValidSocket(serverIn),getValidSocket(serverOut)]);
+        final socks = @:await Promise.inParallel([getValidSocket(serverIn,"In"),getValidSocket(serverOut,"Out")]);
 
         //TODO on end, kill
         trace("We found the sock!");
@@ -311,7 +324,6 @@ class PipeSocket {
     }
 
     public function end() {
-
         if (FileSystem.exists(locs.output)) {
             readS.end();
             FileSystem.deleteFile(locs.output);
@@ -333,7 +345,5 @@ class PipeSocket {
             FileSystem.deleteFile(locs.pipes_ready);
         }
         FileSystem.deleteDirectory(locs.folder);
-
     }
-
 }

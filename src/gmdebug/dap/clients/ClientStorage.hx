@@ -154,7 +154,8 @@ class ClientStorageDef implements ClientStorage {
                     case Success(ps):
                         clientsAquired.push(newClient(ps));
                     case Failure(err):
-                        trace(err.message);
+                        trace('aquireClients/ ERROR ${err.message}');
+                        throw err;
                 }
             }
             return clientsAquired;
