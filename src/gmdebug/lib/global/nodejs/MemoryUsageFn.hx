@@ -7,6 +7,7 @@ typedef MemoryUsageFn = {
 	**/
 	@:selfCall
 	function call():MemoryUsage;
+
 	/**
 		method returns an integer representing the Resident Set Size (RSS) in bytes.
 	**/

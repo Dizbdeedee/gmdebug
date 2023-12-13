@@ -2,8 +2,8 @@ package js.html;
 
 typedef PublicKeyCredentialRpEntity = {
 	@:optional
-	var id : String;
+	var id:String;
 	@:optional
-	var icon : String;
-	var name : String;
+	var icon:String;
+	var name:String;
 };

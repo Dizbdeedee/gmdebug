@@ -4,21 +4,25 @@ typedef IAbstractRange = {
 	/**
 		Returns true if range is collapsed, and false otherwise.
 	**/
-	final collapsed : Bool;
+	final collapsed:Bool;
+
 	/**
 		Returns range's end node.
 	**/
-	final endContainer : js.html.Node;
+	final endContainer:js.html.Node;
+
 	/**
 		Returns range's end offset.
 	**/
-	final endOffset : Float;
+	final endOffset:Float;
+
 	/**
 		Returns range's start node.
 	**/
-	final startContainer : js.html.Node;
+	final startContainer:js.html.Node;
+
 	/**
 		Returns range's start offset.
 	**/
-	final startOffset : Float;
+	final startOffset:Float;
 };

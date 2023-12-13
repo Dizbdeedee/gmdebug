@@ -2,28 +2,30 @@ package node.child_process;
 
 typedef ExecFileOptions = {
 	@:optional
-	var maxBuffer : Float;
+	var maxBuffer:Float;
 	@:optional
-	var killSignal : ts.AnyOf2<Float, String>;
+	var killSignal:ts.AnyOf2<Float, String>;
 	@:optional
-	var windowsVerbatimArguments : Bool;
+	var windowsVerbatimArguments:Bool;
 	@:optional
-	var shell : ts.AnyOf2<String, Bool>;
+	var shell:ts.AnyOf2<String, Bool>;
+
 	/**
 		When provided the corresponding `AbortController` can be used to cancel an asynchronous action.
 	**/
 	@:optional
-	var signal : js.html.AbortSignal;
+	var signal:js.html.AbortSignal;
+
 	@:optional
-	var windowsHide : Bool;
+	var windowsHide:Bool;
 	@:optional
-	var timeout : Float;
+	var timeout:Float;
 	@:optional
-	var uid : Float;
+	var uid:Float;
 	@:optional
-	var gid : Float;
+	var gid:Float;
 	@:optional
-	var cwd : ts.AnyOf2<String, node.url.URL>;
+	var cwd:ts.AnyOf2<String, node.url.URL>;
 	@:optional
-	var env : global.nodejs.ProcessEnv;
+	var env:global.nodejs.ProcessEnv;
 };

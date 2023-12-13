@@ -1,7 +1,7 @@
 package node.crypto;
 
 typedef RsaPublicKey = {
-	var key : KeyLike;
+	var key:KeyLike;
 	@:optional
-	var padding : Float;
+	var padding:Float;
 };

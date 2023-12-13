@@ -5,10 +5,11 @@ typedef CipherInfoOptions = {
 		A test key length.
 	**/
 	@:optional
-	var keyLength : Float;
+	var keyLength:Float;
+
 	/**
 		A test IV length.
 	**/
 	@:optional
-	var ivLength : Float;
+	var ivLength:Float;
 };

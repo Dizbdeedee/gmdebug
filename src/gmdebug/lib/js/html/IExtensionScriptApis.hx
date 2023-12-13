@@ -2,7 +2,8 @@ package js.html;
 
 typedef IExtensionScriptApis = {
 	function extensionIdToShortId(extensionId:String):Float;
-	function fireExtensionApiTelemetry(functionName:String, isSucceeded:Bool, isSupported:Bool, errorString:String):Void;
+	function fireExtensionApiTelemetry(functionName:String, isSucceeded:Bool, isSupported:Bool,
+		errorString:String):Void;
 	function genericFunction(routerAddress:Dynamic, ?parameters:String, ?callbackId:Float):Void;
 	function genericSynchronousFunction(functionId:Float, ?parameters:String):String;
 	function genericWebRuntimeCallout(to:Dynamic, from:Dynamic, payload:String):Void;

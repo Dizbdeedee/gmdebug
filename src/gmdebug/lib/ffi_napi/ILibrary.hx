@@ -5,9 +5,10 @@ package ffi_napi;
 **/
 typedef ILibrary = {
 	@:selfCall
-	function call(libFile:Null<String>, ?funcs:{ }, ?lib:Dynamic):Dynamic;
+	function call(libFile:Null<String>, ?funcs:{}, ?lib:Dynamic):Dynamic;
+
 	/**
 		The extension to use on libraries.
 	**/
-	var EXT : String;
+	var EXT:String;
 };

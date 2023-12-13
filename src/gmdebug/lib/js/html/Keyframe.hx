@@ -2,9 +2,9 @@ package js.html;
 
 typedef Keyframe = {
 	@:optional
-	var composite : CompositeOperationOrAuto;
+	var composite:CompositeOperationOrAuto;
 	@:optional
-	var easing : String;
+	var easing:String;
 	@:optional
-	var offset : Float;
+	var offset:Float;
 };

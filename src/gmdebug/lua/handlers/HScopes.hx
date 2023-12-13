@@ -2,12 +2,11 @@ package gmdebug.lua.handlers;
 
 import gmod.libs.DebugLib;
 
-
 typedef InitHScopes = {
-	debugee : Debugee
+	debugee:Debugee
 }
+
 class HScopes implements IHandler<ScopesRequest> {
-	
 	final debugee:Debugee;
 
 	public function new(init:InitHScopes) {
@@ -21,24 +20,27 @@ class HScopes implements IHandler<ScopesRequest> {
 		var arguments:Scope = {
 			name: "Arguments",
 			presentationHint: Arguments,
-			variablesReference: VariableReference.encode(FrameLocal(debugee.clientID, frameInfo.actualFrame, Arguments)),
+			variablesReference: VariableReference.encode(FrameLocal(debugee.clientID, frameInfo.actualFrame
+				, Arguments)),
 			expensive: false
 		}
 		var locals:Scope = switch (info) {
 			case null:
 				null;
-			case {linedefined : null, lastlinedefined : null}:
+			case {linedefined: null, lastlinedefined: null}:
 				{
 					name: "Locals",
 					presentationHint: Locals,
-					variablesReference: VariableReference.encode(FrameLocal(debugee.clientID, frameInfo.actualFrame, Locals)),
+					variablesReference: VariableReference.encode
+						(FrameLocal(debugee.clientID, frameInfo.actualFrame, Locals)),
 					expensive: false,
 				};
-			case {linedefined : ld, lastlinedefined : lld}:
+			case {linedefined: ld, lastlinedefined: lld}:
 				{
 					name: "Locals",
 					presentationHint: Locals,
-					variablesReference: VariableReference.encode(FrameLocal(debugee.clientID, frameInfo.actualFrame, Locals)),
+					variablesReference: VariableReference.encode
+						(FrameLocal(debugee.clientID, frameInfo.actualFrame, Locals)),
 					expensive: false,
 					line: ld,
 					endLine: lld,
@@ -46,10 +48,11 @@ class HScopes implements IHandler<ScopesRequest> {
 					endColumn: 99999
 				};
 		};
-		
+
 		var upvalues:Scope = {
 			name: "Upvalues",
-			variablesReference: VariableReference.encode(FrameLocal(debugee.clientID, frameInfo.actualFrame, Upvalues)),
+			variablesReference: VariableReference.encode(FrameLocal(debugee.clientID, frameInfo.actualFrame
+				, Upvalues)),
 			expensive: false,
 		};
 		var globals:Scope = {
@@ -75,7 +78,8 @@ class HScopes implements IHandler<ScopesRequest> {
 
 		var env:Scope = {
 			name: "Function Environment",
-			variablesReference: VariableReference.encode(FrameLocal(debugee.clientID, frameInfo.actualFrame, Fenv)),
+			variablesReference: VariableReference.encode
+				(FrameLocal(debugee.clientID, frameInfo.actualFrame, Fenv)),
 			expensive: true
 		}
 		var hasFenv:Bool = if (info != null && info.func != null) {
@@ -89,18 +93,18 @@ class HScopes implements IHandler<ScopesRequest> {
 				case null:
 					Lua.print("No info?!", frameInfo.actualFrame);
 					[globals, entities, players, enums];
-				case {what : C}:
+				case {what: C}:
 					[arguments, locals, globals, entities, players, enums];
-				case {what : Lua}:
+				case {what: Lua}:
 					if (hasFenv) {
 						[arguments, locals, upvalues, env, globals, entities, players, enums];
 					} else {
 						[arguments, locals, upvalues, globals, entities, players, enums];
 					}
-				case {what : main}:
+				case {what: main}:
 					[locals, upvalues, env, globals, entities, players, enums];
 				default:
-					Lua.print("OH GOD",info.what);
+					Lua.print("OH GOD", info.what);
 					[globals, entities, players, enums];
 			}
 		});
@@ -109,7 +113,3 @@ class HScopes implements IHandler<ScopesRequest> {
 		return WAIT;
 	}
 }
-
-
-
-

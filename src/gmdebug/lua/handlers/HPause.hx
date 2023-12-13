@@ -3,12 +3,13 @@ package gmdebug.lua.handlers;
 import gmdebug.lua.debugcontext.DebugContext;
 import gmdebug.lua.handlers.IHandler.HandlerResponse;
 
-typedef InitHPause = { 
-	debugee : Debugee
+typedef InitHPause = {
+	debugee:Debugee
 }
 
 class HPause implements IHandler<PauseRequest> {
 	final debugee:Debugee;
+
 	public function new(init:InitHPause) {
 		debugee = init.debugee;
 	}

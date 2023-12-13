@@ -1,11 +1,10 @@
 package gmdebug.lua.handlers;
 
 typedef InitHStepIn = {
-	debugee : Debugee
+	debugee:Debugee
 }
 
 class HStepIn implements IHandler<StepInRequest> {
-	
 	final debugee:Debugee;
 
 	public function new(initHStepIn:InitHStepIn) {

@@ -1,3 +1,3 @@
 package js.html;
 
-typedef WebAuthnExtensions = { };
+typedef WebAuthnExtensions = {};

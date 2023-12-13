@@ -29,7 +29,6 @@ import gmod.libs.DebugLib;
 import haxe.io.Path.join;
 
 using Lambda;
-
 using StringTools;
 using gmdebug.composer.ComposeTools;
 using tink.CoreApi;
@@ -49,25 +48,23 @@ enum RecursiveGuard {
 
 @:keep
 class Debugee {
-
     static final CONNECT_TIMEOUT = 25;
 
     static final TIMEOUT_CONFIG = 5;
 
     public final POLL_TIME = 0.1;
 
-    public var clientID:Int = 0; //go
+    public var clientID:Int = 0; // go
 
-    public var state:DebugState = WAIT; //go
+    public var state:DebugState = WAIT; // go
 
-    public var socketActive:Bool = false; //keep
+    public var socketActive:Bool = false; // keep
 
-    public var pauseLoopActive = false; //keep
+    public var pauseLoopActive = false; // keep
 
     public var dapMode:Null<DapModeStr>;
 
     // public var baseDepth:Null<Int>;
-
     public var recursiveGuard:RecursiveGuard = NONE;
 
     public var stackHeight(get, never):Int;
@@ -76,7 +73,7 @@ class Debugee {
     public function get_stackHeight():Int {
         for (i in 1...999999) {
             if (DebugLib.getinfo(i, "") == null) {
-                return i - 2; //non inline, last null is not an actual height.
+                return i - 2; // non inline, last null is not an actual height.
             }
         }
         throw "No stack height";
@@ -140,12 +137,12 @@ class Debugee {
         exceptions = new Exceptions(this.traceback);
         fbm = new FunctionBreakpointManager();
         hc = new HandlerContainer({
-            vm : vm,
+            vm: vm,
             debugee: this,
-            fbm : fbm,
-            bm : bm,
+            fbm: fbm,
+            bm: bm,
             exceptions: exceptions,
-            sc : sc
+            sc: sc
         });
         DebugLoop.init({
             bm: bm,
@@ -187,12 +184,11 @@ class Debugee {
     }
 
     function freeFolder(folder:String):Bool {
-        return if (!FileLib.Exists(folder,DATA)) {
+        return if (!FileLib.Exists(folder, DATA)) {
             true;
-        } else if (!FileLib.Exists(join([folder,PATH_CLIENT_READY]),DATA)
-        && !FileLib.Exists(join([folder,PATH_CONNECTION_AQUIRED]),DATA)
-        && !FileLib.Exists(join([folder,PATH_CONNECTION_IN_PROGRESS]),DATA)
-        ) {
+        } else if (!FileLib.Exists(join([folder, PATH_CLIENT_READY]), DATA)
+            && !FileLib.Exists(join([folder, PATH_CONNECTION_AQUIRED]), DATA)
+            && !FileLib.Exists(join([folder, PATH_CONNECTION_IN_PROGRESS]), DATA)) {
             true;
         } else {
             false;
@@ -241,7 +237,7 @@ class Debugee {
         DebugHook.addHook(DebugLoop.debugloop, "c");
         exceptions.hooks();
         G.__gmdebugTraceback = traceback;
-        HookLib.Add(ShutDown,"debugee-shutdown",() -> {
+        HookLib.Add(ShutDown, "debugee-shutdown", () -> {
             shutdown();
         });
         outputter.hookPrint();
@@ -251,9 +247,12 @@ class Debugee {
 
     @:access(sys.net.Socket)
     public inline function send(data:String) { // x:Dynamic
-        var str:String = untyped __lua__("{0} .. {1} .. {2} .. {3}", "Content-Length: ", data.length, "\r\n\r\n", data);
-        socket.output.unsafe().writeString(str); // awful perfomance with non native writing
-        socket.output.unsafe().flush();
+        var str:String = untyped __lua__("{0} .. {1} .. {2} .. {3}", "Content-Length: ", data.length
+            , "\r\n\r\n", data);
+        socket.output.unsafe()
+            .writeString(str); // awful perfomance with non native writing
+        socket.output.unsafe()
+            .flush();
     }
 
     public inline function sendMessage(message:ComposedProtocolMessage) {
@@ -262,7 +261,8 @@ class Debugee {
 
     public function traceback(err:Any, ?alt:Int) {
         final _err = err;
-        if (pollActive) return err;
+        if (pollActive)
+            return err;
         if (pauseLoopActive || tracebackActive) {
             trace('traceback failed... ${pauseLoopActive} $tracebackActive');
             return _err;
@@ -272,7 +272,8 @@ class Debugee {
         tracebackActive = true;
         Lua.print('ALT $alt');
         Util.traceStack();
-        if (alt == null) alt = 0;
+        if (alt == null)
+            alt = 0;
         DebugContext.enterDebugContextSet(3 + alt);
         if (err is haxe.Exception) {
             DebugContext.debugContext({startHaltLoop(Exception, (err : haxe.Exception).message);});
@@ -285,14 +286,17 @@ class Debugee {
     }
 
     inline function parseInput(x:Input):MessageResult {
-        socket.unsafe().output.writeString("\004");
-        socket.unsafe().output.flush();
+        socket.unsafe()
+            .output.writeString("\004");
+        socket.unsafe()
+            .output.flush();
         return Cross.recvMessage(x);
     }
 
     function recvMessage():RecvMessageResult {
         return try {
-            switch (parseInput(socket.unsafe().input)) {
+            switch (parseInput(socket.unsafe()
+                .input)) {
                 case ACK:
                     ACK;
                 case MESSAGE(msg):
@@ -324,23 +328,22 @@ class Debugee {
                     trace("poll()/Debugee - request for disconnect from poll");
                     shutdown();
                 case PAUSE(pauseReq):
-                    var resp = pauseReq.compose(pause,{});
+                    var resp = pauseReq.compose(pause, {});
                     sendMessage(resp);
                     DebugContext.enterDebugContextSet(5);
                     DebugContext.debugContext({startHaltLoop(Pause);});
                     DebugContext.exitDebugContext();
                 case WAIT | CONTINUE | CONFIG_DONE:
             }
-        },(err) -> {
+        }, (err) -> {
             trace(err);
             DebugLib.Trace();
         });
-
-
     }
 
     public function startHaltLoop(reason:StopReason, ?txt:String) {
-        if (pauseLoopActive) return;
+        if (pauseLoopActive)
+            return;
         pauseLoopActive = true;
         trace(clientID);
         final tstop:TStoppedEvent = {
@@ -360,12 +363,13 @@ class Debugee {
     public function stopDump() {
         Gmod.collectgarbage("collect");
         Mri.DumpMemorySnapshot("gmdebugdump", "after", -1);
-        Mri.DumpMemorySnapshotComparedFile("gmdebugdump", "Compared", -1, "gmdebugdump/LuaMemRefInfo-All-[]-[before].txt",
-            "gmdebugdump/LuaMemRefInfo-All-[]-[after].txt");
+        Mri.DumpMemorySnapshotComparedFile("gmdebugdump", "Compared", -1
+            , "gmdebugdump/LuaMemRefInfo-All-[]-[before].txt"
+            , "gmdebugdump/LuaMemRefInfo-All-[]-[after].txt");
     }
     #end
 
-    function shutdown() {
+    function shutdown(?shutdownReason:ShutdownReason) {
         DebugHook.addHook();
         socket.run((sock) -> {
             sock.close();
@@ -415,7 +419,6 @@ class Debugee {
         return success;
     }
 
-
     function haltLoop() {
         while (true) {
             DebugContext.markNotReport();
@@ -458,7 +461,7 @@ class Debugee {
                 switch (result) {
                     case CLIENT_ID(id):
                         clientID = id;
-                    case INITIAL_INFO(_dest,_dapMode):
+                    case INITIAL_INFO(_dest, _dapMode):
                         dest = _dest;
                         dapMode = _dapMode;
                 }
@@ -487,13 +490,13 @@ typedef LineMap = Map<Int, Bool>;
 @:native("_G") private extern class G {
     static var previousSocket:Null<DebugIO>;
 
-    static dynamic function __gmdebugTraceback(err:Any,?alt:Int):Any;
+    static dynamic function __gmdebugTraceback(err:Any, ?alt:Int):Any;
 }
 
 enum DebugState {
     WAIT;
     STEP(targetHeight:Null<Int>);
-    OUT(outFunc:Function, lowestLine:Int,targetHeight:Int);
+    OUT(outFunc:Function, lowestLine:Int, targetHeight:Int);
 }
 
 enum RecvMessageResult {
@@ -501,5 +504,6 @@ enum RecvMessageResult {
     ACK;
     ERROR(s:String);
     MESSAGE(msg:Dynamic);
-
 }
+
+enum ShutdownReason {}

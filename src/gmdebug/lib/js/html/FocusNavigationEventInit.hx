@@ -2,19 +2,19 @@ package js.html;
 
 typedef FocusNavigationEventInit = {
 	@:optional
-	var navigationReason : String;
+	var navigationReason:String;
 	@:optional
-	var originHeight : Float;
+	var originHeight:Float;
 	@:optional
-	var originLeft : Float;
+	var originLeft:Float;
 	@:optional
-	var originTop : Float;
+	var originTop:Float;
 	@:optional
-	var originWidth : Float;
+	var originWidth:Float;
 	@:optional
-	var bubbles : Bool;
+	var bubbles:Bool;
 	@:optional
-	var cancelable : Bool;
+	var cancelable:Bool;
 	@:optional
-	var composed : Bool;
+	var composed:Bool;
 };

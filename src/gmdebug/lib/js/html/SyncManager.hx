@@ -7,5 +7,5 @@ package js.html;
 	function new();
 	function getTags():js.lib.Promise<Array<String>>;
 	function register(tag:String):js.lib.Promise<ts.Undefined>;
-	static var prototype : SyncManager;
+	static var prototype:SyncManager;
 }

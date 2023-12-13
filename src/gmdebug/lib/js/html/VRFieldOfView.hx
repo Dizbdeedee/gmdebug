@@ -5,9 +5,9 @@ package js.html;
 **/
 @:native("VRFieldOfView") extern class VRFieldOfView {
 	function new();
-	final downDegrees : Float;
-	final leftDegrees : Float;
-	final rightDegrees : Float;
-	final upDegrees : Float;
-	static var prototype : VRFieldOfView;
+	final downDegrees:Float;
+	final leftDegrees:Float;
+	final rightDegrees:Float;
+	final upDegrees:Float;
+	static var prototype:VRFieldOfView;
 }

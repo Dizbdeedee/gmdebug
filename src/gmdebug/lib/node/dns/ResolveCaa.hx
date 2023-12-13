@@ -12,5 +12,6 @@ package node.dns;
 		available for the `hostname` (e.g. `[{critical: 0, iodef: 'mailto:pki@example.com'}, {critical: 128, issue: 'pki.example.com'}]`).
 	**/
 	@:selfCall
-	static function call(hostname:String, callback:(err:Null<global.nodejs.ErrnoException>, records:Array<CaaRecord>) -> Void):Void;
+	static function call(hostname:String,
+		callback:(err:Null<global.nodejs.ErrnoException>, records:Array<CaaRecord>) -> Void):Void;
 }

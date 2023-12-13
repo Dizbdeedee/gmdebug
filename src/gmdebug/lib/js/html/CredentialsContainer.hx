@@ -6,5 +6,5 @@ package js.html;
 	function get(?options:CredentialRequestOptions):js.lib.Promise<Null<Credential>>;
 	function preventSilentAccess():js.lib.Promise<ts.Undefined>;
 	function store(credential:Credential):js.lib.Promise<Credential>;
-	static var prototype : CredentialsContainer;
+	static var prototype:CredentialsContainer;
 }

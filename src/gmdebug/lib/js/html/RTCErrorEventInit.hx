@@ -2,11 +2,11 @@ package js.html;
 
 typedef RTCErrorEventInit = {
 	@:optional
-	var error : RTCError;
+	var error:RTCError;
 	@:optional
-	var bubbles : Bool;
+	var bubbles:Bool;
 	@:optional
-	var cancelable : Bool;
+	var cancelable:Bool;
 	@:optional
-	var composed : Bool;
+	var composed:Bool;
 };

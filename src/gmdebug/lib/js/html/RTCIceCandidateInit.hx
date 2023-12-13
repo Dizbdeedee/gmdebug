@@ -2,11 +2,11 @@ package js.html;
 
 typedef RTCIceCandidateInit = {
 	@:optional
-	var candidate : String;
+	var candidate:String;
 	@:optional
-	var sdpMLineIndex : Float;
+	var sdpMLineIndex:Float;
 	@:optional
-	var sdpMid : String;
+	var sdpMid:String;
 	@:optional
-	var usernameFragment : String;
+	var usernameFragment:String;
 };

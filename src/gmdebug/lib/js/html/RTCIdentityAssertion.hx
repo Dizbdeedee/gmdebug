@@ -2,7 +2,7 @@ package js.html;
 
 @:native("RTCIdentityAssertion") extern class RTCIdentityAssertion {
 	function new(idp:String, name:String);
-	var idp : String;
-	var name : String;
-	static var prototype : RTCIdentityAssertion;
+	var idp:String;
+	var name:String;
+	static var prototype:RTCIdentityAssertion;
 }

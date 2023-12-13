@@ -1,8 +1,8 @@
 package js.html;
 
 typedef PaymentItem = {
-	var amount : PaymentCurrencyAmount;
-	var label : String;
+	var amount:PaymentCurrencyAmount;
+	var label:String;
 	@:optional
-	var pending : Bool;
+	var pending:Bool;
 };

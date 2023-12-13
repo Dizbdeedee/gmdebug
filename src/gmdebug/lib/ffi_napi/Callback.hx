@@ -6,12 +6,24 @@ package ffi_napi;
 	accept C callback functions.
 **/
 @:jsRequire("ffi-napi", "Callback") extern class Callback {
-	@:overload(function(retType:ts.AnyOf2<String, ref_napi.Type_>, argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>, fn:(args:haxe.extern.Rest<Dynamic>) -> Dynamic):global.Buffer { })
-	function new(retType:ts.AnyOf2<String, ref_napi.Type_>, argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>, abi:Float, fn:(args:haxe.extern.Rest<Dynamic>) -> Dynamic);
-	@:overload(function(retType:ts.AnyOf2<String, ref_napi.Type_>, argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>, fn:(args:haxe.extern.Rest<Dynamic>) -> Dynamic):global.Buffer { })
+	@:overload(function(retType:ts.AnyOf2<String, ref_napi.Type_>,
+		argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>,
+		fn:(args:haxe.extern.Rest<Dynamic>) -> Dynamic):global.Buffer {})
+	function new(retType:ts.AnyOf2<String, ref_napi.Type_>,
+		argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>, abi:Float,
+		fn:(args:haxe.extern.Rest<Dynamic>) -> Dynamic);
+	@:overload(function(retType:ts.AnyOf2<String, ref_napi.Type_>,
+		argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>,
+		fn:(args:haxe.extern.Rest<Dynamic>) -> Dynamic):global.Buffer {})
 	@:selfCall
-	function call(retType:ts.AnyOf2<String, ref_napi.Type_>, argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>, abi:Float, fn:(args:haxe.extern.Rest<Dynamic>) -> Dynamic):global.Buffer;
-	@:overload(function(retType:ts.AnyOf2<String, ref_napi.Type_>, argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>, fn:(args:haxe.extern.Rest<Dynamic>) -> Dynamic):global.Buffer { })
+	function call(retType:ts.AnyOf2<String, ref_napi.Type_>,
+		argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>, abi:Float,
+		fn:(args:haxe.extern.Rest<Dynamic>) -> Dynamic):global.Buffer;
+	@:overload(function(retType:ts.AnyOf2<String, ref_napi.Type_>,
+		argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>,
+		fn:(args:haxe.extern.Rest<Dynamic>) -> Dynamic):global.Buffer {})
 	@:selfCall
-	static function call_(retType:ts.AnyOf2<String, ref_napi.Type_>, argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>, abi:Float, fn:(args:haxe.extern.Rest<Dynamic>) -> Dynamic):global.Buffer;
+	static function call_(retType:ts.AnyOf2<String, ref_napi.Type_>,
+		argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>, abi:Float,
+		fn:(args:haxe.extern.Rest<Dynamic>) -> Dynamic):global.Buffer;
 }

@@ -2,9 +2,9 @@ package js.html;
 
 typedef CredentialRequestOptions = {
 	@:optional
-	var mediation : CredentialMediationRequirement;
+	var mediation:CredentialMediationRequirement;
 	@:optional
-	var publicKey : PublicKeyCredentialRequestOptions;
+	var publicKey:PublicKeyCredentialRequestOptions;
 	@:optional
-	var signal : js.html.AbortSignal;
+	var signal:js.html.AbortSignal;
 };

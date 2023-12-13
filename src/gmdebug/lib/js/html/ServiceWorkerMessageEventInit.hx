@@ -2,19 +2,19 @@ package js.html;
 
 typedef ServiceWorkerMessageEventInit = {
 	@:optional
-	var data : Dynamic;
+	var data:Dynamic;
 	@:optional
-	var lastEventId : String;
+	var lastEventId:String;
 	@:optional
-	var origin : String;
+	var origin:String;
 	@:optional
-	var ports : Array<js.html.MessagePort>;
+	var ports:Array<js.html.MessagePort>;
 	@:optional
-	var source : ts.AnyOf2<js.html.MessagePort, js.html.ServiceWorker>;
+	var source:ts.AnyOf2<js.html.MessagePort, js.html.ServiceWorker>;
 	@:optional
-	var bubbles : Bool;
+	var bubbles:Bool;
 	@:optional
-	var cancelable : Bool;
+	var cancelable:Bool;
 	@:optional
-	var composed : Bool;
+	var composed:Bool;
 };

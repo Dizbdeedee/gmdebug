@@ -2,11 +2,11 @@ package js.html;
 
 typedef DOMRectInit = {
 	@:optional
-	var height : Float;
+	var height:Float;
 	@:optional
-	var width : Float;
+	var width:Float;
 	@:optional
-	var x : Float;
+	var x:Float;
 	@:optional
-	var y : Float;
+	var y:Float;
 };

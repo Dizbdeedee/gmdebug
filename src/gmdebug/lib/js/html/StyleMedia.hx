@@ -2,7 +2,7 @@ package js.html;
 
 @:native("StyleMedia") extern class StyleMedia {
 	function new();
-	final type : String;
+	final type:String;
 	function matchMedium(mediaquery:String):Bool;
-	static var prototype : StyleMedia;
+	static var prototype:StyleMedia;
 }

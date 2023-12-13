@@ -2,7 +2,7 @@ package js.html;
 
 typedef ULongRange = {
 	@:optional
-	var max : Float;
+	var max:Float;
 	@:optional
-	var min : Float;
+	var min:Float;
 };

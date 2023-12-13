@@ -1,5 +1,3 @@
 package gmdebug.lua;
 
-class Menu {
-    
-}
+class Menu {}

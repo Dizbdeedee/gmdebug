@@ -2,19 +2,19 @@ package js.html;
 
 typedef AuthenticationExtensionsClientOutputs = {
 	@:optional
-	var appid : Bool;
+	var appid:Bool;
 	@:optional
-	var authnSel : Bool;
+	var authnSel:Bool;
 	@:optional
-	var exts : AuthenticationExtensionsSupported;
+	var exts:AuthenticationExtensionsSupported;
 	@:optional
-	var loc : js.html.Coordinates;
+	var loc:js.html.Coordinates;
 	@:optional
-	var txAuthGeneric : js.lib.ArrayBuffer;
+	var txAuthGeneric:js.lib.ArrayBuffer;
 	@:optional
-	var txAuthSimple : String;
+	var txAuthSimple:String;
 	@:optional
-	var uvi : js.lib.ArrayBuffer;
+	var uvi:js.lib.ArrayBuffer;
 	@:optional
-	var uvm : UvmEntries;
+	var uvm:UvmEntries;
 };

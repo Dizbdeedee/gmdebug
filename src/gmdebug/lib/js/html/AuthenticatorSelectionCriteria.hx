@@ -2,9 +2,9 @@ package js.html;
 
 typedef AuthenticatorSelectionCriteria = {
 	@:optional
-	var authenticatorAttachment : AuthenticatorAttachment;
+	var authenticatorAttachment:AuthenticatorAttachment;
 	@:optional
-	var requireResidentKey : Bool;
+	var requireResidentKey:Bool;
 	@:optional
-	var userVerification : UserVerificationRequirement;
+	var userVerification:UserVerificationRequirement;
 };

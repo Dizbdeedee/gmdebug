@@ -2,21 +2,21 @@ package js.html;
 
 typedef RTCRtpEncodingParameters = {
 	@:optional
-	var active : Bool;
+	var active:Bool;
 	@:optional
-	var codecPayloadType : Float;
+	var codecPayloadType:Float;
 	@:optional
-	var dtx : RTCDtxStatus;
+	var dtx:RTCDtxStatus;
 	@:optional
-	var maxBitrate : Float;
+	var maxBitrate:Float;
 	@:optional
-	var maxFramerate : Float;
+	var maxFramerate:Float;
 	@:optional
-	var priority : RTCPriorityType;
+	var priority:RTCPriorityType;
 	@:optional
-	var ptime : Float;
+	var ptime:Float;
 	@:optional
-	var scaleResolutionDownBy : Float;
+	var scaleResolutionDownBy:Float;
 	@:optional
-	var rid : String;
+	var rid:String;
 };

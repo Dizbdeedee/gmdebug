@@ -10,5 +10,6 @@ package node.dns;
 		will contain an array of canonical name records available for the `hostname`(e.g. `['bar.example.com']`).
 	**/
 	@:selfCall
-	static function call(hostname:String, callback:(err:Null<global.nodejs.ErrnoException>, addresses:Array<String>) -> Void):Void;
+	static function call(hostname:String,
+		callback:(err:Null<global.nodejs.ErrnoException>, addresses:Array<String>) -> Void):Void;
 }

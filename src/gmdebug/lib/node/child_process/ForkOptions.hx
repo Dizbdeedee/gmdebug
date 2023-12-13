@@ -2,43 +2,47 @@ package node.child_process;
 
 typedef ForkOptions = {
 	@:optional
-	var execPath : String;
+	var execPath:String;
 	@:optional
-	var execArgv : Array<String>;
+	var execArgv:Array<String>;
 	@:optional
-	var silent : Bool;
+	var silent:Bool;
 	@:optional
-	var stdio : StdioOptions;
+	var stdio:StdioOptions;
 	@:optional
-	var detached : Bool;
+	var detached:Bool;
 	@:optional
-	var windowsVerbatimArguments : Bool;
+	var windowsVerbatimArguments:Bool;
 	@:optional
-	var uid : Float;
+	var uid:Float;
 	@:optional
-	var gid : Float;
+	var gid:Float;
 	@:optional
-	var cwd : ts.AnyOf2<String, node.url.URL>;
+	var cwd:ts.AnyOf2<String, node.url.URL>;
 	@:optional
-	var env : global.nodejs.ProcessEnv;
+	var env:global.nodejs.ProcessEnv;
+
 	/**
 		Specify the kind of serialization used for sending messages between processes.
 	**/
 	@:optional
-	var serialization : SerializationType;
+	var serialization:SerializationType;
+
 	/**
 		The signal value to be used when the spawned process will be killed by the abort signal.
 	**/
 	@:optional
-	var killSignal : ts.AnyOf2<Float, String>;
+	var killSignal:ts.AnyOf2<Float, String>;
+
 	/**
 		In milliseconds the maximum amount of time the process is allowed to run.
 	**/
 	@:optional
-	var timeout : Float;
+	var timeout:Float;
+
 	/**
 		When provided the corresponding `AbortController` can be used to cancel an asynchronous action.
 	**/
 	@:optional
-	var signal : js.html.AbortSignal;
+	var signal:js.html.AbortSignal;
 };

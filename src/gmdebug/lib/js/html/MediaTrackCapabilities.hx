@@ -2,33 +2,33 @@ package js.html;
 
 typedef MediaTrackCapabilities = {
 	@:optional
-	var aspectRatio : DoubleRange;
+	var aspectRatio:DoubleRange;
 	@:optional
-	var autoGainControl : Array<Bool>;
+	var autoGainControl:Array<Bool>;
 	@:optional
-	var channelCount : ULongRange;
+	var channelCount:ULongRange;
 	@:optional
-	var deviceId : String;
+	var deviceId:String;
 	@:optional
-	var echoCancellation : Array<Bool>;
+	var echoCancellation:Array<Bool>;
 	@:optional
-	var facingMode : Array<String>;
+	var facingMode:Array<String>;
 	@:optional
-	var frameRate : DoubleRange;
+	var frameRate:DoubleRange;
 	@:optional
-	var groupId : String;
+	var groupId:String;
 	@:optional
-	var height : ULongRange;
+	var height:ULongRange;
 	@:optional
-	var latency : DoubleRange;
+	var latency:DoubleRange;
 	@:optional
-	var noiseSuppression : Array<Bool>;
+	var noiseSuppression:Array<Bool>;
 	@:optional
-	var resizeMode : Array<String>;
+	var resizeMode:Array<String>;
 	@:optional
-	var sampleRate : ULongRange;
+	var sampleRate:ULongRange;
 	@:optional
-	var sampleSize : ULongRange;
+	var sampleSize:ULongRange;
 	@:optional
-	var width : ULongRange;
+	var width:ULongRange;
 };

@@ -1,3 +1,3 @@
 package js.html;
 
-typedef IWebGLObject = { };
+typedef IWebGLObject = {};

@@ -4,14 +4,15 @@ typedef RSAKeyPairOptions<PubF, PrivF> = {
 	/**
 		Key size in bits
 	**/
-	var modulusLength : Float;
+	var modulusLength:Float;
+
 	@:optional
-	var publicExponent : Float;
-	var publicKeyEncoding : {
-		var type : String;
-		var format : PubF;
+	var publicExponent:Float;
+	var publicKeyEncoding:{
+		var type:String;
+		var format:PubF;
 	};
-	var privateKeyEncoding : BasePrivateKeyEncodingOptions<PrivF> & {
-		var type : String;
+	var privateKeyEncoding:BasePrivateKeyEncodingOptions<PrivF> & {
+		var type:String;
 	};
 };

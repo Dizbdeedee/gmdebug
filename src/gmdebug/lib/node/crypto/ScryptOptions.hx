@@ -2,17 +2,17 @@ package node.crypto;
 
 typedef ScryptOptions = {
 	@:optional
-	var cost : Float;
+	var cost:Float;
 	@:optional
-	var blockSize : Float;
+	var blockSize:Float;
 	@:optional
-	var parallelization : Float;
+	var parallelization:Float;
 	@:optional
-	var N : Float;
+	var N:Float;
 	@:optional
-	var r : Float;
+	var r:Float;
 	@:optional
-	var p : Float;
+	var p:Float;
 	@:optional
-	var maxmem : Float;
+	var maxmem:Float;
 };

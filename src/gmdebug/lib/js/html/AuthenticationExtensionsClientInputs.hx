@@ -2,19 +2,19 @@ package js.html;
 
 typedef AuthenticationExtensionsClientInputs = {
 	@:optional
-	var appid : String;
+	var appid:String;
 	@:optional
-	var authnSel : AuthenticatorSelectionList;
+	var authnSel:AuthenticatorSelectionList;
 	@:optional
-	var exts : Bool;
+	var exts:Bool;
 	@:optional
-	var loc : Bool;
+	var loc:Bool;
 	@:optional
-	var txAuthGeneric : TxAuthGenericArg;
+	var txAuthGeneric:TxAuthGenericArg;
 	@:optional
-	var txAuthSimple : String;
+	var txAuthSimple:String;
 	@:optional
-	var uvi : Bool;
+	var uvi:Bool;
 	@:optional
-	var uvm : Bool;
+	var uvm:Bool;
 };

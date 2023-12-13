@@ -3,12 +3,12 @@ package node.dns;
 /**
 	Uses the DNS protocol to resolve service records (`SRV` records) for the`hostname`. The `addresses` argument passed to the `callback` function will
 	be an array of objects with the following properties:
-	
+
 	* `priority`
 	* `weight`
 	* `port`
 	* `name`
-	
+
 	```js
 	{
 	   priority: 10,
@@ -22,12 +22,12 @@ package node.dns;
 	/**
 		Uses the DNS protocol to resolve service records (`SRV` records) for the`hostname`. The `addresses` argument passed to the `callback` function will
 		be an array of objects with the following properties:
-		
+
 		* `priority`
 		* `weight`
 		* `port`
 		* `name`
-		
+
 		```js
 		{
 		   priority: 10,
@@ -38,5 +38,6 @@ package node.dns;
 		```
 	**/
 	@:selfCall
-	static function call(hostname:String, callback:(err:Null<global.nodejs.ErrnoException>, addresses:Array<SrvRecord>) -> Void):Void;
+	static function call(hostname:String,
+		callback:(err:Null<global.nodejs.ErrnoException>, addresses:Array<SrvRecord>) -> Void):Void;
 }

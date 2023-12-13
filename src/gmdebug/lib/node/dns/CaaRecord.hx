@@ -1,15 +1,15 @@
 package node.dns;
 
 typedef CaaRecord = {
-	var critial : Float;
+	var critial:Float;
 	@:optional
-	var issue : String;
+	var issue:String;
 	@:optional
-	var issuewild : String;
+	var issuewild:String;
 	@:optional
-	var iodef : String;
+	var iodef:String;
 	@:optional
-	var contactemail : String;
+	var contactemail:String;
 	@:optional
-	var contactphone : String;
+	var contactphone:String;
 };

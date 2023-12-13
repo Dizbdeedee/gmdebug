@@ -2,9 +2,9 @@ package js.html;
 
 typedef VRStageParameters = {
 	@:optional
-	var sittingToStandingTransform : js.lib.Float32Array;
+	var sittingToStandingTransform:js.lib.Float32Array;
 	@:optional
-	var sizeX : Float;
+	var sizeX:Float;
 	@:optional
-	var sizeY : Float;
+	var sizeY:Float;
 };

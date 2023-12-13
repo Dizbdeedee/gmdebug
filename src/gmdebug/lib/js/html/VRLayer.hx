@@ -2,9 +2,9 @@ package js.html;
 
 typedef VRLayer = {
 	@:optional
-	var leftBounds : ts.AnyOf2<js.lib.Float32Array, Array<Float>>;
+	var leftBounds:ts.AnyOf2<js.lib.Float32Array, Array<Float>>;
 	@:optional
-	var rightBounds : ts.AnyOf2<js.lib.Float32Array, Array<Float>>;
+	var rightBounds:ts.AnyOf2<js.lib.Float32Array, Array<Float>>;
 	@:optional
-	var source : js.html.CanvasElement;
+	var source:js.html.CanvasElement;
 };

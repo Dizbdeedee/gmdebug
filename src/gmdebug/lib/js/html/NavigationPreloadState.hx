@@ -2,7 +2,7 @@ package js.html;
 
 typedef NavigationPreloadState = {
 	@:optional
-	var enabled : Bool;
+	var enabled:Bool;
 	@:optional
-	var headerValue : String;
+	var headerValue:String;
 };

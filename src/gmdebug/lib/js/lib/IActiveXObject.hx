@@ -1,3 +1,3 @@
 package js.lib;
 
-typedef IActiveXObject = { };
+typedef IActiveXObject = {};

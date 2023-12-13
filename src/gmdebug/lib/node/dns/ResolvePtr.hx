@@ -10,5 +10,6 @@ package node.dns;
 		be an array of strings containing the reply records.
 	**/
 	@:selfCall
-	static function call(hostname:String, callback:(err:Null<global.nodejs.ErrnoException>, addresses:Array<String>) -> Void):Void;
+	static function call(hostname:String,
+		callback:(err:Null<global.nodejs.ErrnoException>, addresses:Array<String>) -> Void):Void;
 }

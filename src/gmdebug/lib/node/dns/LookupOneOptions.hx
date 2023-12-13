@@ -2,11 +2,11 @@ package node.dns;
 
 typedef LookupOneOptions = {
 	@:optional
-	var all : Bool;
+	var all:Bool;
 	@:optional
-	var family : Float;
+	var family:Float;
 	@:optional
-	var hints : Float;
+	var hints:Float;
 	@:optional
-	var verbatim : Bool;
+	var verbatim:Bool;
 };

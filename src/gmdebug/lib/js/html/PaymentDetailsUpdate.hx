@@ -2,13 +2,13 @@ package js.html;
 
 typedef PaymentDetailsUpdate = {
 	@:optional
-	var error : String;
+	var error:String;
 	@:optional
-	var total : PaymentItem;
+	var total:PaymentItem;
 	@:optional
-	var displayItems : Array<PaymentItem>;
+	var displayItems:Array<PaymentItem>;
 	@:optional
-	var modifiers : Array<PaymentDetailsModifier>;
+	var modifiers:Array<PaymentDetailsModifier>;
 	@:optional
-	var shippingOptions : Array<PaymentShippingOption>;
+	var shippingOptions:Array<PaymentShippingOption>;
 };

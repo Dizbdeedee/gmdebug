@@ -1,11 +1,11 @@
 package node.crypto;
 
 typedef VerifyKeyObjectInput = {
-	var key : KeyObject;
+	var key:KeyObject;
 	@:optional
-	var padding : Float;
+	var padding:Float;
 	@:optional
-	var saltLength : Float;
+	var saltLength:Float;
 	@:optional
-	var dsaEncoding : DSAEncoding;
+	var dsaEncoding:DSAEncoding;
 };

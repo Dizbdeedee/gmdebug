@@ -2,9 +2,9 @@ package js.html;
 
 typedef PaymentRequestUpdateEventInit = {
 	@:optional
-	var bubbles : Bool;
+	var bubbles:Bool;
 	@:optional
-	var cancelable : Bool;
+	var cancelable:Bool;
 	@:optional
-	var composed : Bool;
+	var composed:Bool;
 };

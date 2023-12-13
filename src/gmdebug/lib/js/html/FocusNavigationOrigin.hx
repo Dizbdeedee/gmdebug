@@ -2,11 +2,11 @@ package js.html;
 
 typedef FocusNavigationOrigin = {
 	@:optional
-	var originHeight : Float;
+	var originHeight:Float;
 	@:optional
-	var originLeft : Float;
+	var originLeft:Float;
 	@:optional
-	var originTop : Float;
+	var originTop:Float;
 	@:optional
-	var originWidth : Float;
+	var originWidth:Float;
 };

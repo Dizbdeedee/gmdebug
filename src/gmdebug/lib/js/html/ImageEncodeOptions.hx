@@ -2,7 +2,7 @@ package js.html;
 
 typedef ImageEncodeOptions = {
 	@:optional
-	var quality : Float;
+	var quality:Float;
 	@:optional
-	var type : String;
+	var type:String;
 };

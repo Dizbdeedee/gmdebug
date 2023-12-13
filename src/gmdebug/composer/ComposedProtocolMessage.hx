@@ -5,14 +5,12 @@ import gmdebug.lib.lua.Protocol;
 #elseif js
 import vscode.debugProtocol.DebugProtocol;
 #end
-
 #if lua
 import gmdebug.lua.Debugee;
 #end
 import haxe.Json;
 
 class ComposedProtocolMessage {
-
 	public var seq:Int = 0;
 
 	public var type:MessageType;
@@ -25,6 +23,5 @@ class ComposedProtocolMessage {
 	public inline function json() {
 		return Json.stringify(this);
 	}
-
 	#end
 }

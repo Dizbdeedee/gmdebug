@@ -7,10 +7,12 @@ package ffi_napi;
 	execution.
 **/
 @:jsRequire("ffi-napi", "ForeignFunction") extern class ForeignFunction {
-	function new(ptr:global.Buffer, retType:ts.AnyOf2<String, ref_napi.Type_>, argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>, ?abi:Float);
+	function new(ptr:global.Buffer, retType:ts.AnyOf2<String, ref_napi.Type_>,
+		argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>, ?abi:Float);
 	@:selfCall
 	function call(args:haxe.extern.Rest<Dynamic>):Dynamic;
 	function async(args:haxe.extern.Rest<Dynamic>):Void;
 	@:selfCall
-	static function call_(ptr:global.Buffer, retType:ts.AnyOf2<String, ref_napi.Type_>, argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>, ?abi:Float):ForeignFunction;
+	static function call_(ptr:global.Buffer, retType:ts.AnyOf2<String, ref_napi.Type_>,
+		argTypes:Array<ts.AnyOf2<String, ref_napi.Type_>>, ?abi:Float):ForeignFunction;
 }

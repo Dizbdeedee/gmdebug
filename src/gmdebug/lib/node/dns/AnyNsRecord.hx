@@ -1,6 +1,6 @@
 package node.dns;
 
 typedef AnyNsRecord = {
-	var type : String;
-	var value : String;
+	var type:String;
+	var value:String;
 };

@@ -1,5 +1,5 @@
 package js.lib;
 
 typedef SharedArrayBufferConstructor = {
-	final prototype : SharedArrayBuffer;
+	final prototype:SharedArrayBuffer;
 };

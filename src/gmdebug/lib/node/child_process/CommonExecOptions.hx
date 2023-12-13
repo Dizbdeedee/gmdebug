@@ -2,25 +2,25 @@ package node.child_process;
 
 typedef CommonExecOptions = {
 	@:optional
-	var input : node.crypto.BinaryLike;
+	var input:node.crypto.BinaryLike;
 	@:optional
-	var stdio : StdioOptions;
+	var stdio:StdioOptions;
 	@:optional
-	var killSignal : ts.AnyOf2<Float, String>;
+	var killSignal:ts.AnyOf2<Float, String>;
 	@:optional
-	var maxBuffer : Float;
+	var maxBuffer:Float;
 	@:optional
-	var encoding : String;
+	var encoding:String;
 	@:optional
-	var windowsHide : Bool;
+	var windowsHide:Bool;
 	@:optional
-	var timeout : Float;
+	var timeout:Float;
 	@:optional
-	var uid : Float;
+	var uid:Float;
 	@:optional
-	var gid : Float;
+	var gid:Float;
 	@:optional
-	var cwd : ts.AnyOf2<String, node.url.URL>;
+	var cwd:ts.AnyOf2<String, node.url.URL>;
 	@:optional
-	var env : global.nodejs.ProcessEnv;
+	var env:global.nodejs.ProcessEnv;
 };

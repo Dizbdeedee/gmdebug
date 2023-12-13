@@ -4,16 +4,18 @@ typedef DSAKeyPairOptions<PubF, PrivF> = {
 	/**
 		Key size in bits
 	**/
-	var modulusLength : Float;
+	var modulusLength:Float;
+
 	/**
 		Size of q in bits
 	**/
-	var divisorLength : Float;
-	var publicKeyEncoding : {
-		var type : String;
-		var format : PubF;
+	var divisorLength:Float;
+
+	var publicKeyEncoding:{
+		var type:String;
+		var format:PubF;
 	};
-	var privateKeyEncoding : BasePrivateKeyEncodingOptions<PrivF> & {
-		var type : String;
+	var privateKeyEncoding:BasePrivateKeyEncodingOptions<PrivF> & {
+		var type:String;
 	};
 };

@@ -18,7 +18,6 @@ enum RunResult {
 }
 
 class Util {
-
 	static final CSOURCE = "=[C]";
 
 	public static inline function isCSource(source:String) {
@@ -36,7 +35,8 @@ class Util {
 		}
 	}
 
-	public static function runCompiledFunction(compiledFunc:Function, ?a:Dynamic, ?b:Dynamic, ?c:Dynamic, ?d:Dynamic, ?e:Dynamic) {
+	public static function runCompiledFunction(compiledFunc:Function, ?a:Dynamic, ?b:Dynamic, ?c:Dynamic,
+			?d:Dynamic, ?e:Dynamic) {
 		@:nullSafety(Off) final runResult = Lua.pcall(compiledFunc, a, b, c, d, e);
 		return if (runResult.status) {
 			Success(runResult.value);
@@ -57,7 +57,8 @@ class Util {
 		trace('0 | This func... (getinfo + 1)');
 		for (i in 1...99999) {
 			var info = DebugLib.getinfo(i, "lnSfu");
-			if (info == null) break;
+			if (info == null)
+				break;
 			var target = if (i == desired) {
 				"| TARGET";
 			} else {

@@ -2,17 +2,17 @@ package js.html;
 
 typedef RTCDataChannelInit = {
 	@:optional
-	var id : Float;
+	var id:Float;
 	@:optional
-	var maxPacketLifeTime : Float;
+	var maxPacketLifeTime:Float;
 	@:optional
-	var maxRetransmits : Float;
+	var maxRetransmits:Float;
 	@:optional
-	var negotiated : Bool;
+	var negotiated:Bool;
 	@:optional
-	var ordered : Bool;
+	var ordered:Bool;
 	@:optional
-	var priority : RTCPriorityType;
+	var priority:RTCPriorityType;
 	@:optional
-	var protocol : String;
+	var protocol:String;
 };

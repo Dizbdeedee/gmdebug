@@ -3,22 +3,21 @@ package gmdebug.lua.handlers;
 import gmdebug.lua.managers.FunctionBreakpointManager;
 
 typedef InitHSetFunctionBreakpoints = {
-	fbm : FunctionBreakpointManager,
-	debugee : Debugee
+	fbm:FunctionBreakpointManager,
+	debugee:Debugee
 }
+
 class HSetFunctionBreakpoints implements IHandler<SetFunctionBreakpointsRequest> {
-
-
-    final fbm:FunctionBreakpointManager;
+	final fbm:FunctionBreakpointManager;
 
 	final debugee:Debugee;
 
-    public function new(init:InitHSetFunctionBreakpoints) {
-        fbm = init.fbm;
+	public function new(init:InitHSetFunctionBreakpoints) {
+		fbm = init.fbm;
 		debugee = init.debugee;
-    }
+	}
 
-    public function handle(req:SetFunctionBreakpointsRequest) {
+	public function handle(req:SetFunctionBreakpointsRequest) {
 		final args = req.arguments.unsafe();
 		fbm.functionBP.clear();
 		// candidate for map and yucky functional ect.
@@ -36,7 +35,8 @@ class HSetFunctionBreakpoints implements IHandler<SetFunctionBreakpointsRequest>
 						verified: false,
 						message: "Failed to run"
 					};
-				case Success(Util.runCompiledFunction(_) => Success(result)) if (Lua.type(result) != "function"):
+				case Success(Util.runCompiledFunction(_) => Success(result))
+					if (Lua.type(result) != "function"):
 					{
 						verified: false,
 						message: "Result is not a function" // TODO add error message

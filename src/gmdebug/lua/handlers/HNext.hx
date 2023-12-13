@@ -2,14 +2,13 @@ package gmdebug.lua.handlers;
 
 import gmdebug.lua.debugcontext.DebugContext;
 
-
 typedef InitHNext = {
-	debugee : Debugee
+	debugee:Debugee
 }
+
 class HNext implements IHandler<NextRequest> {
-	
 	final debugee:Debugee;
-	
+
 	public function new(init:InitHNext) {
 		debugee = init.debugee;
 	}

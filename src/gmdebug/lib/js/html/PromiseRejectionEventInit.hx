@@ -1,13 +1,13 @@
 package js.html;
 
 typedef PromiseRejectionEventInit = {
-	var promise : js.lib.Promise<Dynamic>;
+	var promise:js.lib.Promise<Dynamic>;
 	@:optional
-	var reason : Dynamic;
+	var reason:Dynamic;
 	@:optional
-	var bubbles : Bool;
+	var bubbles:Bool;
 	@:optional
-	var cancelable : Bool;
+	var cancelable:Bool;
 	@:optional
-	var composed : Bool;
+	var composed:Bool;
 };

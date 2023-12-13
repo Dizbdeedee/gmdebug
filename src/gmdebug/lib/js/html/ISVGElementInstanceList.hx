@@ -1,6 +1,6 @@
 package js.html;
 
 typedef ISVGElementInstanceList = {
-	final length : Float;
+	final length:Float;
 	function item(index:Float):SVGElementInstance;
 };

@@ -5,7 +5,8 @@ typedef AsyncResourceOptions = {
 		The ID of the execution context that created this async event.
 	**/
 	@:optional
-	var triggerAsyncId : Float;
+	var triggerAsyncId:Float;
+
 	/**
 		Disables automatic `emitDestroy` when the object is garbage collected.
 		This usually does not need to be set (even if `emitDestroy` is called
@@ -13,5 +14,5 @@ typedef AsyncResourceOptions = {
 		sensitive API's `emitDestroy` is called with it.
 	**/
 	@:optional
-	var requireManualDestroy : Bool;
+	var requireManualDestroy:Bool;
 };

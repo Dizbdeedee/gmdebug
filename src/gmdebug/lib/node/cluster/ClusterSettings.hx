@@ -2,19 +2,19 @@ package node.cluster;
 
 typedef ClusterSettings = {
 	@:optional
-	var execArgv : Array<String>;
+	var execArgv:Array<String>;
 	@:optional
-	var exec : String;
+	var exec:String;
 	@:optional
-	var args : Array<String>;
+	var args:Array<String>;
 	@:optional
-	var silent : Bool;
+	var silent:Bool;
 	@:optional
-	var stdio : Array<Dynamic>;
+	var stdio:Array<Dynamic>;
 	@:optional
-	var uid : Float;
+	var uid:Float;
 	@:optional
-	var gid : Float;
+	var gid:Float;
 	@:optional
-	var inspectPort : ts.AnyOf2<Float, () -> Float>;
+	var inspectPort:ts.AnyOf2<Float, () -> Float>;
 };

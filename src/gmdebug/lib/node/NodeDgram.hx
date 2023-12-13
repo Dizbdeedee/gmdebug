@@ -7,9 +7,9 @@ package node;
 		method will bind the socket to the "all interfaces" address on a random port
 		(it does the right thing for both `udp4` and `udp6` sockets). The bound address
 		and port can be retrieved using `socket.address().address` and `socket.address().port`.
-		
+
 		If the `signal` option is enabled, calling `.abort()` on the corresponding`AbortController` is similar to calling `.close()` on the socket:
-		
+
 		```js
 		const controller = new AbortController();
 		const { signal } = controller;
@@ -21,6 +21,8 @@ package node;
 		controller.abort();
 		```
 	**/
-	@:overload(function(options:node.dgram.SocketOptions, ?callback:(msg:node.buffer.Buffer, rinfo:node.dgram.RemoteInfo) -> Void):node.dgram.Socket { })
-	static function createSocket(type:node.dgram.SocketType, ?callback:(msg:node.buffer.Buffer, rinfo:node.dgram.RemoteInfo) -> Void):node.dgram.Socket;
+	@:overload(function(options:node.dgram.SocketOptions,
+		?callback:(msg:node.buffer.Buffer, rinfo:node.dgram.RemoteInfo) -> Void):node.dgram.Socket {})
+	static function createSocket(type:node.dgram.SocketType,
+		?callback:(msg:node.buffer.Buffer, rinfo:node.dgram.RemoteInfo) -> Void):node.dgram.Socket;
 }

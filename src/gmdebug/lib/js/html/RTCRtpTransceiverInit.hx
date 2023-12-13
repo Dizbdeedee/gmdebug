@@ -2,9 +2,9 @@ package js.html;
 
 typedef RTCRtpTransceiverInit = {
 	@:optional
-	var direction : RTCRtpTransceiverDirection;
+	var direction:RTCRtpTransceiverDirection;
 	@:optional
-	var sendEncodings : Array<RTCRtpEncodingParameters>;
+	var sendEncodings:Array<RTCRtpEncodingParameters>;
 	@:optional
-	var streams : Array<js.html.MediaStream>;
+	var streams:Array<js.html.MediaStream>;
 };

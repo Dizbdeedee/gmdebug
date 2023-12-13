@@ -4,11 +4,10 @@ import gmdebug.composer.RequestString;
 import gmdebug.composer.ComposedResponse;
 
 typedef HDummyInit = {
-	debugee : Debugee
+	debugee:Debugee
 }
 
 class HDummy implements IHandler<Request<Dynamic>> {
-	
 	final debugee:Debugee;
 
 	public function new(init:HDummyInit) {

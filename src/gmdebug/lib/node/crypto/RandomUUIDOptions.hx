@@ -8,5 +8,5 @@ typedef RandomUUIDOptions = {
 		without using the cache, set `disableEntropyCache` to `true`.
 	**/
 	@:optional
-	var disableEntropyCache : Bool;
+	var disableEntropyCache:Bool;
 };

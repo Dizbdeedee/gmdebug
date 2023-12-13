@@ -4,7 +4,8 @@ typedef RSAPSSKeyPairKeyObjectOptions = {
 	/**
 		Key size in bits
 	**/
-	var modulusLength : Float;
+	var modulusLength:Float;
+
 	@:optional
-	var publicExponent : Float;
+	var publicExponent:Float;
 };

@@ -5,15 +5,15 @@ package js.html;
 **/
 @:native("PaymentResponse") extern class PaymentResponse {
 	function new();
-	final details : Dynamic;
-	final methodName : String;
-	final payerEmail : Null<String>;
-	final payerName : Null<String>;
-	final payerPhone : Null<String>;
-	final requestId : String;
-	final shippingAddress : Null<PaymentAddress>;
-	final shippingOption : Null<String>;
+	final details:Dynamic;
+	final methodName:String;
+	final payerEmail:Null<String>;
+	final payerName:Null<String>;
+	final payerPhone:Null<String>;
+	final requestId:String;
+	final shippingAddress:Null<PaymentAddress>;
+	final shippingOption:Null<String>;
 	function complete(?result:PaymentComplete):js.lib.Promise<ts.Undefined>;
 	function toJSON():Dynamic;
-	static var prototype : PaymentResponse;
+	static var prototype:PaymentResponse;
 }

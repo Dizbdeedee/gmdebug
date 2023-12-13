@@ -1,10 +1,10 @@
 package node.crypto;
 
 typedef KeyExportOptions<T> = {
-	var type : String;
-	var format : T;
+	var type:String;
+	var format:T;
 	@:optional
-	var cipher : String;
+	var cipher:String;
 	@:optional
-	var passphrase : ts.AnyOf2<String, node.buffer.Buffer>;
+	var passphrase:ts.AnyOf2<String, node.buffer.Buffer>;
 };

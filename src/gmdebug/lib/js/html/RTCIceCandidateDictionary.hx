@@ -2,23 +2,23 @@ package js.html;
 
 typedef RTCIceCandidateDictionary = {
 	@:optional
-	var foundation : String;
+	var foundation:String;
 	@:optional
-	var ip : String;
+	var ip:String;
 	@:optional
-	var msMTurnSessionId : String;
+	var msMTurnSessionId:String;
 	@:optional
-	var port : Float;
+	var port:Float;
 	@:optional
-	var priority : Float;
+	var priority:Float;
 	@:optional
-	var protocol : RTCIceProtocol;
+	var protocol:RTCIceProtocol;
 	@:optional
-	var relatedAddress : String;
+	var relatedAddress:String;
 	@:optional
-	var relatedPort : Float;
+	var relatedPort:Float;
 	@:optional
-	var tcpType : RTCIceTcpCandidateType;
+	var tcpType:RTCIceTcpCandidateType;
 	@:optional
-	var type : RTCIceCandidateType;
+	var type:RTCIceCandidateType;
 };

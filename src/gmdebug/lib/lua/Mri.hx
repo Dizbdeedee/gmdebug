@@ -5,6 +5,7 @@ package gmdebug.lib.lua;
 extern class Mri {
 	static function DumpMemorySnapshot(prefix:String, name:String, dunno:Int):Void;
 
-	static function DumpMemorySnapshotComparedFile(prefix:String, name:String, unknown:Int, before:String, after:String):Void;
+	static function DumpMemorySnapshotComparedFile(prefix:String, name:String, unknown:Int, before:String,
+		after:String):Void;
 }
 #end

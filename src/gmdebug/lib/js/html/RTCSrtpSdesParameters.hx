@@ -2,11 +2,11 @@ package js.html;
 
 typedef RTCSrtpSdesParameters = {
 	@:optional
-	var cryptoSuite : String;
+	var cryptoSuite:String;
 	@:optional
-	var keyParams : Array<RTCSrtpKeyParam>;
+	var keyParams:Array<RTCSrtpKeyParam>;
 	@:optional
-	var sessionParams : Array<String>;
+	var sessionParams:Array<String>;
 	@:optional
-	var tag : Float;
+	var tag:Float;
 };

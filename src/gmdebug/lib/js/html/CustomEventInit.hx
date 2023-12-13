@@ -2,11 +2,11 @@ package js.html;
 
 typedef CustomEventInit<T> = {
 	@:optional
-	var detail : T;
+	var detail:T;
 	@:optional
-	var bubbles : Bool;
+	var bubbles:Bool;
 	@:optional
-	var cancelable : Bool;
+	var cancelable:Bool;
 	@:optional
-	var composed : Bool;
+	var composed:Bool;
 };

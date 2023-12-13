@@ -1,3 +1,3 @@
 package js.lib;
 
-typedef AsyncIterable<T> = { };
+typedef AsyncIterable<T> = {};

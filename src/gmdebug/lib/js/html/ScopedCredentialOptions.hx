@@ -2,11 +2,11 @@ package js.html;
 
 typedef ScopedCredentialOptions = {
 	@:optional
-	var excludeList : Array<ScopedCredentialDescriptor>;
+	var excludeList:Array<ScopedCredentialDescriptor>;
 	@:optional
-	var extensions : WebAuthnExtensions;
+	var extensions:WebAuthnExtensions;
 	@:optional
-	var rpId : String;
+	var rpId:String;
 	@:optional
-	var timeoutSeconds : Float;
+	var timeoutSeconds:Float;
 };

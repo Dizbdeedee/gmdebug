@@ -5,5 +5,5 @@ typedef EventEmitterOptions = {
 		Enables automatic capturing of promise rejection.
 	**/
 	@:optional
-	var captureRejections : Bool;
+	var captureRejections:Bool;
 };

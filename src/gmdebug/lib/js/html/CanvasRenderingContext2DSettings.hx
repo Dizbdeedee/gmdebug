@@ -2,7 +2,7 @@ package js.html;
 
 typedef CanvasRenderingContext2DSettings = {
 	@:optional
-	var alpha : Bool;
+	var alpha:Bool;
 	@:optional
-	var desynchronized : Bool;
+	var desynchronized:Bool;
 };

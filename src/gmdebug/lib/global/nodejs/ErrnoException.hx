@@ -2,15 +2,15 @@ package global.nodejs;
 
 typedef ErrnoException = {
 	@:optional
-	var errno : Float;
+	var errno:Float;
 	@:optional
-	var code : String;
+	var code:String;
 	@:optional
-	var path : String;
+	var path:String;
 	@:optional
-	var syscall : String;
-	var name : String;
-	var message : String;
+	var syscall:String;
+	var name:String;
+	var message:String;
 	@:optional
-	var stack : String;
+	var stack:String;
 };

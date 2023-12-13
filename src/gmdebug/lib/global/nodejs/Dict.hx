@@ -1,3 +1,3 @@
 package global.nodejs;
 
-typedef Dict<T> = { };
+typedef Dict<T> = {};

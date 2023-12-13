@@ -1,5 +1,5 @@
 package node.dns;
 
 typedef ResolveWithTtlOptions = {
-	var ttl : Bool;
+	var ttl:Bool;
 };

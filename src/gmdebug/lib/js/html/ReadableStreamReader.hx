@@ -5,5 +5,5 @@ package js.html;
 	function cancel():js.lib.Promise<ts.Undefined>;
 	function read():js.lib.Promise<ReadableStreamReadResult<R>>;
 	function releaseLock():Void;
-	static var prototype : ReadableStreamReader<Dynamic>;
+	static var prototype:ReadableStreamReader<Dynamic>;
 }

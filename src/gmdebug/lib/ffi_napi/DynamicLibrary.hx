@@ -9,28 +9,32 @@ package ffi_napi;
 **/
 @:jsRequire("ffi-napi", "DynamicLibrary") extern class DynamicLibrary {
 	function new(?path:String, ?mode:Float);
+
 	/**
 		Close library, returns the result of the `dlclose` system function.
 	**/
 	function close():Float;
+
 	/**
 		Get a symbol from this library.
 	**/
 	function get(symbol:String):global.Buffer;
+
 	/**
 		Get the result of the `dlerror` system function.
 	**/
 	function error():String;
+
 	@:selfCall
 	static function call(?path:String, ?mode:Float):DynamicLibrary;
-	static var FLAGS : {
-		var RTLD_LAZY : Float;
-		var RTLD_NOW : Float;
-		var RTLD_LOCAL : Float;
-		var RTLD_GLOBAL : Float;
-		var RTLD_NOLOAD : Float;
-		var RTLD_NODELETE : Float;
-		var RTLD_NEXT : global.Buffer;
-		var RTLD_DEFAUL : global.Buffer;
+	static var FLAGS:{
+		var RTLD_LAZY:Float;
+		var RTLD_NOW:Float;
+		var RTLD_LOCAL:Float;
+		var RTLD_GLOBAL:Float;
+		var RTLD_NOLOAD:Float;
+		var RTLD_NODELETE:Float;
+		var RTLD_NEXT:global.Buffer;
+		var RTLD_DEFAUL:global.Buffer;
 	};
 }

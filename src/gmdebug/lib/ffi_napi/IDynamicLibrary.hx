@@ -12,10 +12,12 @@ typedef IDynamicLibrary = {
 		Close library, returns the result of the `dlclose` system function.
 	**/
 	function close():Float;
+
 	/**
 		Get a symbol from this library.
 	**/
 	function get(symbol:String):global.Buffer;
+
 	/**
 		Get the result of the `dlerror` system function.
 	**/

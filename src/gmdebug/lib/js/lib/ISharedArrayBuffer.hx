@@ -4,8 +4,10 @@ typedef ISharedArrayBuffer = {
 	/**
 		Read-only. The length of the ArrayBuffer (in bytes).
 	**/
-	final byteLength : Float;
-	var length : Float;
+	final byteLength:Float;
+
+	var length:Float;
+
 	/**
 		Returns a section of an SharedArrayBuffer.
 	**/

@@ -2,17 +2,17 @@ package js.html;
 
 typedef PublicKeyCredentialCreationOptions = {
 	@:optional
-	var attestation : AttestationConveyancePreference;
+	var attestation:AttestationConveyancePreference;
 	@:optional
-	var authenticatorSelection : AuthenticatorSelectionCriteria;
-	var challenge : js.lib.BufferSource;
+	var authenticatorSelection:AuthenticatorSelectionCriteria;
+	var challenge:js.lib.BufferSource;
 	@:optional
-	var excludeCredentials : Array<PublicKeyCredentialDescriptor>;
+	var excludeCredentials:Array<PublicKeyCredentialDescriptor>;
 	@:optional
-	var extensions : AuthenticationExtensionsClientInputs;
-	var pubKeyCredParams : Array<PublicKeyCredentialParameters>;
-	var rp : PublicKeyCredentialRpEntity;
+	var extensions:AuthenticationExtensionsClientInputs;
+	var pubKeyCredParams:Array<PublicKeyCredentialParameters>;
+	var rp:PublicKeyCredentialRpEntity;
 	@:optional
-	var timeout : Float;
-	var user : PublicKeyCredentialUserEntity;
+	var timeout:Float;
+	var user:PublicKeyCredentialUserEntity;
 };

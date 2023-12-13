@@ -14,5 +14,6 @@ package node.dns;
 		treated separately.
 	**/
 	@:selfCall
-	static function call(hostname:String, callback:(err:Null<global.nodejs.ErrnoException>, addresses:Array<Array<String>>) -> Void):Void;
+	static function call(hostname:String,
+		callback:(err:Null<global.nodejs.ErrnoException>, addresses:Array<Array<String>>) -> Void):Void;
 }

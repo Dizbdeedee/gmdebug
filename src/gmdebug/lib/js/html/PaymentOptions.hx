@@ -2,13 +2,13 @@ package js.html;
 
 typedef PaymentOptions = {
 	@:optional
-	var requestPayerEmail : Bool;
+	var requestPayerEmail:Bool;
 	@:optional
-	var requestPayerName : Bool;
+	var requestPayerName:Bool;
 	@:optional
-	var requestPayerPhone : Bool;
+	var requestPayerPhone:Bool;
 	@:optional
-	var requestShipping : Bool;
+	var requestShipping:Bool;
 	@:optional
-	var shippingType : String;
+	var shippingType:String;
 };

@@ -1,3 +1,3 @@
 package node.crypto;
 
-typedef X448KeyPairKeyObjectOptions = { };
+typedef X448KeyPairKeyObjectOptions = {};

@@ -16,18 +16,18 @@ using gmod.helpers.WeakTools;
 using Lambda;
 
 typedef InitVariableManager = {
-	debugee : Debugee
+	debugee:Debugee
 }
 
 typedef WordsStorageType = {
-	table : WordsStorage,
-	funcs : WordsStorage
+	table:WordsStorage,
+	funcs:WordsStorage
 }
 
 @:structInit
 class WordsStorage {
 	public final wordsAvaliable:Array<String> = WORD_ARRAY.array();
-	public final toName:haxe.ds.ObjectMap<Dynamic,String> = _createToName();
+	public final toName:haxe.ds.ObjectMap<Dynamic, String> = _createToName();
 
 	static function _createToName() {
 		var toName = new haxe.ds.ObjectMap();
@@ -37,22 +37,21 @@ class WordsStorage {
 }
 
 class VariableManager {
-    
 	var storedVariables:Array<Null<Dynamic>> = [null];
 
-	var cachedValues:haxe.ds.ObjectMap<Dynamic,Int> = new haxe.ds.ObjectMap();
+	var cachedValues:haxe.ds.ObjectMap<Dynamic, Int> = new haxe.ds.ObjectMap();
 
 	final wordsStorageType:WordsStorageType = {
 		table: {},
 		funcs: {}
 	}
 
-	var caniocalNames:haxe.ds.ObjectMap<Dynamic,UniqueName> = new haxe.ds.ObjectMap();
+	var caniocalNames:haxe.ds.ObjectMap<Dynamic, UniqueName> = new haxe.ds.ObjectMap();
 
 	var traverseDepth:Int = 2;
 
 	final debugee:Debugee;
-	
+
 	public function new(initVariableManager:InitVariableManager) {
 		debugee = initVariableManager.debugee;
 		storedVariables.setWeakValuesArr();
@@ -71,47 +70,47 @@ class VariableManager {
 	}
 
 	function storeCaniocalNames() {
-		recurseNames(0,"",untyped __lua__("_G"));
-		
+		recurseNames(0, "", untyped __lua__("_G"));
+
 		// for (hookname => hookTbl in HookLib.GetTable()) {
-        //     for (ident => hook in hookTbl) {
+		//     for (ident => hook in hookTbl) {
 		// 		caniocalNames.set(hook,CHook(hookname,ident));
-        //     }
-        // }
+		//     }
+		// }
 	}
 
-	function recurseNames(recurseDepth:Int,prevIndent:String,table:AnyTable) {
+	function recurseNames(recurseDepth:Int, prevIndent:String, table:AnyTable) {
 		if (recurseDepth > traverseDepth) {
 			return;
 		}
 		for (k => v in table) {
-			switch [Gmod.type(k),Gmod.type(v)] {
-				case ["string","function"]:
-					caniocalNames.set(v,Canionical('$prevIndent$k'));
-				case ["string","table"]:
-					if (v == untyped __lua__("_G")) continue;
-					recurseNames(recurseDepth + 1,'$k.',v);
-					
-				default:
+			switch [Gmod.type(k), Gmod.type(v)] {
+				case ["string", "function"]:
+					caniocalNames.set(v, Canionical('$prevIndent$k'));
+				case ["string", "table"]:
+					if (v == untyped __lua__("_G"))
+						continue;
+					recurseNames(recurseDepth + 1, '$k.', v);
 
+				default:
 			}
 		}
 	}
-    
-    public function getVar(ind:Int) {
-        return storedVariables[ind];
-    }
 
-	public function generateFakeChild(child:Dynamic,type:FakeChild) {
-        final tab = Table.create();
-        final meta = Table.create();
-        final fakechild = Table.create();
-        Lua.setmetatable(tab,meta);
-        meta.__gmdebugFakeChild = fakechild;
-        fakechild.child = child;
-        fakechild.type = type;
-        return tab;
-    }
+	public function getVar(ind:Int) {
+		return storedVariables[ind];
+	}
+
+	public function generateFakeChild(child:Dynamic, type:FakeChild) {
+		final tab = Table.create();
+		final meta = Table.create();
+		final fakechild = Table.create();
+		Lua.setmetatable(tab, meta);
+		meta.__gmdebugFakeChild = fakechild;
+		fakechild.child = child;
+		fakechild.type = type;
+		return tab;
+	}
 
 	public function genvar(addv:AddVar):Variable {
 		final name = Std.string(addv.name);
@@ -145,20 +144,20 @@ class VariableManager {
 			default:
 				Gmod.tostring(val);
 		};
-		var generatedVariablesReference = generateVariablesReference(val,name);
+		var generatedVariablesReference = generateVariablesReference(val, name);
 		var obj:Variable = {
 			name: name,
 			type: ty,
-			value: switch [addv.overrideValue != null,ty, addv.props] {
-				case [true,_,_]:
+			value: switch [addv.overrideValue != null, ty, addv.props] {
+				case [true, _, _]:
 					addv.overrideValue;
 				// case [_,"table", NONE]:
-					// 'table: ${generateUniqueName(val)}';
-				case [_,"string", NONE]:
+				// 'table: ${generateUniqueName(val)}';
+				case [_, "string", NONE]:
 					'"$stringReplace"';
-				case [_,_,NOQUOTE]:
+				case [_, _, NOQUOTE]:
 					stringReplace;
-				case [_,_, NOVALUE]:
+				case [_, _, NOVALUE]:
 					"";
 				default:
 					stringReplace;
@@ -195,45 +194,41 @@ class VariableManager {
 			default:
 				throw "generateUniqueName: Very much not handled";
 		}
-		
+
 		return if (wordsStorage.toName.exists(val)) {
 			Generated(wordsStorage.toName.get(val));
 		} else {
 			var chosenID = Math.floor(Math.random() * wordsStorage.wordsAvaliable.length);
 			var chosen = wordsStorage.wordsAvaliable[chosenID];
-			wordsStorage.wordsAvaliable.remove(chosen); //blah blah blah.
-			wordsStorage.toName.set(val,chosen);
+			wordsStorage.wordsAvaliable.remove(chosen); // blah blah blah.
+			wordsStorage.toName.set(val, chosen);
 			Generated(chosen);
 		}
-		
 	}
 
 	public function generateVariablesReference(val:Dynamic, ?name:String):Int {
-		if (val == null) return 0;
+		if (val == null)
+			return 0;
 		var cacheID = cachedValues.get(val);
-		return switch [Gmod.TypeID(val),cacheID] {
-			case [null,_]:
+		return switch [Gmod.TypeID(val), cacheID] {
+			case [null, _]:
 				0;
-			case [TYPE_ENTITY,null] if (!Gmod.IsValid(val)):
+			case [TYPE_ENTITY, null] if (!Gmod.IsValid(val)):
 				0;
-			case [TYPE_TABLE | TYPE_FUNCTION | TYPE_USERDATA | TYPE_ENTITY,null]:
-				cachedValues.set(val,storedVariables.length);
+			case [TYPE_TABLE | TYPE_FUNCTION | TYPE_USERDATA | TYPE_ENTITY, null]:
+				cachedValues.set(val, storedVariables.length);
 				VariableReference.encode(Child(debugee.clientID, storedVariables.push(val) - 1));
-			case [TYPE_TABLE | TYPE_FUNCTION | TYPE_USERDATA | TYPE_ENTITY,cacheID]:
+			case [TYPE_TABLE | TYPE_FUNCTION | TYPE_USERDATA | TYPE_ENTITY, cacheID]:
 				trace("Where's my super cache");
 				VariableReference.encode(Child(debugee.clientID, cacheID));
 			default:
 				0;
 		};
 	}
-
-	
 }
 
 @:native("_G")
-private extern class G {
-
-}
+private extern class G {}
 
 @:structInit
 class AddVar {
@@ -252,9 +247,9 @@ enum AddVarProperties {
 }
 
 enum FakeChild {
-    Upvalues;
-    Output;
-	Output_Recurse; //this is getting silly, vscode.
+	Upvalues;
+	Output;
+	Output_Recurse; // this is getting silly, vscode.
 }
 
 enum UniqueName {

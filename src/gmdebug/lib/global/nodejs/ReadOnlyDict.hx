@@ -1,3 +1,3 @@
 package global.nodejs;
 
-typedef ReadOnlyDict<T> = { };
+typedef ReadOnlyDict<T> = {};

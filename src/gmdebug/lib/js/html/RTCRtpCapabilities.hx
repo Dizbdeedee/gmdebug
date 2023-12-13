@@ -1,6 +1,6 @@
 package js.html;
 
 typedef RTCRtpCapabilities = {
-	var codecs : Array<RTCRtpCodecCapability>;
-	var headerExtensions : Array<RTCRtpHeaderExtensionCapability>;
+	var codecs:Array<RTCRtpCodecCapability>;
+	var headerExtensions:Array<RTCRtpHeaderExtensionCapability>;
 };

@@ -6,16 +6,19 @@ typedef AsyncGeneratorFunction = {
 	**/
 	@:selfCall
 	function call(args:haxe.extern.Rest<Dynamic>):AsyncGenerator<Any, Dynamic, Any>;
+
 	/**
 		The length of the arguments.
 	**/
-	final length : Float;
+	final length:Float;
+
 	/**
 		Returns the name of the function.
 	**/
-	final name : String;
+	final name:String;
+
 	/**
 		A reference to the prototype.
 	**/
-	final prototype : AsyncGenerator<Any, Dynamic, Any>;
+	final prototype:AsyncGenerator<Any, Dynamic, Any>;
 };

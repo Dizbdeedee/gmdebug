@@ -2,11 +2,11 @@ package js.html;
 
 typedef PipeOptions = {
 	@:optional
-	var preventAbort : Bool;
+	var preventAbort:Bool;
 	@:optional
-	var preventCancel : Bool;
+	var preventCancel:Bool;
 	@:optional
-	var preventClose : Bool;
+	var preventClose:Bool;
 	@:optional
-	var signal : js.html.AbortSignal;
+	var signal:js.html.AbortSignal;
 };

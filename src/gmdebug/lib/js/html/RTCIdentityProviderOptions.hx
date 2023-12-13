@@ -2,9 +2,9 @@ package js.html;
 
 typedef RTCIdentityProviderOptions = {
 	@:optional
-	var peerIdentity : String;
+	var peerIdentity:String;
 	@:optional
-	var protocol : String;
+	var protocol:String;
 	@:optional
-	var usernameHint : String;
+	var usernameHint:String;
 };

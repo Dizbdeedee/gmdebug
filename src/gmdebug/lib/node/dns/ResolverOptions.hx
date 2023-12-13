@@ -2,7 +2,7 @@ package node.dns;
 
 typedef ResolverOptions = {
 	@:optional
-	var timeout : Float;
+	var timeout:Float;
 	@:optional
-	var tries : Float;
+	var tries:Float;
 };

@@ -2,11 +2,11 @@ package js.html;
 
 typedef RTCOfferOptions = {
 	@:optional
-	var iceRestart : Bool;
+	var iceRestart:Bool;
 	@:optional
-	var offerToReceiveAudio : Bool;
+	var offerToReceiveAudio:Bool;
 	@:optional
-	var offerToReceiveVideo : Bool;
+	var offerToReceiveVideo:Bool;
 	@:optional
-	var voiceActivityDetection : Bool;
+	var voiceActivityDetection:Bool;
 };

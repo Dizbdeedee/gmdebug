@@ -2,11 +2,11 @@ package node.child_process;
 
 typedef ProcessEnvOptions = {
 	@:optional
-	var uid : Float;
+	var uid:Float;
 	@:optional
-	var gid : Float;
+	var gid:Float;
 	@:optional
-	var cwd : ts.AnyOf2<String, node.url.URL>;
+	var cwd:ts.AnyOf2<String, node.url.URL>;
 	@:optional
-	var env : global.nodejs.ProcessEnv;
+	var env:global.nodejs.ProcessEnv;
 };

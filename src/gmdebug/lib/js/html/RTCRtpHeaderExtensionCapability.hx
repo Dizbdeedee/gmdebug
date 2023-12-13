@@ -2,5 +2,5 @@ package js.html;
 
 typedef RTCRtpHeaderExtensionCapability = {
 	@:optional
-	var uri : String;
+	var uri:String;
 };

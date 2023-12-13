@@ -1,6 +1,6 @@
 package js.html;
 
 typedef ScopedCredentialParameters = {
-	var algorithm : AlgorithmIdentifier;
-	var type : String;
+	var algorithm:AlgorithmIdentifier;
+	var type:String;
 };

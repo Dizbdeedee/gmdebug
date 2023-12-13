@@ -10,7 +10,7 @@ package node.dns;
 		Returns an array of IP address strings, formatted according to [RFC 5952](https://tools.ietf.org/html/rfc5952#section-6),
 		that are currently configured for DNS resolution. A string will include a port
 		section if a custom port is used.
-		
+
 		```js
 		[
 		   '4.4.4.4',
@@ -21,28 +21,29 @@ package node.dns;
 		```
 	**/
 	static function getServers():Array<String>;
+
 	/**
 		Resolves a host name (e.g. `'nodejs.org'`) into the first found A (IPv4) or
 		AAAA (IPv6) record. All `option` properties are optional. If `options` is an
 		integer, then it must be `4` or `6` – if `options` is not provided, then IPv4
 		and IPv6 addresses are both returned if found.
-		
+
 		With the `all` option set to `true`, the `Promise` is resolved with `addresses`being an array of objects with the properties `address` and `family`.
-		
+
 		On error, the `Promise` is rejected with an `Error` object, where `err.code`is the error code.
 		Keep in mind that `err.code` will be set to `'ENOTFOUND'` not only when
 		the host name does not exist but also when the lookup fails in other ways
 		such as no available file descriptors.
-		
+
 		`dnsPromises.lookup()` does not necessarily have anything to do with the DNS
 		protocol. The implementation uses an operating system facility that can
 		associate names with addresses, and vice versa. This implementation can have
 		subtle but important consequences on the behavior of any Node.js program. Please
 		take some time to consult the `Implementation considerations section` before
 		using `dnsPromises.lookup()`.
-		
+
 		Example usage:
-		
+
 		```js
 		const dns = require('dns');
 		const dnsPromises = dns.promises;
@@ -50,12 +51,12 @@ package node.dns;
 		   family: 6,
 		   hints: dns.ADDRCONFIG | dns.V4MAPPED,
 		};
-		
+
 		dnsPromises.lookup('example.com', options).then((result) => {
 		   console.log('address: %j family: IPv%s', result.address, result.family);
 		   // address: "2606:2800:220:1:248:1893:25c8:1946" family: IPv6
 		});
-		
+
 		// When options.all is true, the result will be an Array.
 		options.all = true;
 		dnsPromises.lookup('example.com', options).then((result) => {
@@ -64,20 +65,22 @@ package node.dns;
 		});
 		```
 	**/
-	@:overload(function(hostname:String, options:LookupOneOptions):js.lib.Promise<LookupAddress> { })
-	@:overload(function(hostname:String, options:LookupAllOptions):js.lib.Promise<Array<LookupAddress>> { })
-	@:overload(function(hostname:String, options:LookupOptions):js.lib.Promise<ts.AnyOf2<LookupAddress, Array<LookupAddress>>> { })
-	@:overload(function(hostname:String):js.lib.Promise<LookupAddress> { })
+	@:overload(function(hostname:String, options:LookupOneOptions):js.lib.Promise<LookupAddress> {})
+	@:overload(function(hostname:String, options:LookupAllOptions):js.lib.Promise<Array<LookupAddress>> {})
+	@:overload(function(hostname:String,
+		options:LookupOptions):js.lib.Promise<ts.AnyOf2<LookupAddress, Array<LookupAddress>>> {})
+	@:overload(function(hostname:String):js.lib.Promise<LookupAddress> {})
 	static function lookup(hostname:String, family:Float):js.lib.Promise<LookupAddress>;
+
 	/**
 		Resolves the given `address` and `port` into a host name and service using
 		the operating system's underlying `getnameinfo` implementation.
-		
+
 		If `address` is not a valid IP address, a `TypeError` will be thrown.
 		The `port` will be coerced to a number. If it is not a legal port, a `TypeError`will be thrown.
-		
+
 		On error, the `Promise` is rejected with an `Error` object, where `err.code`is the error code.
-		
+
 		```js
 		const dnsPromises = require('dns').promises;
 		dnsPromises.lookupService('127.0.0.1', 22).then((result) => {
@@ -87,58 +90,68 @@ package node.dns;
 		```
 	**/
 	static function lookupService(address:String, port:Float):js.lib.Promise<{
-		var hostname : String;
-		var service : String;
+		var hostname:String;
+		var service:String;
 	}>;
+
 	/**
 		Uses the DNS protocol to resolve a host name (e.g. `'nodejs.org'`) into an array
 		of the resource records. When successful, the `Promise` is resolved with an
 		array of resource records. The type and structure of individual results vary
 		based on `rrtype`:
-		
+
 		<omitted>
-		
+
 		On error, the `Promise` is rejected with an `Error` object, where `err.code`is one of the `DNS error codes`.
 	**/
-	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<String>> { })
-	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<String>> { })
-	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<AnyRecord>> { })
-	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<CaaRecord>> { })
-	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<String>> { })
-	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<MxRecord>> { })
-	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<NaptrRecord>> { })
-	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<String>> { })
-	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<String>> { })
-	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<SoaRecord> { })
-	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<SrvRecord>> { })
-	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<Array<String>>> { })
-	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<ts.AnyOf7<Array<String>, SoaRecord, Array<AnyRecord>, Array<MxRecord>, Array<NaptrRecord>, Array<SrvRecord>, Array<Array<String>>>> { })
+	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<String>> {})
+	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<String>> {})
+	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<AnyRecord>> {})
+	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<CaaRecord>> {})
+	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<String>> {})
+	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<MxRecord>> {})
+	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<NaptrRecord>> {})
+	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<String>> {})
+	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<String>> {})
+	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<SoaRecord> {})
+	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<SrvRecord>> {})
+	@:overload(function(hostname:String, rrtype:String):js.lib.Promise<Array<Array<String>>> {})
+	@:overload(function(hostname:String,
+		rrtype:String):js.lib.Promise<ts.AnyOf7<Array<String>, SoaRecord, Array<AnyRecord>, Array<MxRecord>,
+			Array<NaptrRecord>, Array<SrvRecord>, Array<Array<String>>>> {})
 	static function resolve(hostname:String):js.lib.Promise<Array<String>>;
+
 	/**
 		Uses the DNS protocol to resolve IPv4 addresses (`A` records) for the`hostname`. On success, the `Promise` is resolved with an array of IPv4
 		addresses (e.g. `['74.125.79.104', '74.125.79.105', '74.125.79.106']`).
 	**/
-	@:overload(function(hostname:String, options:ResolveWithTtlOptions):js.lib.Promise<Array<RecordWithTtl>> { })
-	@:overload(function(hostname:String, options:ResolveOptions):js.lib.Promise<ts.AnyOf2<Array<String>, Array<RecordWithTtl>>> { })
+	@:overload(function(hostname:String,
+		options:ResolveWithTtlOptions):js.lib.Promise<Array<RecordWithTtl>> {})
+	@:overload(function(hostname:String,
+		options:ResolveOptions):js.lib.Promise<ts.AnyOf2<Array<String>, Array<RecordWithTtl>>> {})
 	static function resolve4(hostname:String):js.lib.Promise<Array<String>>;
+
 	/**
 		Uses the DNS protocol to resolve IPv6 addresses (`AAAA` records) for the`hostname`. On success, the `Promise` is resolved with an array of IPv6
 		addresses.
 	**/
-	@:overload(function(hostname:String, options:ResolveWithTtlOptions):js.lib.Promise<Array<RecordWithTtl>> { })
-	@:overload(function(hostname:String, options:ResolveOptions):js.lib.Promise<ts.AnyOf2<Array<String>, Array<RecordWithTtl>>> { })
+	@:overload(function(hostname:String,
+		options:ResolveWithTtlOptions):js.lib.Promise<Array<RecordWithTtl>> {})
+	@:overload(function(hostname:String,
+		options:ResolveOptions):js.lib.Promise<ts.AnyOf2<Array<String>, Array<RecordWithTtl>>> {})
 	static function resolve6(hostname:String):js.lib.Promise<Array<String>>;
+
 	/**
 		Uses the DNS protocol to resolve all records (also known as `ANY` or `*` query).
 		On success, the `Promise` is resolved with an array containing various types of
 		records. Each object has a property `type` that indicates the type of the
 		current record. And depending on the `type`, additional properties will be
 		present on the object:
-		
+
 		<omitted>
-		
+
 		Here is an example of the result object:
-		
+
 		```js
 		[ { type: 'A', address: '127.0.0.1', ttl: 299 },
 		   { type: 'CNAME', value: 'example.com' },
@@ -146,44 +159,48 @@ package node.dns;
 		   { type: 'NS', value: 'ns1.example.com' },
 		   { type: 'TXT', entries: [ 'v=spf1 include:_spf.example.com ~all' ] },
 		   { type: 'SOA',
-		     nsname: 'ns1.example.com',
-		     hostmaster: 'admin.example.com',
-		     serial: 156696742,
-		     refresh: 900,
-		     retry: 900,
-		     expire: 1800,
-		     minttl: 60 } ]
+			 nsname: 'ns1.example.com',
+			 hostmaster: 'admin.example.com',
+			 serial: 156696742,
+			 refresh: 900,
+			 retry: 900,
+			 expire: 1800,
+			 minttl: 60 } ]
 		```
 	**/
 	static function resolveAny(hostname:String):js.lib.Promise<Array<AnyRecord>>;
+
 	/**
 		Uses the DNS protocol to resolve `CAA` records for the `hostname`. On success,
 		the `Promise` is resolved with an array of objects containing available
 		certification authority authorization records available for the `hostname`(e.g. `[{critical: 0, iodef: 'mailto:pki@example.com'},{critical: 128, issue: 'pki.example.com'}]`).
 	**/
 	static function resolveCaa(hostname:String):js.lib.Promise<Array<CaaRecord>>;
+
 	/**
 		Uses the DNS protocol to resolve `CNAME` records for the `hostname`. On success,
 		the `Promise` is resolved with an array of canonical name records available for
 		the `hostname` (e.g. `['bar.example.com']`).
 	**/
 	static function resolveCname(hostname:String):js.lib.Promise<Array<String>>;
+
 	/**
 		Uses the DNS protocol to resolve mail exchange records (`MX` records) for the`hostname`. On success, the `Promise` is resolved with an array of objects
 		containing both a `priority` and `exchange` property (e.g.`[{priority: 10, exchange: 'mx.example.com'}, ...]`).
 	**/
 	static function resolveMx(hostname:String):js.lib.Promise<Array<MxRecord>>;
+
 	/**
 		Uses the DNS protocol to resolve regular expression based records (`NAPTR`records) for the `hostname`. On success, the `Promise` is resolved with an array
 		of objects with the following properties:
-		
+
 		* `flags`
 		* `service`
 		* `regexp`
 		* `replacement`
 		* `order`
 		* `preference`
-		
+
 		```js
 		{
 		   flags: 's',
@@ -196,21 +213,24 @@ package node.dns;
 		```
 	**/
 	static function resolveNaptr(hostname:String):js.lib.Promise<Array<NaptrRecord>>;
+
 	/**
 		Uses the DNS protocol to resolve name server records (`NS` records) for the`hostname`. On success, the `Promise` is resolved with an array of name server
 		records available for `hostname` (e.g.`['ns1.example.com', 'ns2.example.com']`).
 	**/
 	static function resolveNs(hostname:String):js.lib.Promise<Array<String>>;
+
 	/**
 		Uses the DNS protocol to resolve pointer records (`PTR` records) for the`hostname`. On success, the `Promise` is resolved with an array of strings
 		containing the reply records.
 	**/
 	static function resolvePtr(hostname:String):js.lib.Promise<Array<String>>;
+
 	/**
 		Uses the DNS protocol to resolve a start of authority record (`SOA` record) for
 		the `hostname`. On success, the `Promise` is resolved with an object with the
 		following properties:
-		
+
 		* `nsname`
 		* `hostmaster`
 		* `serial`
@@ -218,7 +238,7 @@ package node.dns;
 		* `retry`
 		* `expire`
 		* `minttl`
-		
+
 		```js
 		{
 		   nsname: 'ns.example.com',
@@ -232,15 +252,16 @@ package node.dns;
 		```
 	**/
 	static function resolveSoa(hostname:String):js.lib.Promise<SoaRecord>;
+
 	/**
 		Uses the DNS protocol to resolve service records (`SRV` records) for the`hostname`. On success, the `Promise` is resolved with an array of objects with
 		the following properties:
-		
+
 		* `priority`
 		* `weight`
 		* `port`
 		* `name`
-		
+
 		```js
 		{
 		   priority: 10,
@@ -251,6 +272,7 @@ package node.dns;
 		```
 	**/
 	static function resolveSrv(hostname:String):js.lib.Promise<Array<SrvRecord>>;
+
 	/**
 		Uses the DNS protocol to resolve text queries (`TXT` records) for the`hostname`. On success, the `Promise` is resolved with a two-dimensional array
 		of the text records available for `hostname` (e.g.`[ ['v=spf1 ip4:0.0.0.0 ', '~all' ] ]`). Each sub-array contains TXT chunks of
@@ -258,18 +280,20 @@ package node.dns;
 		treated separately.
 	**/
 	static function resolveTxt(hostname:String):js.lib.Promise<Array<Array<String>>>;
+
 	/**
 		Performs a reverse DNS query that resolves an IPv4 or IPv6 address to an
 		array of host names.
-		
+
 		On error, the `Promise` is rejected with an `Error` object, where `err.code`is one of the `DNS error codes`.
 	**/
 	static function reverse(ip:String):js.lib.Promise<Array<String>>;
+
 	/**
 		Sets the IP address and port of servers to be used when performing DNS
 		resolution. The `servers` argument is an array of [RFC 5952](https://tools.ietf.org/html/rfc5952#section-6) formatted
 		addresses. If the port is the IANA default DNS port (53) it can be omitted.
-		
+
 		```js
 		dnsPromises.setServers([
 		   '4.4.4.4',
@@ -278,12 +302,12 @@ package node.dns;
 		   '[2001:4860:4860::8888]:1053',
 		]);
 		```
-		
+
 		An error will be thrown if an invalid address is provided.
-		
+
 		The `dnsPromises.setServers()` method must not be called while a DNS query is in
 		progress.
-		
+
 		This method works much like[resolve.conf](https://man7.org/linux/man-pages/man5/resolv.conf.5.html).
 		That is, if attempting to resolve with the first server provided results in a`NOTFOUND` error, the `resolve()` method will _not_ attempt to resolve with
 		subsequent servers provided. Fallback DNS servers will only be used if the

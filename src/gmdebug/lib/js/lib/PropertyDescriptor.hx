@@ -2,13 +2,13 @@ package js.lib;
 
 typedef PropertyDescriptor = {
 	@:optional
-	var configurable : Bool;
+	var configurable:Bool;
 	@:optional
-	var enumerable : Bool;
+	var enumerable:Bool;
 	@:optional
-	var value : Dynamic;
+	var value:Dynamic;
 	@:optional
-	var writable : Bool;
+	var writable:Bool;
 	@:optional
 	function get():Dynamic;
 	@:optional

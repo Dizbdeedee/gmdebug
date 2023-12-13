@@ -2,12 +2,12 @@ package js.html;
 
 @:native("PermissionRequest") extern class PermissionRequest {
 	function new();
-	final state : MSWebViewPermissionState;
+	final state:MSWebViewPermissionState;
 	function defer():Void;
-	final id : Float;
-	final type : MSWebViewPermissionType;
-	final uri : String;
+	final id:Float;
+	final type:MSWebViewPermissionType;
+	final uri:String;
 	function allow():Void;
 	function deny():Void;
-	static var prototype : PermissionRequest;
+	static var prototype:PermissionRequest;
 }

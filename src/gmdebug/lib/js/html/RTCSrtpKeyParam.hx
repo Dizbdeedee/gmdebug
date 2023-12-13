@@ -2,13 +2,13 @@ package js.html;
 
 typedef RTCSrtpKeyParam = {
 	@:optional
-	var keyMethod : String;
+	var keyMethod:String;
 	@:optional
-	var keySalt : String;
+	var keySalt:String;
 	@:optional
-	var lifetime : String;
+	var lifetime:String;
 	@:optional
-	var mkiLength : Float;
+	var mkiLength:Float;
 	@:optional
-	var mkiValue : Float;
+	var mkiValue:Float;
 };

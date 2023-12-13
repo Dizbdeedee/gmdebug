@@ -52,28 +52,28 @@ private class DebugConfigProvider {
 private class InlineDebugAdapterProvide {
 	public function createDebugAdapterDescriptor(session:vscode.DebugSession,
 			?executable:DebugAdapterExecutable):ProviderResult<vscode.DebugAdapterDescriptor> {
-		return cast new DebugAdapterInlineImplementation(cast new LuaDebugger(null,null,session.workspaceFolder.uri.fsPath));
+		return cast new DebugAdapterInlineImplementation(cast new LuaDebugger(null, null
+			, session.workspaceFolder.uri.fsPath));
 	}
 
 	public function new() {}
 }
-private class MockConfigurationProvider {
 
+private class MockConfigurationProvider {
 	public function new() {}
 
 	public var provideDebugConfigurations = null;
- 
-	 public var resolveDebugConfigurationWithSubstitutedVariables = null;
+
+	public var resolveDebugConfigurationWithSubstitutedVariables = null;
 
 	/**
 	 * Massage a debug configuration just before a debug session is being launched,
 	 * e.g. add all missing attributes to the debug configuration.
 	 */
-	public function resolveDebugConfiguration(folder:Null<WorkspaceFolder>, debugConfiguration:DebugConfiguration,
-		?token:CancellationToken):ProviderResult<DebugConfiguration> {
+	public function resolveDebugConfiguration(folder:Null<WorkspaceFolder>,
+			debugConfiguration:DebugConfiguration,
+			?token:CancellationToken):ProviderResult<DebugConfiguration> {
 		trace('THE FOLDER $folder');
 		return debugConfiguration;
-
 	}
-	
 }

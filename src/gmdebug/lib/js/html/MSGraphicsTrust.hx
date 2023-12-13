@@ -5,7 +5,7 @@ package js.html;
 **/
 @:native("MSGraphicsTrust") extern class MSGraphicsTrust {
 	function new();
-	final constrictionActive : Bool;
-	final status : String;
-	static var prototype : MSGraphicsTrust;
+	final constrictionActive:Bool;
+	final status:String;
+	static var prototype:MSGraphicsTrust;
 }

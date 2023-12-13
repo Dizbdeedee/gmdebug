@@ -1,13 +1,13 @@
 package global.nodejs;
 
 typedef ProcessRelease = {
-	var name : String;
+	var name:String;
 	@:optional
-	var sourceUrl : String;
+	var sourceUrl:String;
 	@:optional
-	var headersUrl : String;
+	var headersUrl:String;
 	@:optional
-	var libUrl : String;
+	var libUrl:String;
 	@:optional
-	var lts : String;
+	var lts:String;
 };

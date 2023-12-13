@@ -1,17 +1,17 @@
 package js.html;
 
 typedef IPerfWidgetExternal = {
-	final activeNetworkRequestCount : Float;
-	final averageFrameTime : Float;
-	final averagePaintTime : Float;
-	final extraInformationEnabled : Bool;
-	final independentRenderingEnabled : Bool;
-	final irDisablingContentString : String;
-	final irStatusAvailable : Bool;
-	final maxCpuSpeed : Float;
-	final paintRequestsPerSecond : Float;
-	final performanceCounter : Float;
-	final performanceCounterFrequency : Float;
+	final activeNetworkRequestCount:Float;
+	final averageFrameTime:Float;
+	final averagePaintTime:Float;
+	final extraInformationEnabled:Bool;
+	final independentRenderingEnabled:Bool;
+	final irDisablingContentString:String;
+	final irStatusAvailable:Bool;
+	final maxCpuSpeed:Float;
+	final paintRequestsPerSecond:Float;
+	final performanceCounter:Float;
+	final performanceCounterFrequency:Float;
 	function addEventListener(eventType:String, callback:haxe.Constraints.Function):Void;
 	function getMemoryUsage():Float;
 	function getProcessCpuUsage():Float;

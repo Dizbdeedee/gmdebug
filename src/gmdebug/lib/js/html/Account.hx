@@ -1,11 +1,11 @@
 package js.html;
 
 typedef Account = {
-	var displayName : String;
-	var id : String;
+	var displayName:String;
+	var id:String;
 	@:optional
-	var imageURL : String;
+	var imageURL:String;
 	@:optional
-	var name : String;
-	var rpDisplayName : String;
+	var name:String;
+	var rpDisplayName:String;
 };

@@ -2,13 +2,13 @@ package node.fs;
 
 /**
 	A `fs.Stats` object provides information about a file.
-	
+
 	Objects returned from {@link stat}, {@link lstat} and {@link fstat} and
 	their synchronous counterparts are of this type.
 	If `bigint` in the `options` passed to those methods is true, the numeric values
 	will be `bigint` instead of `number`, and the object will contain additional
 	nanosecond-precision properties suffixed with `Ns`.
-	
+
 	```console
 	Stats {
 	   dev: 2114,
@@ -30,9 +30,9 @@ package node.fs;
 	   ctime: Mon, 10 Oct 2011 23:24:11 GMT,
 	   birthtime: Mon, 10 Oct 2011 23:24:11 GMT }
 	```
-	
+
 	`bigint` version:
-	
+
 	```console
 	BigIntStats {
 	   dev: 2114n,
@@ -67,22 +67,22 @@ typedef IStats = {
 	function isSymbolicLink():Bool;
 	function isFIFO():Bool;
 	function isSocket():Bool;
-	var dev : Float;
-	var ino : Float;
-	var mode : Float;
-	var nlink : Float;
-	var uid : Float;
-	var gid : Float;
-	var rdev : Float;
-	var size : Float;
-	var blksize : Float;
-	var blocks : Float;
-	var atimeMs : Float;
-	var mtimeMs : Float;
-	var ctimeMs : Float;
-	var birthtimeMs : Float;
-	var atime : js.lib.Date;
-	var mtime : js.lib.Date;
-	var ctime : js.lib.Date;
-	var birthtime : js.lib.Date;
+	var dev:Float;
+	var ino:Float;
+	var mode:Float;
+	var nlink:Float;
+	var uid:Float;
+	var gid:Float;
+	var rdev:Float;
+	var size:Float;
+	var blksize:Float;
+	var blocks:Float;
+	var atimeMs:Float;
+	var mtimeMs:Float;
+	var ctimeMs:Float;
+	var birthtimeMs:Float;
+	var atime:js.lib.Date;
+	var mtime:js.lib.Date;
+	var ctime:js.lib.Date;
+	var birthtime:js.lib.Date;
 };

@@ -2,11 +2,11 @@ package js.html;
 
 typedef MediaStreamErrorEventInit = {
 	@:optional
-	var error : js.html.MediaStreamError;
+	var error:js.html.MediaStreamError;
 	@:optional
-	var bubbles : Bool;
+	var bubbles:Bool;
 	@:optional
-	var cancelable : Bool;
+	var cancelable:Bool;
 	@:optional
-	var composed : Bool;
+	var composed:Bool;
 };

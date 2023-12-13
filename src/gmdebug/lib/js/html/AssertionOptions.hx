@@ -2,11 +2,11 @@ package js.html;
 
 typedef AssertionOptions = {
 	@:optional
-	var allowList : Array<ScopedCredentialDescriptor>;
+	var allowList:Array<ScopedCredentialDescriptor>;
 	@:optional
-	var extensions : WebAuthnExtensions;
+	var extensions:WebAuthnExtensions;
 	@:optional
-	var rpId : String;
+	var rpId:String;
 	@:optional
-	var timeoutSeconds : Float;
+	var timeoutSeconds:Float;
 };

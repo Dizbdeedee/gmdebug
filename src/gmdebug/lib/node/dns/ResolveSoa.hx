@@ -4,7 +4,7 @@ package node.dns;
 	Uses the DNS protocol to resolve a start of authority record (`SOA` record) for
 	the `hostname`. The `address` argument passed to the `callback` function will
 	be an object with the following properties:
-	
+
 	* `nsname`
 	* `hostmaster`
 	* `serial`
@@ -12,7 +12,7 @@ package node.dns;
 	* `retry`
 	* `expire`
 	* `minttl`
-	
+
 	```js
 	{
 	   nsname: 'ns.example.com',
@@ -30,7 +30,7 @@ package node.dns;
 		Uses the DNS protocol to resolve a start of authority record (`SOA` record) for
 		the `hostname`. The `address` argument passed to the `callback` function will
 		be an object with the following properties:
-		
+
 		* `nsname`
 		* `hostmaster`
 		* `serial`
@@ -38,7 +38,7 @@ package node.dns;
 		* `retry`
 		* `expire`
 		* `minttl`
-		
+
 		```js
 		{
 		   nsname: 'ns.example.com',
@@ -52,5 +52,6 @@ package node.dns;
 		```
 	**/
 	@:selfCall
-	static function call(hostname:String, callback:(err:Null<global.nodejs.ErrnoException>, address:SoaRecord) -> Void):Void;
+	static function call(hostname:String,
+		callback:(err:Null<global.nodejs.ErrnoException>, address:SoaRecord) -> Void):Void;
 }

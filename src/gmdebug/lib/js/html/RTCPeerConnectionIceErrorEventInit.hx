@@ -1,17 +1,17 @@
 package js.html;
 
 typedef RTCPeerConnectionIceErrorEventInit = {
-	var errorCode : Float;
+	var errorCode:Float;
 	@:optional
-	var hostCandidate : String;
+	var hostCandidate:String;
 	@:optional
-	var statusText : String;
+	var statusText:String;
 	@:optional
-	var url : String;
+	var url:String;
 	@:optional
-	var bubbles : Bool;
+	var bubbles:Bool;
 	@:optional
-	var cancelable : Bool;
+	var cancelable:Bool;
 	@:optional
-	var composed : Bool;
+	var composed:Bool;
 };

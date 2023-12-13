@@ -5,10 +5,10 @@ package js.html;
 **/
 @:native("VRDisplayCapabilities") extern class VRDisplayCapabilities {
 	function new();
-	final canPresent : Bool;
-	final hasExternalDisplay : Bool;
-	final hasOrientation : Bool;
-	final hasPosition : Bool;
-	final maxLayers : Float;
-	static var prototype : VRDisplayCapabilities;
+	final canPresent:Bool;
+	final hasExternalDisplay:Bool;
+	final hasOrientation:Bool;
+	final hasPosition:Bool;
+	final maxLayers:Float;
+	static var prototype:VRDisplayCapabilities;
 }

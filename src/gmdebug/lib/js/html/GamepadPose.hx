@@ -5,13 +5,13 @@ package js.html;
 **/
 @:native("GamepadPose") extern class GamepadPose {
 	function new();
-	final angularAcceleration : Null<js.lib.Float32Array>;
-	final angularVelocity : Null<js.lib.Float32Array>;
-	final hasOrientation : Bool;
-	final hasPosition : Bool;
-	final linearAcceleration : Null<js.lib.Float32Array>;
-	final linearVelocity : Null<js.lib.Float32Array>;
-	final orientation : Null<js.lib.Float32Array>;
-	final position : Null<js.lib.Float32Array>;
-	static var prototype : GamepadPose;
+	final angularAcceleration:Null<js.lib.Float32Array>;
+	final angularVelocity:Null<js.lib.Float32Array>;
+	final hasOrientation:Bool;
+	final hasPosition:Bool;
+	final linearAcceleration:Null<js.lib.Float32Array>;
+	final linearVelocity:Null<js.lib.Float32Array>;
+	final orientation:Null<js.lib.Float32Array>;
+	final position:Null<js.lib.Float32Array>;
+	static var prototype:GamepadPose;
 }

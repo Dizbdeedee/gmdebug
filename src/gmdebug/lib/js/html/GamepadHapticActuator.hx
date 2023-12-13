@@ -5,7 +5,7 @@ package js.html;
 **/
 @:native("GamepadHapticActuator") extern class GamepadHapticActuator {
 	function new();
-	final type : String;
+	final type:String;
 	function pulse(value:Float, duration:Float):js.lib.Promise<Bool>;
-	static var prototype : GamepadHapticActuator;
+	static var prototype:GamepadHapticActuator;
 }

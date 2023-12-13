@@ -1,5 +1,5 @@
 package js.html;
 
 typedef IAuthenticatorResponse = {
-	final clientDataJSON : js.lib.ArrayBuffer;
+	final clientDataJSON:js.lib.ArrayBuffer;
 };

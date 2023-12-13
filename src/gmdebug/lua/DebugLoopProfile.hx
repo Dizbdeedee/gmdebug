@@ -31,7 +31,8 @@ class DebugLoopProfile {
 		trace("report");
 		for (pass in finish) {
 			for (str => time in pass) {
-				avg.set(str, avg.get(str).or(0.0) + time);
+				avg.set(str, avg.get(str)
+					.or(0.0) + time);
 			}
 		}
 		for (str => time in avg) {
@@ -54,7 +55,8 @@ class DebugLoopProfile {
 			inital[pass] = [];
 			finish[pass] = [];
 		}
-		inital[pass].unsafe().set(zone, Gmod.SysTime());
+		inital[pass].unsafe()
+			.set(zone, Gmod.SysTime());
 		lastname = zone;
 		#end
 	}
@@ -63,7 +65,8 @@ class DebugLoopProfile {
 		#if profile
 		if (profileState != PROFILING)
 			return;
-		final diff = Gmod.SysTime() - inital[pass].get(lastname).unsafe();
+		final diff = Gmod.SysTime() - inital[pass].get(lastname)
+			.unsafe();
 		finish[pass].set(lastname, diff);
 		cumulativeTime += diff;
 		#end

@@ -10,5 +10,6 @@ package node.dns;
 		contain an array of name server records available for `hostname`(e.g. `['ns1.example.com', 'ns2.example.com']`).
 	**/
 	@:selfCall
-	static function call(hostname:String, callback:(err:Null<global.nodejs.ErrnoException>, addresses:Array<String>) -> Void):Void;
+	static function call(hostname:String,
+		callback:(err:Null<global.nodejs.ErrnoException>, addresses:Array<String>) -> Void):Void;
 }

@@ -1,13 +1,15 @@
 package js.html;
 
 typedef IBhxBrowser = {
-	final lastError : js.html.DOMException;
+	final lastError:js.html.DOMException;
 	function checkMatchesGlobExpression(pattern:String, value:String):Bool;
 	function checkMatchesUriExpression(pattern:String, value:String):Bool;
 	function clearLastError():Void;
 	function currentWindowId():Float;
-	function fireExtensionApiTelemetry(functionName:String, isSucceeded:Bool, isSupported:Bool, errorString:String):Void;
-	function genericFunction(functionId:Float, destination:Dynamic, ?parameters:String, ?callbackId:Float):Void;
+	function fireExtensionApiTelemetry(functionName:String, isSucceeded:Bool, isSupported:Bool,
+		errorString:String):Void;
+	function genericFunction(functionId:Float, destination:Dynamic, ?parameters:String,
+		?callbackId:Float):Void;
 	function genericSynchronousFunction(functionId:Float, ?parameters:String):String;
 	function getExtensionId():String;
 	function getThisAddress():Dynamic;

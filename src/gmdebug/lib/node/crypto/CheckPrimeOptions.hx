@@ -8,5 +8,5 @@ typedef CheckPrimeOptions = {
 		Refer to the OpenSSL documentation for the BN_is_prime_ex function nchecks options for more details.
 	**/
 	@:optional
-	var checks : Float;
+	var checks:Float;
 };

@@ -6,5 +6,5 @@ package js.html;
 	function enable():js.lib.Promise<ts.Undefined>;
 	function getState():js.lib.Promise<NavigationPreloadState>;
 	function setHeaderValue(value:String):js.lib.Promise<ts.Undefined>;
-	static var prototype : NavigationPreloadManager;
+	static var prototype:NavigationPreloadManager;
 }

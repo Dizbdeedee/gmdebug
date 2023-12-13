@@ -2,7 +2,7 @@ package js.html;
 
 @:native("SVGElementInstanceList") extern class SVGElementInstanceList {
 	function new();
-	final length : Float;
+	final length:Float;
 	function item(index:Float):SVGElementInstance;
-	static var prototype : SVGElementInstanceList;
+	static var prototype:SVGElementInstanceList;
 }

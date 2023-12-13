@@ -1,4 +1,3 @@
 package gmdebug.lua.macros;
 
-class DebugContextMacro {
-}
+class DebugContextMacro {}

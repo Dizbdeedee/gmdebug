@@ -2,21 +2,21 @@ package node;
 
 typedef ReadStreamOptions = {
 	@:optional
-	var end : Float;
+	var end:Float;
 	@:optional
-	var flags : String;
+	var flags:String;
 	@:optional
-	var encoding : global.BufferEncoding;
+	var encoding:global.BufferEncoding;
 	@:optional
-	var fd : ts.AnyOf2<Float, node.fs.promises.FileHandle>;
+	var fd:ts.AnyOf2<Float, node.fs.promises.FileHandle>;
 	@:optional
-	var mode : Float;
+	var mode:Float;
 	@:optional
-	var autoClose : Bool;
+	var autoClose:Bool;
 	@:optional
-	var emitClose : Bool;
+	var emitClose:Bool;
 	@:optional
-	var start : Float;
+	var start:Float;
 	@:optional
-	var highWaterMark : Float;
+	var highWaterMark:Float;
 };

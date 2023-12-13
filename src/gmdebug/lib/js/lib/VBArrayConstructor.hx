@@ -1,3 +1,3 @@
 package js.lib;
 
-typedef VBArrayConstructor = { };
+typedef VBArrayConstructor = {};

@@ -6,12 +6,12 @@ import gmod.libs.DebugLib;
 using Lambda;
 
 typedef InitHStepOut = {
-	debugee : Debugee
+	debugee:Debugee
 }
+
 class HStepOut implements IHandler<StepOutRequest> {
-	
 	final debugee:Debugee;
-	
+
 	public function new(initHStepOut:InitHStepOut) {
 		debugee = initHStepOut.debugee;
 	}
@@ -26,16 +26,17 @@ class HStepOut implements IHandler<StepOutRequest> {
 			final info = DebugLib.getinfo(DebugContext.getHeight(), "fLSl");
 			final func = info.func;
 			trace('${info.source}');
-            final activeLines = info.activelines;
-			final lowest = activeLines.keys().fold((line, res) -> {
-				return if (line < res) {
-					line;
-				} else {
-					res;
-				}
-			}, cast Math.POSITIVE_INFINITY);
+			final activeLines = info.activelines;
+			final lowest = activeLines.keys()
+				.fold((line, res) -> {
+					return if (line < res) {
+						line;
+					} else {
+						res;
+					}
+				}, cast Math.POSITIVE_INFINITY);
 			trace('lowest $lowest');
-			debugee.state = OUT(func, lowest - 1,DebugContext.getHeight());
+			debugee.state = OUT(func, lowest - 1, DebugContext.getHeight());
 		} else {
 			trace("Not out");
 			debugee.state = STEP(DebugContext.getHeight() - 1);

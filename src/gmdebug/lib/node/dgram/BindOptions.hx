@@ -2,11 +2,11 @@ package node.dgram;
 
 typedef BindOptions = {
 	@:optional
-	var port : Float;
+	var port:Float;
 	@:optional
-	var address : String;
+	var address:String;
 	@:optional
-	var exclusive : Bool;
+	var exclusive:Bool;
 	@:optional
-	var fd : Float;
+	var fd:Float;
 };

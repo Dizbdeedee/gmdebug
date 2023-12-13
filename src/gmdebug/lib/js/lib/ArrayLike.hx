@@ -1,5 +1,5 @@
 package js.lib;
 
 typedef ArrayLike<T> = {
-	final length : Float;
+	final length:Float;
 };

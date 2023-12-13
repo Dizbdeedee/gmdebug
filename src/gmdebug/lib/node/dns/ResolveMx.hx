@@ -10,5 +10,6 @@ package node.dns;
 		contain an array of objects containing both a `priority` and `exchange`property (e.g. `[{priority: 10, exchange: 'mx.example.com'}, ...]`).
 	**/
 	@:selfCall
-	static function call(hostname:String, callback:(err:Null<global.nodejs.ErrnoException>, addresses:Array<MxRecord>) -> Void):Void;
+	static function call(hostname:String,
+		callback:(err:Null<global.nodejs.ErrnoException>, addresses:Array<MxRecord>) -> Void):Void;
 }

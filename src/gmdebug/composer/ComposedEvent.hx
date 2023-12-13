@@ -5,7 +5,6 @@ import gmdebug.lib.lua.Protocol;
 #elseif js
 import vscode.debugProtocol.DebugProtocol;
 #end
-
 #if js
 import gmdebug.dap.LuaDebugger;
 #end

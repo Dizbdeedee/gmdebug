@@ -2,7 +2,7 @@ package js.html;
 
 typedef RTCIceParameters = {
 	@:optional
-	var password : String;
+	var password:String;
 	@:optional
-	var usernameFragment : String;
+	var usernameFragment:String;
 };

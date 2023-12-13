@@ -2,21 +2,21 @@ package js.html;
 
 typedef WebGLContextAttributes = {
 	@:optional
-	var alpha : Bool;
+	var alpha:Bool;
 	@:optional
-	var antialias : Bool;
+	var antialias:Bool;
 	@:optional
-	var depth : Bool;
+	var depth:Bool;
 	@:optional
-	var desynchronized : Bool;
+	var desynchronized:Bool;
 	@:optional
-	var failIfMajorPerformanceCaveat : Bool;
+	var failIfMajorPerformanceCaveat:Bool;
 	@:optional
-	var powerPreference : WebGLPowerPreference;
+	var powerPreference:WebGLPowerPreference;
 	@:optional
-	var premultipliedAlpha : Bool;
+	var premultipliedAlpha:Bool;
 	@:optional
-	var preserveDrawingBuffer : Bool;
+	var preserveDrawingBuffer:Bool;
 	@:optional
-	var stencil : Bool;
+	var stencil:Bool;
 };

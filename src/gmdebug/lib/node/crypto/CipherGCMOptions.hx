@@ -2,53 +2,58 @@ package node.crypto;
 
 typedef CipherGCMOptions = {
 	@:optional
-	var authTagLength : Float;
+	var authTagLength:Float;
 	@:optional
 	function construct(callback:ts.AnyOf2<() -> Void, (error:js.lib.Error) -> Void>):Void;
 	@:optional
 	function read(size:Float):Void;
 	@:optional
-	function write(chunk:Dynamic, encoding:global.BufferEncoding, callback:ts.AnyOf2<() -> Void, (error:js.lib.Error) -> Void>):Void;
+	function write(chunk:Dynamic, encoding:global.BufferEncoding,
+		callback:ts.AnyOf2<() -> Void, (error:js.lib.Error) -> Void>):Void;
 	@:optional
-	function writev(chunks:Array<{ var chunk : Dynamic; var encoding : global.BufferEncoding; }>, callback:ts.AnyOf2<() -> Void, (error:js.lib.Error) -> Void>):Void;
+	function writev(chunks:Array<{var chunk:Dynamic; var encoding:global.BufferEncoding;}>,
+		callback:ts.AnyOf2<() -> Void, (error:js.lib.Error) -> Void>):Void;
 	@:optional
 	@:native("final")
 	function final_(callback:ts.AnyOf2<() -> Void, (error:js.lib.Error) -> Void>):Void;
 	@:optional
 	function destroy(error:Null<js.lib.Error>, callback:(error:Null<js.lib.Error>) -> Void):Void;
 	@:optional
-	function transform(chunk:Dynamic, encoding:global.BufferEncoding, callback:node.stream.TransformCallback):Void;
+	function transform(chunk:Dynamic, encoding:global.BufferEncoding,
+		callback:node.stream.TransformCallback):Void;
 	@:optional
 	function flush(callback:node.stream.TransformCallback):Void;
 	@:optional
-	var allowHalfOpen : Bool;
+	var allowHalfOpen:Bool;
 	@:optional
-	var readableObjectMode : Bool;
+	var readableObjectMode:Bool;
 	@:optional
-	var writableObjectMode : Bool;
+	var writableObjectMode:Bool;
 	@:optional
-	var readableHighWaterMark : Float;
+	var readableHighWaterMark:Float;
 	@:optional
-	var writableHighWaterMark : Float;
+	var writableHighWaterMark:Float;
 	@:optional
-	var writableCorked : Float;
+	var writableCorked:Float;
 	@:optional
-	var encoding : global.BufferEncoding;
+	var encoding:global.BufferEncoding;
 	@:optional
-	var emitClose : Bool;
+	var emitClose:Bool;
 	@:optional
-	var highWaterMark : Float;
+	var highWaterMark:Float;
 	@:optional
-	var objectMode : Bool;
+	var objectMode:Bool;
 	@:optional
-	var autoDestroy : Bool;
+	var autoDestroy:Bool;
+
 	/**
 		When provided the corresponding `AbortController` can be used to cancel an asynchronous action.
 	**/
 	@:optional
-	var signal : js.html.AbortSignal;
+	var signal:js.html.AbortSignal;
+
 	@:optional
-	var decodeStrings : Bool;
+	var decodeStrings:Bool;
 	@:optional
-	var defaultEncoding : global.BufferEncoding;
+	var defaultEncoding:global.BufferEncoding;
 };

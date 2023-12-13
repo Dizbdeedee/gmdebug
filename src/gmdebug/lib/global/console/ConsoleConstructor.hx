@@ -1,5 +1,5 @@
 package global.console;
 
 typedef ConsoleConstructor = {
-	var prototype : js.html.Console;
+	var prototype:js.html.Console;
 };

@@ -1,13 +1,13 @@
 package js.html;
 
 typedef VRDisplayEventInit = {
-	var display : VRDisplay;
+	var display:VRDisplay;
 	@:optional
-	var reason : VRDisplayEventReason;
+	var reason:VRDisplayEventReason;
 	@:optional
-	var bubbles : Bool;
+	var bubbles:Bool;
 	@:optional
-	var cancelable : Bool;
+	var cancelable:Bool;
 	@:optional
-	var composed : Bool;
+	var composed:Bool;
 };

@@ -4,8 +4,7 @@ import haxe.Constraints.Function;
 import gmdebug.lua.handlers.IHandler;
 import haxe.Constraints.Function;
 
-class FunctionBreakpointManager  {
-
+class FunctionBreakpointManager {
 	public final functionBP = new haxe.ds.ObjectMap<Function, Bool>();
 
 	public function new() {}
