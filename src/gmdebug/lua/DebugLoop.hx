@@ -118,8 +118,9 @@ class DebugLoop {
 
 	static extern inline function debug_switchHookState(cur:HookState, func:Function, ?sinfo:SourceInfo) {
 		if (sinfo != null && highestStackHeight != null && escapeHatch != null) {
-			var bpWithinRange = debugContext({bm.breakpointWithinRange(sinfo.source.gPath()
-				, sinfo.linedefined, sinfo.lastlinedefined);});
+			var bpWithinRange = debugContext({
+				bm.breakpointWithinRange(sinfo.source.gPath(), sinfo.linedefined, sinfo.lastlinedefined);
+			});
 
 			if (!lineSteppin && bpWithinRange) {
 				final csh = currentStackHeight(func);

@@ -50,8 +50,11 @@ class HVariables implements IHandler<VariablesRequest> {
 					addVars.push({name: "(fenv)", value: fenv, virtual: true});
 				}
 				if (Debug.getupvalue(storedvar, 1) != null) {
-					addVars.push({name: "(upvalues)", value: generateFakeChild(storedvar
-						, Upvalues), virtual: true});
+					addVars.push({
+						name: "(upvalues)",
+						value: generateFakeChild(storedvar, Upvalues),
+						virtual: true
+					});
 				}
 			case TYPE_ENTITY:
 				var ent:Entity = cast storedvar;
@@ -77,8 +80,11 @@ class HVariables implements IHandler<VariablesRequest> {
 					addVars.push({name: upv.a, value: upv.b});
 				}
 			case Output:
-				addVars.push({name: "Bibbly bobbly boo", value: generateFakeChild(realChild
-					, Output_Recurse), overrideValue: "Print Results: "});
+				addVars.push({
+					name: "Bibbly bobbly boo",
+					value: generateFakeChild(realChild, Output_Recurse),
+					overrideValue: "Print Results: "
+				});
 			case Output_Recurse:
 				for (k => v in (realChild : LuaArray<Dynamic>)) {
 					addVars.push({name: k, value: v});
