@@ -1,3 +1,0 @@
-js.hxml
--main gmdebug.dap.Main
--js bin/main.js

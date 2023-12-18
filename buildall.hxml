@@ -1,19 +1,20 @@
 --times
 -D haxeJSON
 -D macro-times
+-D debug
 
 extension.hxml
 
 --next
 
-fixup.hxml
+haxe_subbuilds/fixup.hxml
 -D file=bin/extension.js
 -D regex=String.prototype.__class__ = String;
 -D replace=Object.defineProperty(String.prototype,"__class__",{ value : String, enumerable : false});
 
 --next
 
-fixup.hxml
+haxe_subbuilds/fixup.hxml
 -D file=bin/extension.js
 -D regex=Date.prototype.__class__ = Date;
 -D replace=Object.defineProperty(Date.prototype,"__class__",{ value : Date, enumerable : false});

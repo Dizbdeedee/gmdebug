@@ -1,0 +1,3 @@
+-cp build/build_source/fixup
+--interp
+--main Fixup

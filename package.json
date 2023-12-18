@@ -17,6 +17,7 @@
         "ip": "^1.1.5",
         "ref-array-di": "^1.2.2",
         "ref-struct-di": "^1.1.1",
+        "replace-in-file": "^7.0.2",
         "sudo-prompt": "9.2.1",
         "vscode-debugadapter": "^1.41.0",
         "vscode-debugprotocol": "^1.41.0",

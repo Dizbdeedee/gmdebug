@@ -1,5 +1,5 @@
-node_modules/
-dump/
-bin/
-generated/
-*-original
+node_modules/**
+dump/**
+bin/**
+generated/**
+**-original

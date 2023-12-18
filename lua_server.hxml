@@ -1,4 +1,4 @@
-lua.hxml
+haxe_subbuilds/lua.hxml
 -D server
 -main gmdebug.lua.Start
 -lua /dev/null
