@@ -199,7 +199,7 @@ class RedirectWorker {
 				canLoop = false;
 			}
 			if (canLoop) {
-				Timers.setTimeout(mainLoop, 1);
+				Timers.setTimeout(mainLoop, 50); // too low - causes massive cpu hog
 			} else {
 				r.Destroy();
 				Node.process.exit(1);

@@ -52,7 +52,7 @@
 		{
 			"type": "ConstantName",
 			"props": {
-				"format": "^[a-z][a-zA-Z0-9_]*$",
+				"format": "^[A-Z][A-Z0-9_]*$",
 				"tokens": [
 					"INLINE"
 				],
@@ -62,7 +62,7 @@
 		{
 			"type": "ConstantName",
 			"props": {
-				"format": "^[a-z][a-zA-Z0-9_]*$",
+				"format": "^[A-Z][A-Z0-9_]*$",
 				"tokens": [
 					"NOTINLINE"
 				],
@@ -427,10 +427,6 @@
 			"props": {
 				"format": "^\\s*(TODO|FIXME|HACK|XXX|BUG)"
 			}
-		},
-		{
-			"type": "Trace",
-			"props": {}
 		},
 		{
 			"type": "TrailingWhitespace",

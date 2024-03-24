@@ -21,7 +21,10 @@ function recurseCopy(curFolder:String, output:String, copyFilePred:(String) -> B
 		if (FileSystem.isDirectory(curFilePath)) {
 			if (!copyFilePred(HxPath.withoutDirectory(curFilePath)))
 				continue;
-			FileSystem.createDirectory(otherFile);
+			trace(otherFile);
+			if (!FileSystem.exists(otherFile)) {
+				FileSystem.createDirectory(otherFile);
+			}
 			recurseCopy(curFilePath, otherFile, copyFilePred, runOnCopy);
 		} else {
 			var curFileName = HxPath.withoutExtension(HxPath.withoutDirectory(curFilePath));

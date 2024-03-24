@@ -4,6 +4,7 @@ import node.NodeCrypto;
 import gmdebug.dap.EventIntercepter;
 import js.node.Timers;
 import gmdebug.dap.clients.ClientStorage;
+import gmdebug.dap.io.ClientStorageWithHandshake;
 import gmdebug.Util.recurseCopy;
 import js.Node;
 import sys.FileSystem;
@@ -83,7 +84,7 @@ enum LineStore {
 		workspaceFolder = _workspaceFolder;
 		bytesProcessor = new BytesProcessor();
 		prevRequests = new PreviousRequests();
-		clients = new ClientStorageDef(readGmodBuffer, this);
+		clients = new ClientStorageWithHandshake(readGmodBuffer, this);
 		requestRouter = new RequestRouter(this, clients, prevRequests);
 		outputFilterer = new OutputFiltererDef();
 		fileTracker = new FileTrackerDef();
@@ -115,17 +116,20 @@ enum LineStore {
 				trace("initFromRequest: UNABLE TO LAUNCH PROCESS");
 				throw "InitFromRequest: Unable to launch process";
 		}
-		if (args.noDebug) {
-			dapMode = LAUNCH(childProcess);
-			final comp = (req : LaunchRequest).compose(launch, {});
-			comp.send(this);
-			return;
-		}
 		generateInitFiles(initBundle.serverFolder);
-		copyGmDebugLuaFiles();
+		if (!args.noDebug) {
+			copyGmDebugLuaFiles();
+		}
 		if (!args.noCopy) {
 			copyProjectFiles();
 			fileWatcher.watch(initBundle);
+		}
+		if (args.noDebug) {
+			dapMode = LAUNCH(childProcess);
+			final comp = (req : LaunchRequest).compose(launch, {});
+			launchClients();
+			comp.send(this);
+			return;
 		}
 		dapMode = LAUNCH(childProcess);
 		childProcessSetup(childProcess);
@@ -140,8 +144,13 @@ enum LineStore {
 						case 0:
 							beginShutdown(POKESERVER_TIMEOUT(TIMED_OUT));
 						default:
-							beginShutdown(POKESERVER_TIMEOUT(OTHER_ERROR_NOT_TIMEOUT
-								(new DoNotPrintStr(err.exceptionStack))));
+							var str = if (err.exceptionStack != null) {
+								err.exceptionStack.toString();
+							} else {
+								"";
+							}
+							beginShutdown(POKESERVER_TIMEOUT
+								(OTHER_ERROR_NOT_TIMEOUT(new DoNotPrintStr(str))));
 					}
 					throw err;
 			}
@@ -357,6 +366,7 @@ enum LineStore {
 	}
 
 	@:async function pokeServerTimeout() {
+		fileTracker.addLuaContext(initBundle.serverFolder, 0);
 		var server = @:await clients.attemptServer(initBundle.serverFolder, SERVER_TIMEOUT);
 		clients.sendServer(new ComposedGmDebugMessage(clientID, {id: 0}));
 		switch (dapMode) {
@@ -368,7 +378,6 @@ enum LineStore {
 					, {location: initBundle.serverFolder, dapMode: Launch}));
 		}
 		launchClients();
-		fileTracker.addLuaContext(initBundle.serverFolder, 0);
 		return Noise; // or server. who cares.
 	}
 
@@ -382,14 +391,14 @@ enum LineStore {
 		}
 		poking = true;
 		trace("Poking the client");
-		clients.firstClient(clfolder);
+		clients.firstClientRevised(clfolder);
 		haxe.Timer.delay(pokeClients, 500);
 	}
 
 	function postClientSetup(clID:Int) {
 		switch (initBundle.clientLocation) {
 			case Some(cl):
-				fileTracker.addLuaContext(cl, clID);
+				fileTracker.addLuaContext(initBundle.serverFolder, clID);
 			default:
 				trace("postClientSetup/ initBundle.clientLocation is null!");
 		}
@@ -404,12 +413,14 @@ enum LineStore {
 			case Some(clfolder):
 				clfolder;
 		}
-		clients.attemptClient(clfolder)
-			.handle((clients) -> {
-				for (newClient in clients) {
-					trace('Setting up player: ${newClient.clID}');
-					setupPlayer(newClient.clID);
-					postClientSetup(newClient.clID);
+		clients.attemptClientRevised(clfolder)
+			.handle((newClientOption) -> {
+				switch (newClientOption) {
+					case Some(cl):
+						trace('Setting up player: ${cl.clID}');
+						setupPlayer(cl.clID);
+						postClientSetup(cl.clID);
+					default:
 				}
 				haxe.Timer.delay(pokeClients, 500);
 			});

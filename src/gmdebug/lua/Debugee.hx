@@ -1,5 +1,6 @@
 package gmdebug.lua;
 
+import gmdebug.lua.io.DataHandshake;
 import gmdebug.lua.debugcontext.DebugContext;
 import haxe.Json;
 import gmod.libs.VguiLib;
@@ -114,6 +115,10 @@ class Debugee {
 
 	final customHandlers:Null<CustomHandlers>;
 
+	final dh:DataHandshake;
+
+	final dataLocations:DataLocations;
+
 	public function new() {
 		Logger.init();
 		DebugHook.addHook();
@@ -144,6 +149,8 @@ class Debugee {
 			exceptions: exceptions,
 			sc: sc
 		});
+		dataLocations = generateDataLocationsForLua();
+		dh = new DataHandshakeDef(dataLocations);
 		DebugLoop.init({
 			bm: bm,
 			debugee: this,
@@ -204,16 +211,15 @@ class Debugee {
 		throw "Can't find a free folder to claim";
 	}
 
-	function generateLocations(folder:String):PipeLocations {
-		FileLib.CreateDir(folder);
-		return generatePipeLocations(folder);
-	}
-
-	public function start() {
+	public function start():Bool {
 		if (socketActive)
 			return false;
 		if (aquiringSocket == null) {
-			aquiringSocket = new PipeSocket(generateLocations(checkFreeSlots()));
+			if (dh.aquire() != DONE) {
+				return false;
+			}
+			var dataLocations = generateDataLocationsForLua();
+			aquiringSocket = new PipeSocket(generatePipeLocationsWithID(dataLocations, '${dh.ourID}'));
 		}
 		final result = aquiringSocket.aquire();
 		if (result != AQUIRED) {
@@ -246,7 +252,7 @@ class Debugee {
 	}
 
 	@:access(sys.net.Socket)
-	public inline function send(data:String) { // x:Dynamic
+	public inline function send(data:String) {
 		var str:String = untyped __lua__("{0} .. {1} .. {2} .. {3}", "Content-Length: ", data.length
 			, "\r\n\r\n", data);
 		socket.output.unsafe()

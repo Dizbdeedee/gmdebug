@@ -1,3 +1,6 @@
 lib/
 dump/
 node_modules/
+haxe_autolibjs/
+*-original
+_FOSSIL_

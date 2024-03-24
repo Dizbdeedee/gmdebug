@@ -18,7 +18,13 @@ enum AquireProcess {
 	WAITING_FOR_PIPES_READY;
 	WAITING_FOR_INPUT;
 	WAITING_FOR_OUTPUT;
+	WRITING_OUTPUT;
 	AQUIRED;
+}
+
+enum AquireProcessState {
+	CONTINUE(x:AquireProcess);
+	HALT(x:AquireProcess);
 }
 
 class PipeSocket implements DebugIO {
@@ -40,65 +46,66 @@ class PipeSocket implements DebugIO {
 		WeakTools.setGCMethod(cast this, __gc);
 	}
 
-	function connection_pass() {
-		return process != WAITING_FOR_CONNECTION;
-	}
-
-	function input_pass() {
-		return process != WAITING_FOR_INPUT;
-	}
-
-	function pipes_ready_pass() {
-		return process != WAITING_FOR_PIPES_READY;
+	function checkProcess():AquireProcessState {
+		return switch (process) {
+			case WAITING_FOR_CONNECTION:
+				if (!FileLib.Exists(locs.connect, DATA)) {
+					HALT(WAITING_FOR_CONNECTION);
+				} else {
+					if (!FileLib.Exists(locs.client_ack, DATA)) {
+						FileLib.Write(locs.client_ack, "");
+					}
+					CONTINUE(WAITING_FOR_PIPES_READY);
+				}
+			case WAITING_FOR_PIPES_READY:
+				if (!FileLib.Exists(locs.pipes_ready, DATA)) {
+					HALT(WAITING_FOR_PIPES_READY);
+				} else {
+					CONTINUE(WAITING_FOR_INPUT);
+				}
+			case WAITING_FOR_INPUT:
+				if (input == null) {
+					input = new PipeInput(locs);
+				}
+				final inputAq = input.aquire();
+				if (inputAq != AQUIRED) {
+					HALT(inputAq);
+				} else {
+					CONTINUE(WAITING_FOR_OUTPUT);
+				}
+			case WAITING_FOR_OUTPUT:
+				if (output == null) {
+					output = new PipeOutput(locs);
+				}
+				final outputAq = output.aquire();
+				if (outputAq != AQUIRED) {
+					HALT(outputAq);
+				} else {
+					CONTINUE(WRITING_OUTPUT);
+				}
+			case WRITING_OUTPUT:
+				output.writeString("\004"); // mark ready for writing...
+				FileLib.Delete(locs.pipes_ready);
+				FileLib.Delete(locs.client_ready);
+				FileLib.Delete(locs.connection_in_progress);
+				FileLib.Write(locs.connection_aquired, "");
+				HALT(AQUIRED);
+			case AQUIRED:
+				HALT(AQUIRED);
+		}
 	}
 
 	public function aquire():AquireProcess {
 		if (process == AQUIRED)
 			throw "Already aquired...";
-		if (!connection_pass()) {
-			if (!FileLib.Exists(locs.connect, DATA)) {
-				return WAITING_FOR_CONNECTION;
+		while (process != AQUIRED) {
+			switch (checkProcess()) {
+				case CONTINUE(x):
+					process = x;
+				case HALT(x):
+					return x;
 			}
-			if (!FileLib.Exists(locs.client_ack, DATA)) {
-				FileLib.Write(locs.client_ack, "");
-			}
-			process = WAITING_FOR_PIPES_READY;
-			trace(process);
 		}
-		if (!pipes_ready_pass()) {
-			if (!FileLib.Exists(locs.pipes_ready, DATA)) {
-				return WAITING_FOR_PIPES_READY;
-			}
-			process = WAITING_FOR_INPUT;
-			trace(process);
-		}
-		if (!input_pass()) {
-			if (input == null) {
-				input = new PipeInput(locs);
-			}
-			final inputAq = input.aquire();
-			if (inputAq != AQUIRED) {
-				return inputAq;
-			}
-			process = WAITING_FOR_OUTPUT;
-			trace(process);
-		}
-		if (output == null) {
-			output = new PipeOutput(locs);
-		}
-		final outputAq = output.aquire();
-		if (outputAq != AQUIRED) {
-			return outputAq;
-		}
-		trace("first write");
-		output.writeString("\004"); // mark ready for writing...
-		FileLib.Delete(locs.pipes_ready);
-		FileLib.Delete(locs.client_ready);
-		FileLib.Delete(locs.connection_in_progress);
-		process = AQUIRED;
-		FileLib.Write(locs.connection_aquired, "");
-
-		// FileLib.Write(join([locs.folder,AQUIRED]),"");
 		return AQUIRED;
 	}
 

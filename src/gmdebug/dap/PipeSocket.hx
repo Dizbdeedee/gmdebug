@@ -44,7 +44,7 @@ enum ConnStatus {
 class PipeSocket {
 	static final WAIT_FOR_VALID_CONNECTION = 500; // ms
 
-	static final WATCH_FILE_TIMEOUT = 5;
+	static final WATCH_FILE_TIMEOUT = 7;
 
 	public var closeFuture:Future<Noise>;
 
@@ -98,7 +98,7 @@ class PipeSocket {
 		});
 	}
 
-	function resolveReadiness(timeout:Int) {
+	function resolveReadiness(timeout:Int):Promise<Noise> {
 		return new Promise(function(success, failure) {
 			var timer = Timer.delay(() -> failure(new Error("Timed out...")), timeout);
 			var watcher = null;
@@ -124,7 +124,7 @@ class PipeSocket {
 		});
 	}
 
-	function resolveAck(timeout:Int) {
+	function resolveAck(timeout:Int):Promise<Noise> {
 		return new Promise(function(success, failure) {
 			var timer = Timer.delay(() -> failure(new Error("Timed out...")), timeout);
 			var watcher = null;
@@ -274,12 +274,6 @@ class PipeSocket {
 			server.on('connection', (socket:Socket) -> {
 				Fs.appendFileSync(HxPath.join(["log.txt"]),
 					'getValidSocket/onConnection/socket $details socket $socket aquired');
-				// try {
-				//     socket.write("\004\r\n");
-				// } catch (e) {
-				//     trace("Can't write");
-				// }
-				// trace("Can write");
 				var id = socketsStatus.length;
 				trace('getValidSocket/onConnection/socket $details socket aquired $id');
 				var invalidateSocket = () -> {

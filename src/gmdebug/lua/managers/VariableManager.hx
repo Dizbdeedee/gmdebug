@@ -219,7 +219,6 @@ class VariableManager {
 				cachedValues.set(val, storedVariables.length);
 				VariableReference.encode(Child(debugee.clientID, storedVariables.push(val) - 1));
 			case [TYPE_TABLE | TYPE_FUNCTION | TYPE_USERDATA | TYPE_ENTITY, cacheID]:
-				trace("Where's my super cache");
 				VariableReference.encode(Child(debugee.clientID, cacheID));
 			default:
 				0;

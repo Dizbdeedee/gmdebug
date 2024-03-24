@@ -51,18 +51,9 @@ class FileTrackerDef implements FileTracker {
 		}
 	}
 
-	// return switch (inferiorFileToHash.get(path)) {
-	//     case null:
-	//         NOT_STORED;
-	//     case hashToSuperiorFile.get(_) => null:
-	//         trace('lookupFIle $hashToSuperiorFile');
-	//         CANT_FIND;
-	//     case hashToSuperiorFile.get(_) => superiorFile:
-	//         SUPERIOR_FILE(superiorFile);
-	// }
-
 	public function addLuaContext(directory:String, context:Int) {
 		contextStorage.set(context, directory);
+		trace('$context set $directory');
 	}
 
 	public function findAbsLuaFile(luafilestring:String, context:Int):Option<String> {
