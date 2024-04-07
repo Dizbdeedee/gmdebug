@@ -4,21 +4,26 @@ import gmdebug.composer.RequestString;
 import haxe.ds.ArraySort;
 import node.Fs;
 import node.NodeCrypto;
+import gmdebug.dap.BreakpointRequester;
+import gmdebug.dap.FileLookup;
 
 interface ResponseIntercepter {
-	function intercept(ceptedRequest:Response<Dynamic>, threadId:Int):Void;
+	function intercept(ceptedRequest:Response<Dynamic>, threadId:Int):ResponseIntercepterResult;
 }
 
 class ResponseIntercepterDef implements ResponseIntercepter {
-	final fileTracker:FileTracker;
+	final fileLookup:FileLookup;
 
-	public function new(_fileTracker:FileTracker) {
-		fileTracker = _fileTracker;
+	final breakpointRequester:BreakpointRequester;
+
+	public function new(_fileLookup:FileLookup, _breakpointRequester:BreakpointRequester) {
+		fileLookup = _fileLookup;
+		breakpointRequester = _breakpointRequester;
 	}
 
-	public function intercept(ceptedResponse:Response<Dynamic>, threadId:Int) {
+	public function intercept(ceptedResponse:Response<Dynamic>, threadId:Int):ResponseIntercepterResult {
 		final command:AnyRequest = ceptedResponse.command;
-		switch (command) {
+		return switch (command) {
 			case variables:
 				final variablesResp:VariablesResponse = ceptedResponse;
 				ArraySort.sort(variablesResp.body.variables, (a, b) -> {
@@ -37,59 +42,48 @@ class ResponseIntercepterDef implements ResponseIntercepter {
 							0;
 					}
 				});
+				Send;
 			case stackTrace:
 				final stackTraceResp:StackTraceResponse = ceptedResponse;
 				final stackTraces = stackTraceResp.body.stackFrames;
 				for (stack in stackTraces) {
-					if (stack.source == null)
+					final source = stack.source;
+					if (source == null)
 						continue;
-					final newPth = switch (fileTracker.findAbsLuaFile(stack.source.path, threadId)) {
-						case Some(abspth):
-							lookupFromAbs(abspth);
-						default:
-							// ERROR! ahhhh
-							trace("COULD NOT LOOKUP PATH!!!");
-							stack.source.path;
+					final gmodPath:GmodPath = cast source.path;
+					if (gmodPath == null)
+						continue;
+					final allPaths = fileLookup.lookupAllLocations(gmodPath);
+					var backup = "";
+					var set = false;
+					for (loc in allPaths) {
+						switch (loc) {
+							case PROJECT(str):
+								trace("*ncp Found project path: " + str);
+								source.path = str;
+								set = true;
+								break;
+							case SERVER(str):
+								backup = str;
+							default:
+						}
 					}
-					stack.source.path = newPth;
+					if (!set && backup != "") {
+						trace("*ncp Found server path: " + backup);
+						source.path = backup;
+					}
 				}
+				Send;
+			case setBreakpoints:
+				breakpointRequester.processBreakpointResponse(cast ceptedResponse, threadId);
+				NoSend;
 			default:
+				Send;
 		}
 	}
+}
 
-	function lookupFromAbs(abs:String) {
-		final result = switch (fileTracker.lookupFile(abs)) {
-			case SUPERIOR_FILE(superiorFile):
-				trace("lookupFromAbs/ using superiror file");
-				superiorFile;
-			case CANT_FIND:
-				trace("lookupFromAbs/ can't find calculated md5 succ");
-				abs;
-			case NOT_STORED:
-				trace("lookupFromAbs/ none");
-				final hshFunc = NodeCrypto.createHash("md5");
-				final contents = Fs.readFileSync(abs, {encoding: 'utf8'});
-				// trace(abs);
-				// trace("-----------------");
-				// trace(contents.toString());
-				// trace("-----------------");
-				hshFunc.update(contents.toString());
-				fileTracker.storeLookupFile(abs, hshFunc.digest('hex'));
-				null;
-		}
-		if (result != null)
-			return result;
-		return switch (fileTracker.lookupFile(abs)) {
-			case SUPERIOR_FILE(superiorFile):
-				trace("lookupFromAbs/ looked up calculated md5 lookup 2");
-				superiorFile;
-			case CANT_FIND:
-				trace("lookupFromAbs/ can't find calculated md5 lookup 2");
-				abs;
-			case NOT_STORED:
-				trace("lookupFromAbs/ something went bery wrong");
-				throw "lookupFromAbs/ something went bery wrong";
-				return null;
-		}
-	}
+enum ResponseIntercepterResult {
+	Send;
+	NoSend;
 }

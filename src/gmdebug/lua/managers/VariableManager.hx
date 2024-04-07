@@ -48,6 +48,8 @@ class VariableManager {
 
 	var caniocalNames:haxe.ds.ObjectMap<Dynamic, UniqueName> = new haxe.ds.ObjectMap();
 
+	var canonicalNameDepths:haxe.ds.ObjectMap<Dynamic, Int> = new haxe.ds.ObjectMap();
+
 	var traverseDepth:Int = 2;
 
 	final debugee:Debugee;
@@ -57,6 +59,7 @@ class VariableManager {
 		storedVariables.setWeakValuesArr();
 		cachedValues.setWeakKeysM();
 		caniocalNames.setWeakKeysM();
+		canonicalNameDepths.setWeakKeysM();
 		storeCaniocalNames();
 	}
 
@@ -66,17 +69,14 @@ class VariableManager {
 		cachedValues = new haxe.ds.ObjectMap();
 		cachedValues.setWeakKeysM();
 		caniocalNames = new haxe.ds.ObjectMap();
+		canonicalNameDepths.setWeakKeysM();
+		canonicalNameDepths = new haxe.ds.ObjectMap();
 		storeCaniocalNames();
 	}
 
 	function storeCaniocalNames() {
+		caniocalNames.set(untyped __lua__("_G"), Canionical("_G"));
 		recurseNames(0, "", untyped __lua__("_G"));
-
-		// for (hookname => hookTbl in HookLib.GetTable()) {
-		//     for (ident => hook in hookTbl) {
-		// 		caniocalNames.set(hook,CHook(hookname,ident));
-		//     }
-		// }
 	}
 
 	function recurseNames(recurseDepth:Int, prevIndent:String, table:AnyTable) {
@@ -86,12 +86,30 @@ class VariableManager {
 		for (k => v in table) {
 			switch [Gmod.type(k), Gmod.type(v)] {
 				case ["string", "function"]:
-					caniocalNames.set(v, Canionical('$prevIndent$k'));
+					var depth = canonicalNameDepths.get(v);
+					if (depth != null) {
+						if (recurseDepth <= depth) {
+							caniocalNames.set(v, Canionical('$prevIndent$k'));
+							canonicalNameDepths.set(v, recurseDepth);
+						}
+					} else {
+						caniocalNames.set(v, Canionical('$prevIndent$k'));
+						canonicalNameDepths.set(v, recurseDepth);
+					}
 				case ["string", "table"]:
 					if (v == untyped __lua__("_G"))
 						continue;
+					var depth = canonicalNameDepths.get(v);
+					if (depth != null) {
+						if (recurseDepth <= depth) {
+							caniocalNames.set(v, Canionical('$prevIndent$k'));
+							canonicalNameDepths.set(v, recurseDepth);
+						}
+					} else {
+						caniocalNames.set(v, Canionical('$prevIndent$k'));
+						canonicalNameDepths.set(v, recurseDepth);
+					}
 					recurseNames(recurseDepth + 1, '$k.', v);
-
 				default:
 			}
 		}
@@ -223,6 +241,15 @@ class VariableManager {
 			default:
 				0;
 		};
+	}
+
+	public function stringUniqueName(uniqueName:UniqueName):String {
+		return switch (uniqueName) {
+			case Canionical(name):
+				name;
+			case Generated(name):
+				'*$name';
+		}
 	}
 }
 

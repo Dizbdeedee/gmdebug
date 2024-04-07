@@ -139,7 +139,7 @@ class Debugee {
 		bm = new BreakpointManager({
 			debugee: this
 		});
-		exceptions = new Exceptions(this.traceback);
+		exceptions = new Exceptions(this.traceback, sc);
 		fbm = new FunctionBreakpointManager();
 		hc = new HandlerContainer({
 			vm: vm,
@@ -364,6 +364,12 @@ class Debugee {
 		DebugContext.debugContext({haltLoop();});
 	}
 
+	public function dumpSources() {
+		for (source in sc.sourceCache) {
+			trace(source);
+		}
+	}
+
 	#if debugdump
 	@:expose("stopDump")
 	public function stopDump() {
@@ -476,16 +482,6 @@ class Debugee {
 				DebugContext.debugContext({hc.handlers(cast incoming);});
 			default:
 				throw "message sent to us had an unknown type";
-		}
-	}
-
-	public function fullPathToGmod(fullPath:String):Option<GmodPath> {
-		return if (fullPath.contains(dest)) {
-			var result = fullPath.replace(dest, "");
-			result = "@" + result;
-			Some(cast result);
-		} else {
-			None;
 		}
 	}
 }

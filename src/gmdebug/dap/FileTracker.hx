@@ -11,6 +11,7 @@ interface FileTracker {
 	function lookupFile(filePath:String):LookupResult;
 	function addLuaContext(directory:String, context:Int):Void;
 	function findAbsLuaFile(filePath:String, context:Int):Option<String>;
+	function findLuaPathFromAbs(abs:String, context:Int):Option<String>;
 }
 
 enum LookupResult {
@@ -24,8 +25,13 @@ class FileTrackerDef implements FileTracker {
 	var inferiorFileToHash:Map<String, String> = [];
 	var contextStorage:Map<Int, String> = [];
 	var existsCache:Map<String, Bool> = [];
+	var initBundle:InitBundle;
+	var workspaceFolder:String;
 
-	public function new() {}
+	public function new(_initBundle:InitBundle, _workspaceFolder:String) {
+		initBundle = _initBundle;
+		workspaceFolder = _workspaceFolder;
+	}
 
 	public function storeFile(filePath:String, hash:String) {
 		trace('storeFile/ stored hash $hash');
@@ -80,4 +86,22 @@ class FileTrackerDef implements FileTracker {
 			None;
 		}
 	}
+
+	public function findLuaPathFromAbs(abs:String, context:Int):Option<String> {
+		if (!contextStorage.exists(context)) {
+			trace("findLuaPathFromAbs/ CONTEXT STORAGE DOES NOT EXIST!!");
+			return None;
+		}
+		// var serverFolder = initBundle.serverFolder;
+		// if (serverFolder == null) return None;
+		// var serverFolderLastIndex = abs.lastIndexOf(serverFolder);
+		// if (serverFolderLastIndex != -1) {
+		//	var cutStr = abs.substr(serverFolderLastIndex);
+		//	trace('*ncp $cutStr');
+		//	return Some(cutStr);
+		// }
+		return None;
+	}
+
+	function getDirectoryLocationInfo() {}
 }

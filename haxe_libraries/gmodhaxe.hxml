@@ -1,5 +1,10 @@
+# @install: lix --silent download "gh://github.com/Dizbdeedee/gmodhaxe#a9d49471ab5305970aea051c1242259be74e7e90" into gmodhaxe/0.3.0/github/a9d49471ab5305970aea051c1242259be74e7e90
+# @run: haxelib run-dir gmodhaxe "${HAXE_LIBCACHE}/gmodhaxe/0.3.0/github/a9d49471ab5305970aea051c1242259be74e7e90"
 -lib no-spoon
--cp ${SCOPE_DIR}/..\gmodhaxe/src
--D gmodhaxe=0.2.3
-${SCOPE_DIR}/..\gmodhaxe/extraParams.hxml
---macro Sys.println("haxe_libraries/gmodhaxe.hxml:3: [Warning] Using dev version of library gmodhaxe")
+-cp ${HAXE_LIBCACHE}/gmodhaxe/0.3.0/github/a9d49471ab5305970aea051c1242259be74e7e90/src
+-D gmodhaxe=0.3.0
+-D lua-vanilla
+-D lua-5.1
+-D luajit
+gmod.helpers.macros.include.__ForceExpose
+haxe.CallStack

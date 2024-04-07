@@ -7,6 +7,7 @@
 -lib tink_await
 -lib tink_io
 -cp src
+-D message.reporting=pretty
 -D error_stack
 -D analyzer-optimize
 --dce=full

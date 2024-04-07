@@ -15,6 +15,7 @@ import haxe.Rest;
 import gmod.libs.Scripted_entsLib;
 import haxe.Constraints.Function;
 import haxe.ds.ObjectMap;
+import gmod.libs.DebugLib;
 
 using gmod.helpers.WeakTools;
 
@@ -32,7 +33,14 @@ typedef ReplaceStorage = {
 
 typedef TracebackFunction = (err:Dynamic, ?alt:Int) -> Dynamic;
 
+@:native("_G")
+private extern class RebindGmod {
+	static dynamic function include(fileName:String):Dynamic;
+}
+
 class Exceptions {
+	final sourceContainer:SourceContainer;
+
 	final exceptFuncs:ObjectMap<Dynamic, Dynamic> = new ObjectMap();
 
 	final replaceStorage:ReplaceStorage = {};
@@ -41,8 +49,9 @@ class Exceptions {
 
 	var xpCallActive = false;
 
-	public function new(_tracebackFunc:TracebackFunction) {
+	public function new(_tracebackFunc:TracebackFunction, _sc:SourceContainer) {
 		tracebackFunc = _tracebackFunc;
+		sourceContainer = _sc;
 		exceptFuncs.setWeakKeyValuesM();
 		WeakTools.setGCMethod(cast this, __gc);
 	}
@@ -52,8 +61,6 @@ class Exceptions {
 		hookEntities();
 		hookHooks();
 		hookInclude();
-		// hookEffects();
-		// hookPanels();
 		hookTimers();
 	}
 
@@ -190,8 +197,16 @@ class Exceptions {
 	}
 
 	function hookInclude() {
-		replaceStorage.include = cast Gmod.include;
-		untyped Gmod.include = processExcept(cast replaceStorage.include);
+		replaceStorage.include = RebindGmod.include;
+		RebindGmod.include = cast processExcept((str) -> {
+			for (x in 2...5) {
+				var info = DebugLib.getinfo(x, 'fS');
+				if (info != null) {
+					sourceContainer.sourceCache.set(info.func, info);
+				}
+			}
+			replaceStorage.include(str);
+		});
 	}
 
 	function hookPanels() {

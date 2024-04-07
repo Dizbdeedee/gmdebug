@@ -3,3 +3,7 @@ dump/**
 bin/**
 generated/**
 **-original
+*commit*
+*log*
+*profile*
+*#*

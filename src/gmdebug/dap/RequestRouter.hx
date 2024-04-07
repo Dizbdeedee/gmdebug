@@ -28,12 +28,19 @@ class RequestRouter {
 
 	var clients:ClientStorage;
 
+	var fileTracker:FileTracker;
+
 	var prevRequests:PreviousRequests;
 
-	public function new(luaDebug:LuaDebugger, clients:ClientStorage, prevRequests:PreviousRequests) {
+	var breakpointRequester:BreakpointRequester;
+
+	public function new(luaDebug:LuaDebugger, clients:ClientStorage, prevRequests:PreviousRequests,
+			fileTracker:FileTracker, breakpointRequester:BreakpointRequester) { // TODO format
 		this.luaDebug = luaDebug;
 		this.clients = clients;
 		this.prevRequests = prevRequests;
+		this.fileTracker = fileTracker;
+		this.breakpointRequester = breakpointRequester;
 	}
 
 	public function route(req:Request<Dynamic>) {
@@ -55,8 +62,7 @@ class RequestRouter {
 			case evaluate:
 				h_evaluate(req);
 			case setBreakpoints:
-				prevRequests.update(req);
-				clients.sendAll(req);
+				breakpointRequester.processBreakpoint(cast req);
 			case setExceptionBreakpoints:
 				prevRequests.update(req);
 				clients.sendAll(req);
@@ -147,7 +153,16 @@ class RequestRouter {
 
 	function h_setBreakpoints(req:SetBreakpointsRequest) {
 		final source = req.arguments.source;
-		// hm.
+		for (client in clients.getClients()) {
+			var src = fileTracker.findLuaPathFromAbs(source.path, client.clID);
+			switch (src) {
+				case Some(luaPath):
+					req.arguments.source.path = luaPath;
+					clients.sendAny(client.clID, req);
+				default:
+					trace("*ncp not found....");
+			}
+		}
 	}
 
 	function h_initialize(req:InitializeRequest) {

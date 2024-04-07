@@ -87,12 +87,12 @@ class DebugLoop {
 	}
 
 	public static extern inline function enableLineStep() {
-		DebugHook.addHook(debugloop, "tl");
+		DebugHook.addHook(debugloop, "cl");
 		lineSteppin = true;
 	}
 
 	public static extern inline function disableLineStep() {
-		DebugHook.addHook(debugloop, "t");
+		DebugHook.addHook(debugloop, "c");
 		lineSteppin = false;
 	}
 
@@ -121,7 +121,6 @@ class DebugLoop {
 			var bpWithinRange = debugContext({
 				bm.breakpointWithinRange(sinfo.source.gPath(), sinfo.linedefined, sinfo.lastlinedefined);
 			});
-
 			if (!lineSteppin && bpWithinRange) {
 				final csh = currentStackHeight(func);
 				if (csh <= highestStackHeight) {
@@ -278,6 +277,7 @@ class DebugLoop {
 			result;
 		} else {
 			final tmp = DebugLib.getinfo(DebugContext.getHeight(), 'S');
+			// TODO get the one above too in sourcecache?
 			sc.sourceCache.set(func, tmp);
 			tmp;
 		}

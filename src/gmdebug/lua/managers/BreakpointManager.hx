@@ -1,6 +1,7 @@
 package gmdebug.lua.managers;
 
 import gmdebug.lua.handlers.IHandler;
+import haxe.ds.Option;
 import haxe.Constraints.Function;
 
 using gmdebug.lua.GmodPath;
@@ -23,16 +24,14 @@ class BreakpointManager {
 	}
 
 	public function clearBreakpoints(source:String) {
-		breakpoints.set(getRealPath(source), []);
+		breakpoints.set(getGmodPath(source), []);
 	}
 
-	inline function getRealPath(source:String):GmodPath {
-		return switch (debugee.fullPathToGmod(source)) {
-			case Some(v):
-				v;
-			case None:
-				cast source;
+	inline function getGmodPath(source:String):GmodPath {
+		if (source.charAt(0) != "@") {
+			source = "@" + source;
 		}
+		return cast source;
 	}
 
 	public function retrieveSourceLineInfo(source:GmodPath):Map<Int, Bool> {
@@ -75,19 +74,19 @@ class BreakpointManager {
 
 	public function getBreakpointForLine(source:GmodPath, line:Int):Null<Breakpoint> {
 		final bp = breakpoints.get(source);
-		return if (bp == null) null; else bp.get(line);
+		return if (bp == null) {
+			null;
+		} else {
+			bp.get(line);
+		}
 	}
 
 	public function newBreakpoint(source:Source, bp:SourceBreakpoint):Breakpoint {
-		final status = switch (debugee.fullPathToGmod(source.path)) {
-			case Some(v):
-				breakpointStatus(v, bp.line);
-			case None:
-				NOT_VISITED;
-		}
+		var gmodPath = getGmodPath(source.path);
+		final status = breakpointStatus(gmodPath, bp.line);
 		final breakpoint = new Breakpoint(bpID++, source, bp, status);
 		if (breakpoint.breakpointType != INACTIVE) {
-			final map = retrieveBreakpointTable(getRealPath(source.path));
+			final map = retrieveBreakpointTable(gmodPath);
 			map.set(breakpoint.line, breakpoint);
 		}
 		return breakpoint;

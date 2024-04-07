@@ -104,11 +104,13 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 				args = args.substr(0, args.length - 1) + ")";
 			}
 			// _hx_bind STRIKES AGAIN!
+			var uniqueName = variableManager.generateUniqueName(cast info.func);
+			var strUniqueName = variableManager.stringUniqueName(uniqueName);
 			var name = switch [info.name, info.namewhat] {
 				case [null, NOT_FOUND]:
-					'anon (${variableManager.generateUniqueName(untyped info.func)}) $args'; // ${sh - i}
+					'$strUniqueName $args';
 				case [name, what]:
-					'[$what] $name (${variableManager.generateUniqueName(untyped info.func)}) $args';
+					'[$what] $name ($strUniqueName) $args';
 			}
 			var path:Null<String>;
 			var hint:Null<SourcePresentationHint>;

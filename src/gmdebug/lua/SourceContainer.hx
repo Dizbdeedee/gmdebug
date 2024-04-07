@@ -24,6 +24,11 @@ typedef InitSourceContainer = {
 	debugee:Debugee
 }
 
+@:native("_G")
+private extern class PreLoad {
+	static var __preinclude:lua.Table.AnyTable;
+}
+
 class SourceContainer {
 	final uniqueSources:Map<String, Null<Source>> = [];
 
@@ -59,7 +64,6 @@ class SourceContainer {
 			if (!uniqueSources.exists(si.source)) {
 				final result = infoToSource(si);
 				if (result != null) {
-					trace("SENDING SOURCE");
 					debugee.sendMessage(new ComposedEvent(loadedSource, {
 						reason: New,
 						source: result

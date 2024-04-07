@@ -4,11 +4,11 @@
 -lib tink_json
 -lib tink_core
 -lib profiler
---times
 -D macro-times
 -D gmddebug
 -D addonName=debugee
 -D analyzer-optimize
+-D message.reporting=pretty
 -D noGenInit
 -D haxeJSON
 -D lua-ver=5.1

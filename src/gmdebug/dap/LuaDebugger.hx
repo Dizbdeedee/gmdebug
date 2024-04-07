@@ -24,8 +24,10 @@ import js.node.stream.Writable;
 import gmdebug.dap.LaunchProcessor;
 import gmdebug.dap.FileWatcher;
 import gmdebug.dap.Log;
+import gmdebug.dap.FileLookup;
 import gmdebug.dap.OutputFilterer;
 import gmdebug.dap.FileTracker;
+import gmdebug.dap.BreakpointRequester;
 
 using tink.CoreApi;
 using gmdebug.composer.ComposeTools;
@@ -50,6 +52,8 @@ enum LineStore {
 
 	public var shutdownActive(default, null):Bool;
 
+	public var workspaceFolder:String; // oh dear
+
 	var requestRouter:RequestRouter;
 
 	var bytesProcessor:BytesProcessor;
@@ -72,7 +76,9 @@ enum LineStore {
 
 	var fileTracker:FileTracker;
 
-	public var workspaceFolder:String; // oh dear
+	var fileLookup:FileLookup;
+
+	var breakpointRequester:BreakpointRequester;
 
 	var pokeClientCancel:Timeout;
 
@@ -85,11 +91,17 @@ enum LineStore {
 		bytesProcessor = new BytesProcessor();
 		prevRequests = new PreviousRequests();
 		clients = new ClientStorageWithHandshake(readGmodBuffer, this);
-		requestRouter = new RequestRouter(this, clients, prevRequests);
 		outputFilterer = new OutputFiltererDef();
-		fileTracker = new FileTrackerDef();
-		eventIntercepter = new EventIntercepterDef(this, outputFilterer, fileTracker);
-		responseIntercepter = new ResponseIntercepterDef(fileTracker);
+		fileTracker = new FileTrackerDef(initBundle, workspaceFolder);
+		fileLookup = new FileLookupDef((str:String) -> {
+			var hshFunc = NodeCrypto.createHash("md5");
+			hshFunc.update(str);
+			return hshFunc.digest('hex');
+		});
+		eventIntercepter = new EventIntercepterDef(this, outputFilterer, fileLookup);
+		breakpointRequester = new BreakpointRequesterDef(fileLookup, this, clients);
+		requestRouter = new RequestRouter(this, clients, prevRequests, fileTracker, breakpointRequester);
+		responseIntercepter = new ResponseIntercepterDef(fileLookup, breakpointRequester);
 		gmodClientOpener = new GmodClientOpenerMultirun();
 		launchProcessor = new LaunchProcessorDef();
 		fileWatcher = new FileWatcherDef();
@@ -138,6 +150,12 @@ enum LineStore {
 		pokeServerTimeout().handle((result) -> {
 			switch (result) {
 				case Success(server):
+					fileLookup.storeContext(SERVER, initBundle.serverFolder);
+					switch (initBundle.clientLocation) {
+						case Some(cl):
+							fileLookup.storeContext(CLIENT, cl);
+						default:
+					}
 					startPokeClients();
 				case Failure(err):
 					switch (err.code) {
@@ -196,6 +214,7 @@ enum LineStore {
 	}
 
 	function copyProjectFiles() {
+		fileLookup.storeContext(PROJECT, initBundle.luaAddon);
 		if (!Fs.existsSync(initBundle.luaAddonDestination)) {
 			Fs.mkdirSync(initBundle.luaAddonDestination);
 		}
@@ -211,15 +230,7 @@ enum LineStore {
 			}
 			if (FileSystem.isDirectory(filePth))
 				return;
-			var hshFunc = NodeCrypto.createHash("md5");
-			var fileContent = node.Fs.readFileSync(filePth, {encoding: 'utf8'});
-			hshFunc.update(fileContent.toString());
-			// trace(filePth);
-			// trace("-----------------");
-			// trace(fileContent.toString());
-			// trace("-----------------");
-			fileTracker.storeFile(filePth, hshFunc.digest('hex'));
-			// return true;
+			fileLookup.processFile(PROJECT(filePth));
 		}
 		recurseCopy(initBundle.luaAddon, initBundle.luaAddonDestination, copFile, onCpy);
 	}
@@ -366,7 +377,6 @@ enum LineStore {
 	}
 
 	@:async function pokeServerTimeout() {
-		fileTracker.addLuaContext(initBundle.serverFolder, 0);
 		var server = @:await clients.attemptServer(initBundle.serverFolder, SERVER_TIMEOUT);
 		clients.sendServer(new ComposedGmDebugMessage(clientID, {id: 0}));
 		switch (dapMode) {
@@ -398,7 +408,7 @@ enum LineStore {
 	function postClientSetup(clID:Int) {
 		switch (initBundle.clientLocation) {
 			case Some(cl):
-				fileTracker.addLuaContext(initBundle.serverFolder, clID);
+			// fileTracker.addLuaContext(initBundle.serverFolder, clID);
 			default:
 				trace("postClientSetup/ initBundle.clientLocation is null!");
 		}
@@ -458,8 +468,11 @@ enum LineStore {
 				final resp = (cast debugeeMessage : Response<Dynamic>);
 				final cmd = resp.command;
 				tracev('$time DEBUGEE: recieved response, $cmd');
-				responseIntercepter.intercept(resp, threadId);
-				sendResponse(resp);
+				switch (responseIntercepter.intercept(resp, threadId)) {
+					case NoSend:
+					case Send:
+						sendResponse(resp);
+				}
 			case "gmdebug":
 				final cmd = (cast debugeeMessage : GmDebugMessage<Dynamic>).msg;
 				tracev('$time DEBUGEE: recieved gmdebug, $cmd');

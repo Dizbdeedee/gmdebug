@@ -133,8 +133,7 @@ class ClientStorageWithHandshake implements ClientStorage {
 			if (anyMatch) {
 				var clientID = reg.matched(1); // TODO this will error
 				// assume that we will definitely connect... for now
-				trace('${HxPath.join
-								  ([handshakeLocations.folder,potentialClient]))}');
+				trace('${HxPath.join([handshakeLocations.folder, potentialClient])}');
 				if (Fs.existsSync(HxPath.join([handshakeLocations.folder, potentialClient]))) {
 					clientsMatched.push(clientID);
 				} else {

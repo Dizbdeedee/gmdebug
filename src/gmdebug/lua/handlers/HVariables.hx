@@ -30,7 +30,6 @@ class HVariables implements IHandler<VariablesRequest> {
 	}
 
 	function realChild(storedvar:Dynamic, addVars:Array<AddVar>) {
-		trace("Realy child!");
 		switch Gmod.TypeID(storedvar) {
 			case TYPE_TABLE:
 				for (ind => val in (storedvar : AnyTable)) {

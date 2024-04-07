@@ -11,6 +11,7 @@ import js.node.ChildProcess;
 import gmdebug.dap.OutputFilterer;
 import node.Fs;
 import node.NodeCrypto;
+import gmdebug.dap.FileLookup;
 
 using StringTools;
 
@@ -23,38 +24,79 @@ class EventIntercepterDef implements EventIntercepter {
 
 	final outputFilterer:OutputFilterer;
 
-	final fileTracker:FileTracker;
+	final fileLookup:FileLookup;
 
-	public function new(_luaDebug:LuaDebugger, _outputFilterer:OutputFilterer, _fileTracker:FileTracker) {
+	public function new(_luaDebug:LuaDebugger, _outputFilterer:OutputFilterer, _fileLookup:FileLookup) {
 		luaDebug = _luaDebug;
 		outputFilterer = _outputFilterer;
-		fileTracker = _fileTracker;
+		fileLookup = _fileLookup;
 	}
 
 	public function event(ceptedEvent:Event<Dynamic>, threadId:Int):EventResult {
 		return switch ((ceptedEvent.event : EventString<Dynamic>)) {
 			case loadedSource:
-				final loadedEvent:LoadedSourceEvent = cast ceptedEvent;
-				var sourceFound = loadedEvent.body.source.path;
-				var context = threadId;
-				trace("LOADED SOURCE");
-				trace(fileTracker.findAbsLuaFile(sourceFound, context));
-				Send;
+				final loadedSourceEvent:LoadedSourceEvent = cast ceptedEvent;
+				var source = loadedSourceEvent.body.source;
+				return if (source == null) {
+					trace("no source for loadedsource");
+					NoSend;
+				} else {
+					final gmodPath:GmodPath = cast source.path;
+					var gmodLocation:GmodLocationsNoLoc = switch (threadId) {
+						case 0:
+							SERVER;
+						case x:
+							CLIENT;
+					}
+					trace('*ncp looking up for $gmodLocation');
+					var result = fileLookup.processGmodPath(gmodPath, gmodLocation);
+					switch (result) {
+						case EXISTS(CLIENT(abs), _) | EXISTS(SERVER(abs), _):
+							source.path = abs;
+							Send;
+						case NONE if (gmodLocation == CLIENT):
+							switch (fileLookup.processGmodPath(gmodPath, SERVER)) {
+								case EXISTS(SERVER(abs2), _):
+									trace('*ncp used backup server location for client');
+									source.path = abs2;
+									Send;
+								default:
+									trace('*ncp $gmodPath could not find backup on server ethier');
+									NoSend;
+							}
+						case x:
+							trace('*ncp $x Unable to load source for thread...');
+							NoSend;
+					}
+				}
 			case output:
 				final outputEvent:OutputEvent = cast ceptedEvent;
 				var source = outputEvent.body.source;
-				if (source != null) {
-					var pth = source.path;
-					if (pth != null) {
-						final newPth = switch (fileTracker.findAbsLuaFile(pth, threadId)) {
-							case Some(abspth):
-								lookupFromAbs(abspth);
+				if (source == null) {
+					trace("No source for output");
+				} else {
+					var gmodPath:GmodPath = cast source.path;
+					var allPaths = fileLookup.lookupAllLocations(gmodPath);
+					var backup = "";
+					var set = false;
+					trace('*ncp output event! ' + allPaths);
+					for (loc in allPaths) {
+						switch (loc) {
+							case PROJECT(str):
+								trace("*ncp Found project path: " + str);
+								source.path = str;
+								set = true;
+								break;
+							case SERVER(str):
+								backup = str;
+							case CLIENT(str):
+								backup = str;
 							default:
-								trace("eventIntercepter/event/output Could not lookup path!");
-								trace(pth);
-								pth;
 						}
-						source.path = newPth;
+					}
+					if (!set && backup != "") {
+						trace("*ncp Found server path: " + backup);
+						source.path = backup;
 					}
 				}
 				Send;
@@ -72,42 +114,6 @@ class EventIntercepterDef implements EventIntercepter {
 				Send;
 			default:
 				Send;
-		}
-	}
-
-	function lookupFromAbs(abs:String) {
-		final result = switch (fileTracker.lookupFile(abs)) {
-			case SUPERIOR_FILE(superiorFile):
-				trace("lookupFromAbs/ using superiror file");
-				superiorFile;
-			case CANT_FIND:
-				trace("lookupFromAbs/ can't find calculated md5 succ");
-				abs;
-			case NOT_STORED:
-				trace("lookupFromAbs/ none");
-				final hshFunc = NodeCrypto.createHash("md5");
-				final contents = Fs.readFileSync(abs, {encoding: 'utf8'});
-				// trace(abs);
-				// trace("-----------------");
-				// trace(contents.toString());
-				// trace("-----------------");
-				hshFunc.update(contents.toString());
-				fileTracker.storeLookupFile(abs, hshFunc.digest('hex'));
-				null;
-		}
-		if (result != null)
-			return result;
-		return switch (fileTracker.lookupFile(abs)) {
-			case SUPERIOR_FILE(superiorFile):
-				trace("lookupFromAbs/ looked up calculated md5 lookup 2");
-				superiorFile;
-			case CANT_FIND:
-				trace("lookupFromAbs/ can't find calculated md5 lookup 2");
-				abs;
-			case NOT_STORED:
-				trace("lookupFromAbs/ something went bery wrong");
-				throw "lookupFromAbs/ something went bery wrong";
-				return null;
 		}
 	}
 }
