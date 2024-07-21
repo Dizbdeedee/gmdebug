@@ -9,21 +9,30 @@ using Lambda;
 
 interface FileLookup {
 	function processFile(gmodLocation:GmodLocations):Array<GmodLocations>;
-	function storeContext(gmodLocation:GmodLocationsNoLoc, context:String):Void;
+	function storeContext(gmodLocation:GmodLocationsNoLoc, context:GMDNormalAbsPath):Void;
 	function lookupAllLocations(gmodPath:GmodPath):Array<GmodLocations>;
 	function processGmodPath(gmodPath:GmodPath, gmodLocation:GmodLocationsNoLoc):ProcessGmodPathResult;
+	function getContextForAbsPath(abs:GMDNormalAbsPath):ContextForAbsPathOption;
 }
 
 typedef FileLookupHasher = (str:String) -> String;
 
+private enum ContextForAbsPathOption {
+	None;
+	Some(gmLoc:GmodLocationsNoLoc, pth:GMDNormalAbsPath);
+}
+
+@:forward
+private abstract FileHash(String) from String to String {}
+
 class FileLookupDef implements FileLookup {
-	var hashCache:Map<String, String> = [];
+	var hashCache:Map<GMDNormalAbsPath, FileHash> = [];
 
-	var locationsFromHash:Map<String, Array<GmodLocations>> = [];
+	var locationsFromHash:Map<FileHash, Array<GmodLocations>> = [];
 
-	var possibleLocations:Map<GmodLocationsNoLoc, String> = [];
+	var possibleLocations:Map<GmodLocationsNoLoc, GMDNormalAbsPath> = [];
 
-	var gmodCache:Map<String, String> = [];
+	var gmodCache:Map<String, FileHash> = [];
 
 	final hasher:FileLookupHasher;
 
@@ -31,8 +40,21 @@ class FileLookupDef implements FileLookup {
 		hasher = _hasher;
 	}
 
-	public function storeContext(gmodLocation:GmodLocationsNoLoc, context:String) {
+	public function storeContext(gmodLocation:GmodLocationsNoLoc, context:GMDNormalAbsPath) {
 		possibleLocations.set(gmodLocation, context);
+	}
+
+	public function getContextForAbsPath(abs:GMDNormalAbsPath):ContextForAbsPathOption {
+		var choose:ContextForAbsPathOption = None;
+		for (gmLoc => context in possibleLocations) {
+			var lastind = abs.lastIndexOf(context);
+			trace('$lastind $context | $abs');
+			if (lastind > -1) {
+				choose = Some(gmLoc, context);
+				break;
+			}
+		}
+		return choose;
 	}
 
 	public function lookupAllLocations(gmodPath:GmodPath):Array<GmodLocations> {
@@ -136,9 +158,9 @@ enum GmodLocationsNoLoc {
 }
 
 enum GmodLocations {
-	PROJECT(str:String);
-	SERVER(str:String);
-	CLIENT(str:String);
+	PROJECT(str:GMDNormalAbsPath);
+	SERVER(str:GMDNormalAbsPath);
+	CLIENT(str:GMDNormalAbsPath);
 }
 
 enum ProcessGmodPathResult {

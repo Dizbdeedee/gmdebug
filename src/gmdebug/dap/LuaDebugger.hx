@@ -150,10 +150,10 @@ enum LineStore {
 		pokeServerTimeout().handle((result) -> {
 			switch (result) {
 				case Success(server):
-					fileLookup.storeContext(SERVER, initBundle.serverFolder);
+					fileLookup.storeContext(SERVER, GMDNormalAbsPath.toNormalSure(initBundle.serverFolder));
 					switch (initBundle.clientLocation) {
 						case Some(cl):
-							fileLookup.storeContext(CLIENT, cl);
+							fileLookup.storeContext(CLIENT, GMDNormalAbsPath.toNormalSure(cl));
 						default:
 					}
 					startPokeClients();
@@ -214,7 +214,12 @@ enum LineStore {
 	}
 
 	function copyProjectFiles() {
-		fileLookup.storeContext(PROJECT, initBundle.luaAddon);
+		switch (GMDNormalAbsPath.toNormal(initBundle.luaAddon)) {
+			case Some(luaAddon):
+				fileLookup.storeContext(PROJECT, luaAddon);
+			default:
+				trace('copyProjectFiles/ unexpected luaAddon not provided as abs');
+		}
 		if (!Fs.existsSync(initBundle.luaAddonDestination)) {
 			Fs.mkdirSync(initBundle.luaAddonDestination);
 		}
@@ -230,7 +235,12 @@ enum LineStore {
 			}
 			if (FileSystem.isDirectory(filePth))
 				return;
-			fileLookup.processFile(PROJECT(filePth));
+			switch (GMDNormalAbsPath.toNormal(filePth)) {
+				case Some(gmd):
+					fileLookup.processFile(PROJECT(gmd));
+				default:
+					trace('copyProjectFiles/ unexpected could not convert to normalabspath');
+			}
 		}
 		recurseCopy(initBundle.luaAddon, initBundle.luaAddonDestination, copFile, onCpy);
 	}

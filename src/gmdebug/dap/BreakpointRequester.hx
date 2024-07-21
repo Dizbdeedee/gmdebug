@@ -5,6 +5,7 @@ import haxe.Timer;
 import gmdebug.PromiseUtil.PromiseArray;
 import gmdebug.dap.GmodPath;
 import gmdebug.dap.clients.ClientStorage;
+import haxe.io.Path as HxPath;
 
 using tink.CoreApi;
 
@@ -34,9 +35,35 @@ class BreakpointRequesterDef implements BreakpointRequester {
 	}
 
 	public function processBreakpoint(breakpoint:SetBreakpointsRequest) {
+		//TODO validate
 		var idReq = breakpoint.seq;
-		var path = breakpoint.arguments.source.path;
+		final source = breakpoint.arguments.source;
+		if (source == null) {
+			trace("Unexpected BreakpointRequester/processBreakpoint: source is null");
+			return;
+		}
+		var path = source.path;
+		if (path == null) {
+			trace("Unexpected BreakpointRequester/processBreakpoint: path is null");
+			return;
+		}
+		if (!HxPath.isAbsolute(path)) {
+			//ok.. let's try from project folder
+			GMDNormalAbsPath.toNormalFromRel(path, );
+		}
+		var cresult = fileLookup.getContextForAbsPath(null);
+		var gmdPath = GMDNormalAbsPath.toNormal("asdfdsaaf");
+		// switch (cresult) {
+		// 	case Some(_, GmodPath.pathToGmodPath(_, path) => Some(gmodpath)):
+		// 		source.path = gmodpath;
+		// 		trace('*ncp Attempt to find gmodPath for breakpoint success ${source.path}');
+		// 	default:
+		// 		trace("*ncp could not lookup gmodPath for breakpoint request");
+		// 		// send dummy breakpoint, or panic. Or something.
+		// }
 		var promiseArr = new PromiseArray<SetBreakpointsResponse>();
+		var lookupAbs = fileLookup.getContextForAbsPath(null);
+		trace('*ncp $lookupAbs');
 		for (client in clientStorage.getClients()) {
 			var clientID = client.clID;
 			var combinedID = '$idReq|$clientID';
@@ -44,8 +71,8 @@ class BreakpointRequesterDef implements BreakpointRequester {
 			breakpointLookup.set(combinedID, breakpoint);
 			promiseArr.add(pt.asPromise());
 			clientStorage.sendAny(client.clID, breakpoint);
+			break; //*ncp temp
 		}
-
 		var allResults = promiseArr.inParallel(null)
 			.handle((results) -> {
 				switch (results) {
@@ -60,6 +87,12 @@ class BreakpointRequesterDef implements BreakpointRequester {
 			});
 	}
 
+	function cloneBreakpoint(breakpoint:SetBreakpointsRequest):SetBreakpointsRequest {
+		return cast {
+
+		}
+	}
+
 	function setupPromiseBreakpointResponse(combID:String,
 			timeout:Int = 500):PromiseTrigger<SetBreakpointsResponse> {
 		var promiseTrigger = new PromiseTrigger();
@@ -71,6 +104,7 @@ class BreakpointRequesterDef implements BreakpointRequester {
 	}
 
 	public function processBreakpointResponse(resp:SetBreakpointsResponse, clientID:Int) {
+		trace('*ncp PROCESS BREAKPOINT RESPONSE RUNNING FOR $clientID');
 		var idReq = resp.request_seq;
 		var combinedID = '$idReq|$clientID';
 		var pt = promiseTriggers.get(combinedID);

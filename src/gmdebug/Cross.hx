@@ -37,7 +37,6 @@ final PATH_SEARCH = "*";
 final JIT = HxPath.join([PATH_FOLDER, "jitchoice.txt"]);
 final OUTPUT_INTERCEPTED = "[lua_debug] ";
 final OUTPUT_INTERCEPTED_END = "[]   ";
-
 typedef DataLocations = {
 	folder:String,
 	pipelocationsfolder:String,
