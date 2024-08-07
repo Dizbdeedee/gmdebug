@@ -1,4 +1,4 @@
-package gmdebug;
+package gmdebug.protocol.ext;
 
 enum abstract GmDebugError(Int) to Int {
 	var INVALID;

@@ -2,11 +2,12 @@ package gmdebug.dap;
 
 import gmdebug.dap.clients.BaseConnected;
 import haxe.Timer;
-import gmdebug.PromiseUtil.PromiseArray;
+import gmdebug.util.macro.PromiseUtil.PromiseArray;
 import gmdebug.dap.GmodPath;
 import gmdebug.dap.clients.ClientStorage;
 import haxe.io.Path as HxPath;
 
+using gmdebug.protocol.composer.ComposeTools;
 using tink.CoreApi;
 
 interface BreakpointRequester {
@@ -80,7 +81,7 @@ class BreakpointRequesterDef implements BreakpointRequester {
 						//*ncp try the simplest case first
 						var bp = data[0];
 						trace("*ncp SENT RESPONSE");
-						luaDebugger.sendResponse(bp);
+						bp.sendResp(luaDebugger);
 					case Failure(failure):
 						trace("*ncp FAILED TO SEND RESPONSE");
 				}

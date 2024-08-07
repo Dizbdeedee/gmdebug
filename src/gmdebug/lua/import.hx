@@ -1,5 +1,5 @@
 #if lua
-using gmdebug.composer.ComposeTools;
+using gmdebug.protocol.composer.ComposeTools;
 using gmod.helpers.PairTools;
 
 import gmod.Gmod;

@@ -2,7 +2,8 @@ package gmdebug.lua.handlers;
 
 import gmdebug.lua.debugcontext.DebugContext;
 import gmod.libs.DebugLib;
-import gmdebug.composer.ComposedEvent;
+import gmdebug.protocol.ext.FrameID;
+import gmdebug.protocol.composer.ComposedEvent;
 import gmdebug.lua.managers.VariableManager;
 
 using StringTools;
@@ -150,7 +151,7 @@ class HStackTrace implements IHandler<StackTraceRequest> {
 				hint = Normal;
 			}
 			var target:StackFrame = {
-				id: gmdebug.FrameID.encode(debugee.clientID.sure(), i - offsetHeight),
+				id: FrameID.encode(debugee.clientID.sure(), i - offsetHeight),
 				name: name,
 				source: switch path {
 					case null:

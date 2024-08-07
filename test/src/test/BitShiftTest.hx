@@ -2,7 +2,7 @@ package test;
 
 import gmdebug.FrameID;
 import utest.Assert;
-import gmdebug.VariableReference;
+import gmdebug.protocol.ext.VariableReference;
 
 class BitShiftTest extends utest.Test {
 

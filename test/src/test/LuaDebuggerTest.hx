@@ -3,14 +3,11 @@ package test;
 import tink.core.Callback.CallbackLinkRef;
 import tink.CoreApi.CallbackLink;
 import tink.CoreApi.Future;
-import gmdebug.composer.ComposedRequest;
+import gmdebug.protocol.composer.ComposedRequest;
 import sys.FileSystem;
-import gmdebug.composer.RequestString;
-import gmdebug.composer.EventString;
+import gmdebug.protocol.composer.RequestString;
+import gmdebug.protocol.composer.EventString;
 import utest.Async;
-import vscode.debugProtocol.DebugProtocol.Event;
-import vscode.debugProtocol.DebugProtocol.Response;
-import vscode.debugProtocol.DebugProtocol.ProtocolMessage;
 import gmdebug.dap.LuaDebugger;
 using Lambda;
 

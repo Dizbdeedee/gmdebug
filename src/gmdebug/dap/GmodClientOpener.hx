@@ -2,7 +2,7 @@ package gmdebug.dap;
 
 import js.node.Fs;
 import haxe.io.Path as HxPath;
-import gmdebug.PromiseUtil;
+import gmdebug.util.macro.PromiseUtil;
 import js.node.stream.Readable;
 import js.node.Buffer;
 import haxe.Timer;
@@ -11,7 +11,7 @@ import js.node.ChildProcess;
 
 using tink.CoreApi;
 using StringTools;
-using gmdebug.dap.PromiseUtil;
+using gmdebug.dap.ExecUtil;
 
 interface GmodClientOpener {
 	public function open(server:GmodServerConnect, clientLoc:String, mrOptionsArr:Array<String>,
@@ -107,7 +107,7 @@ class GmodClientOpenerMultirun implements GmodClientOpener {
 				return switch (outcome) {
 					case Failure({message: m})
 						if (m.contains("You do not have sufficient privilege to perform this operation")):
-						PromiseUtil.sudoExec(cmd);
+						ExecUtil.sudoExec(cmd);
 					default:
 						(outcome : Promise<Dynamic>);
 				}

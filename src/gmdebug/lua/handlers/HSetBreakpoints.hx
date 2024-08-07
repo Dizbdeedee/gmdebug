@@ -1,7 +1,8 @@
 package gmdebug.lua.handlers;
 
 import gmdebug.lua.managers.BreakpointManager;
-import gmdebug.lib.lua.Protocol;
+import gmdebug.lua.managers.BreakpointManager.Breakpoint as GmDebugBP;
+import gmdebug.protocol.DebugProtocol.Breakpoint;
 
 typedef InitHSetBreakpoints = {
 	bm:BreakpointManager,

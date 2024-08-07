@@ -1,7 +1,8 @@
 package gmdebug.dap;
 
 import haxe.ds.Option;
-import gmdebug.composer.ComposedEvent;
+import gmdebug.protocol.composer.ComposedEvent;
+import gmdebug.protocol.ext.paths.Paths.OUTPUT_INTERCEPTED;
 
 using StringTools;
 
@@ -62,7 +63,6 @@ class OutputFiltererDef implements OutputFilterer {
 					source: {
 						name: 'client_console_$id',
 						path: 'client_console_$id.lua',
-						// line: 1
 					},
 					line: 1,
 					data: null
@@ -74,7 +74,6 @@ class OutputFiltererDef implements OutputFilterer {
 					source: {
 						name: "server_console",
 						path: "server_console.lua",
-						// line: 1
 					},
 					line: 1,
 					data: null
@@ -89,9 +88,9 @@ class OutputFiltererDef implements OutputFilterer {
 	}
 
 	function handleOutputIntercept(source:FilterSource, msg:String):Option<String> {
-		if (!msg.contains(Cross.OUTPUT_INTERCEPTED))
+		if (!msg.contains(OUTPUT_INTERCEPTED))
 			return Some(msg);
-		var newmsg = msg.replace(Cross.OUTPUT_INTERCEPTED, "");
+		var newmsg = msg.replace(OUTPUT_INTERCEPTED, "");
 		// we want to print the intercepted messages if we aren't displaying the cleaned output version
 		switch [source, flags] {
 			case [CLIENT_CONSOLE(_), [_, NOT_ACTIVE(CLIENT_LUA(_)), _, _]]:

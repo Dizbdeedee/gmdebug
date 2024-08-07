@@ -4,14 +4,12 @@ import gmdebug.lua.debugcontext.DebugContext;
 import haxe.Exception;
 import gmdebug.lua.managers.FunctionBreakpointManager;
 import gmdebug.lua.handlers.HDisconnect;
-import gmdebug.composer.RequestString;
 import gmdebug.lua.managers.VariableManager;
 import gmdebug.lua.handlers.*;
 import gmdebug.lua.handlers.IHandler.HandlerResponse;
 import gmdebug.lua.managers.BreakpointManager;
-import gmdebug.lib.lua.Protocol;
 
-using gmdebug.composer.ComposeTools;
+using gmdebug.protocol.composer.ComposeTools;
 
 import String;
 

@@ -1,4 +1,4 @@
-package gmdebug;
+package gmdebug.protocol.ext;
 
 enum VariableReferenceVal {
 	Child(clientID:Int, ref:Int);

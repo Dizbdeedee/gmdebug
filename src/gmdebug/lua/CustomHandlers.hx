@@ -1,9 +1,10 @@
 package gmdebug.lua;
 
 import gmdebug.lua.util.Util.isLan;
-import gmdebug.composer.*;
 import gmod.libs.GameLib;
-import gmdebug.GmDebugMessage;
+import gmdebug.protocol.ext.messages.GmDebugMessage;
+import gmdebug.protocol.ext.messages.GmDebugInitialInfo;
+import gmdebug.protocol.ext.messages.GMClientID;
 import gmod.Gmod;
 
 class CustomHandlers {
@@ -27,7 +28,7 @@ class CustomHandlers {
 		return CLIENT_ID(x.body.id);
 	}
 
-	function h_initalInfo(x:GmDebugMessage<GmDebugIntialInfo>) {
+	function h_initalInfo(x:GmDebugMessage<GmDebugInitialInfo>) {
 		return if (x.body.dapMode == Launch) { // previously send IP
 			INITIAL_INFO(x.body.location, Launch);
 		} else {

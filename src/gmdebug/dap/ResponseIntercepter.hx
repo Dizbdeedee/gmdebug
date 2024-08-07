@@ -1,6 +1,5 @@
 package gmdebug.dap;
 
-import gmdebug.composer.RequestString;
 import haxe.ds.ArraySort;
 import node.Fs;
 import node.NodeCrypto;

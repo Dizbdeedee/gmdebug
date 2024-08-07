@@ -1,8 +1,4 @@
-#if lua
-import gmdebug.lib.lua.Protocol;
-#elseif js
-import vscode.debugProtocol.DebugProtocol;
-#end
+import gmdebug.protocol.DebugProtocol;
 
 #if !cpp
 using Safety;

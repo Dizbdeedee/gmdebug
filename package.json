@@ -83,13 +83,31 @@
                                     }
                                 ]
                             },
+                            "map": {
+                                "type": "string",
+                                "description": "The map to start the server on",
+                                "default": "gm_flatgrass"
+                            },
+                            "gamemode": {
+                                "type": "string",
+                                "description": "The gamemode to start the server on",
+                                "default": "sandbox"
+                            },
+                            "restartWithMapChange": {
+                                "type": "bool",
+                                "description": "When requesting a restart just change the map instead of restarting the debug session. Defaults on.",
+                                "default": true
+                            },
+                            "lan": {
+                                "type": "bool",
+                                "description": "Whether to start the server in lan mode. You really really should not change this.",
+                                "default": true
+                            },
                             "programArgs": {
                                 "type": "array",
-                                "description": "Arguments to launch server. Fill out if using the option 'auto' for programPath",
+                                "description": "Arguments to launch server with. ",
                                 "default": [
-                                    "+map",
-                                    "gm_flatgrass",
-                                    "+sv_lan",
+                                    "+sv_sdfdsfsdf",
                                     "1"
                                 ]
                             },
@@ -145,8 +163,6 @@
                         "serverFolder": "/path_to_server_from_root/garrysmod",
                         "programPath": "auto",
                         "programArgs": [
-                            "+map",
-                            "gm_flatgrass",
                             "+sv_lan",
                             "1"
                         ],

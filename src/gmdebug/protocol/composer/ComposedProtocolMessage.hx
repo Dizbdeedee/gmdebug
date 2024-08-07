@@ -1,10 +1,5 @@
-package gmdebug.composer;
+package gmdebug.protocol.composer;
 
-#if lua
-import gmdebug.lib.lua.Protocol;
-#elseif js
-import vscode.debugProtocol.DebugProtocol;
-#end
 #if lua
 import gmdebug.lua.Debugee;
 #end

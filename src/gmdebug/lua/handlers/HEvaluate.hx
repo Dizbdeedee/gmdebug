@@ -1,19 +1,15 @@
 package gmdebug.lua.handlers;
 
 import gmdebug.lua.debugcontext.DebugContext;
-#if lua
-import gmdebug.lib.lua.Protocol;
-#elseif js
-import vscode.debugProtocol.DebugProtocol;
-#end
 import gmdebug.lua.managers.VariableManager;
 import lua.Lua;
 import lua.Table;
 import gmod.libs.DebugLib;
 import lua.Table.AnyTable;
 import gmod.Gmod;
-import gmdebug.composer.ComposedProtocolMessage;
+import gmdebug.protocol.composer.ComposedProtocolMessage;
 import lua.NativeStringTools;
+import gmdebug.protocol.ext.FrameID;
 import gmdebug.lua.handlers.IHandler;
 
 typedef InitHEvaluate = {

@@ -1,17 +1,16 @@
 package gmdebug.dap;
 
-import gmdebug.Cross.PATH_FOLDER;
-import gmdebug.Cross.PATH_DATA;
-import gmdebug.Cross.PATH_ADDONS;
+import gmdebug.protocol.ext.paths.Paths.PATH_FOLDER;
+import gmdebug.protocol.ext.paths.Paths.PATH_DATA;
+import gmdebug.protocol.ext.paths.Paths.PATH_ADDONS;
 import js.node.Fs;
+import gmdebug.dap.LuaDebugger.Programs;
+import gmdebug.protocol.ext.messages.GmDebugLaunchRequest;
+import haxe.io.Path as HxPath;
+import gmdebug.protocol.ext.GmDebugError;
 
 using tink.CoreApi;
-
-import gmdebug.dap.LuaDebugger.Programs;
-import gmdebug.GmDebugMessage.GmDebugLaunchRequestArguments;
-import haxe.io.Path as HxPath;
-
-using gmdebug.composer.ComposeTools;
+using gmdebug.protocol.composer.ComposeTools;
 
 class InitBundleException extends haxe.Exception {}
 
@@ -44,7 +43,13 @@ class InitBundle {
 
 	public final noDebug:Bool;
 
+	public final restartWithMapChange:Bool;
+
 	public final clients:Option<Int>;
+
+	public final gamemode:String;
+
+	public final map:String;
 
 	function new(req:Request<Dynamic>, args:GmDebugLaunchRequestArguments, luadebug:LuaDebugger) {
 		requestArguments = args;
@@ -110,6 +115,8 @@ class InitBundle {
 				throw new InitBundleException("Could not validate client folder");
 			case validateClientFolder(_) => None:
 				Some(args.clientFolder);
+			default:
+				None;
 		}
 
 		var programArgs = args.programArgs.or([]);
@@ -122,6 +129,12 @@ class InitBundle {
 		luaAddonDestination = HxPath.join([serverFolder, "addons", addonName]);
 
 		serverAddonFolder = HxPath.join([serverFolder, "addons"]);
+
+		restartWithMapChange = args.restartWithMapChange.or(true);
+
+		map = args.map.or("gm_flatgrass");
+
+		gamemode = args.gamemode.or("sandbox");
 
 		serverPort = args.serverPort.or("27115");
 
@@ -215,6 +228,7 @@ class InitErrorUsing {
 			case Error(id, variables):
 				req.composeFail(id, variables);
 			case None:
+			default:
 		}
 	}
 }

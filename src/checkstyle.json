@@ -123,12 +123,13 @@
 				"none": [
 					"beforePackage",
 					"betweenImports",
-					"beforeUsing",
 					"typeDefinition",
 					"afterLeftCurly",
 					"beforeRightCurly"
 				],
-				"exact": [],
+				"exact": [
+					"beforeUsing"
+				],
 				"upto": [],
 				"atleast": []
 			}
@@ -307,7 +308,7 @@
 		{
 			"type": "ParameterNumber",
 			"props": {
-				"max": 10,
+				"max": 5,
 				"ignoreOverriddenMethods": false
 			}
 		},

@@ -1,24 +1,26 @@
 package gmdebug.dap;
 
 import haxe.io.Path;
-import gmdebug.Util.recurseCopy;
+import gmdebug.util.FileUtil.recurseCopy;
 import sys.io.File;
 import sys.io.Process;
 import sys.FileSystem;
-import gmdebug.composer.RequestString;
 import js.Node;
 import js.node.Buffer;
 import js.node.child_process.ChildProcess;
 import js.node.fs.Stats;
 import js.node.Fs;
-import gmdebug.composer.*;
-import vscode.debugProtocol.DebugProtocol;
-import gmdebug.VariableReference;
-import gmdebug.GmDebugMessage;
+import gmdebug.protocol.composer.*;
+import gmdebug.protocol.ext.VariableReference;
+import gmdebug.protocol.ext.FrameID;
+import gmdebug.protocol.ext.messages.GmDebugMessage;
+import gmdebug.protocol.ext.messages.GmDebugLaunchRequest;
+import gmdebug.protocol.ext.messages.GmDebugAttachRequest;
+
 import gmdebug.dap.clients.ClientStorage;
 import haxe.io.Path as HxPath;
 
-using gmdebug.composer.ComposeTools;
+using gmdebug.protocol.composer.ComposeTools;
 using Lambda;
 using Safety;
 using StringTools;
@@ -73,6 +75,8 @@ class RequestRouter {
 				h_initialize(req);
 			case configurationDone:
 				clients.sendServer(req);
+			case restart:
+				h_restart(req);
 			case threads:
 				h_threads(req);
 			case loadedSources | modules | goto | gotoTargets | breakpointLocations | _continue: // _continue: ARRRRGGGHHHH
@@ -118,6 +122,15 @@ class RequestRouter {
 				trace("Where the hell are we going to send you?");
 				req.compose(variables, {variables: []})
 					.send(luaDebug);
+		}
+	}
+
+	function h_restart(req:RestartRequest) {
+		switch (luaDebug.dapMode) {
+			case LAUNCH(child):
+				child.stdin.write("changelevel" + "" + "\n");
+				return;
+			default:
 		}
 	}
 
@@ -182,8 +195,9 @@ class RequestRouter {
 		response.body.supportsFunctionBreakpoints = true;
 		response.body.supportsDelayedStackTraceLoading = false;
 		response.body.supportsBreakpointLocationsRequest = false;
+		response.body.supportsRestartRequest = true;
 		untyped response.body.supportsSingleThreadExecutionRequests = true;
-		luaDebug.sendResponse(response);
+		response.sendResp(luaDebug);
 	}
 
 	function h_launch(req:GmDebugLaunchRequest) {

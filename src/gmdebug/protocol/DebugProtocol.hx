@@ -1,11 +1,81 @@
-// Clone of dap, but with no js dragged in via imports
-package gmdebug.lib.lua;
+/*
+The MIT License (MIT)
 
-import gmdebug.composer.EventString;
-import gmdebug.Cross.ExceptionBreakpointFilters;
-import gmdebug.composer.RequestString;
+Copyright (c) 2017 vshaxe contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+// Clone of dap, but with no js dragged in via imports
+package gmdebug.protocol;
+
 import haxe.extern.EitherType;
 import haxe.DynamicAccess;
+
+enum abstract EventString<T:Event<Dynamic>>(String) from String to String {
+	var stopped:EventString<StoppedEvent>;
+	var output:EventString<OutputEvent>;
+	var initialized:EventString<InitializedEvent>;
+	var thread:EventString<ThreadEvent>;
+	var terminated:EventString<TerminatedEvent>;
+	var breakpoint:EventString<BreakpointEvent>;
+	var continued:EventString<ContinuedEvent>;
+	var exited:EventString<ExitedEvent>;
+	var process:EventString<ProcessEvent>;
+	var loadedSource:EventString<LoadedSourceEvent>;
+}
+
+typedef AnyRequest = RequestString<Dynamic, Dynamic>;
+
+enum abstract RequestString<X:Request<Dynamic>, Y:Response<Dynamic>>(String) from String to String {
+	var launch:RequestString<LaunchRequest, LaunchResponse>;
+	var initialize:RequestString<InitializeRequest, InitializeResponse>;
+	var modules:RequestString<ModulesRequest, ModulesResponse>;
+	var loadedSources:RequestString<LoadedSourcesRequest, LoadedSourcesResponse>;
+	var stepIn:RequestString<StepInRequest, StepInResponse>;
+	var stepOut:RequestString<StepOutRequest, StepOutResponse>;
+	var next:RequestString<NextRequest, NextResponse>;
+	var pause:RequestString<PauseRequest, PauseResponse>;
+	var gotoTargets:RequestString<GotoTargetsRequest, GotoTargetsResponse>;
+	var goto:RequestString<GotoRequest, GotoResponse>;
+	var variables:RequestString<VariablesRequest, VariablesResponse>;
+	var scopes:RequestString<ScopesRequest, ScopesResponse>;
+	var _continue:RequestString<ContinueRequest,
+		ContinueResponse> = #if lua "_continue" #else "continue" #end;
+	var evaluate:RequestString<EvaluateRequest, EvaluateResponse>;
+	var stackTrace:RequestString<StackTraceRequest, StackTraceResponse>;
+	var threads:RequestString<ThreadsRequest, ThreadsResponse>;
+	var setBreakpoints:RequestString<SetBreakpointsRequest, SetBreakpointsResponse>;
+	var configurationDone:RequestString<ConfigurationDoneRequest, ConfigurationDoneResponse>;
+	var setExceptionBreakpoints:RequestString<SetExceptionBreakpointsRequest,
+		SetExceptionBreakpointsResponse>;
+	var disconnect:RequestString<DisconnectRequest, DisconnectResponse>;
+	var breakpointLocations:RequestString<BreakpointLocationsRequest, BreakpointLocationsResponse>;
+	var attach:RequestString<AttachRequest, AttachResponse>;
+	var setFunctionBreakpoints:RequestString<SetFunctionBreakpointsRequest, SetFunctionBreakpointsResponse>;
+}
+
+enum abstract ExceptionBreakpointFilters(String) to String {
+	// var all
+	var gamemode;
+	var entities;
+}
+
 
 enum abstract MessageType(String) from String to String {
 	var Request = "request";
@@ -58,8 +128,6 @@ typedef Event<T> = ProtocolMessage & {
 	**/
 	var ?body:T;
 }
-
-// custom
 
 /**
 	Response to a request.

@@ -1,10 +1,4 @@
-package gmdebug.composer;
-
-#if lua
-import gmdebug.lib.lua.Protocol;
-#elseif js
-import vscode.debugProtocol.DebugProtocol;
-#end
+package gmdebug.protocol.composer;
 
 class ComposedRequest<T, X> extends ComposedProtocolMessage {
 	/**

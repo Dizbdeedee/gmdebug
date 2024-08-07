@@ -9,6 +9,8 @@
 -cp src
 -D message.reporting=pretty
 -D error_stack
+-D debug
+-D source-map
 -D analyzer-optimize
 --dce=full
 -D haxeJSON

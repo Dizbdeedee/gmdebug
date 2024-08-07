@@ -1,0 +1,22 @@
+package gmdebug.protocol.ext.paths;
+
+final PATH_PIPE_FOLDERS = "gmdebug_pipes";
+final PATH_FOLDER = "gmdebug_";
+final PATH_SINGULAR_PIPE = "gmdebug_pipe_";
+final PATH_CLIENT_READY = "client_waiting.dat";
+final PATH_CLIENT_ACK = "client_ack.dat";
+final PATH_INPUT = "in.dat";
+final PATH_OUTPUT = "out.dat";
+final PATH_CONNECTION = "connect.dat";
+final PATH_PIPES_READY = "pipes_ready.dat";
+final PATH_CONNECTION_IN_PROGRESS = "connection_progress.dat";
+final PATH_CONNECTION_AQUIRED = "connection_aquired.dat";
+final PATH_DATA = "data";
+final PATH_ADDONS = "addons";
+final PATH_HANDSHAKE_SERVER = "serverhand_";
+final PATH_HANDSHAKE_CLIENT = "clienthand_";
+final PATH_DAT_EXT = ".dat";
+final PATH_HANDSHAKE_FOLDER = "gmdebug_sandrakes";
+final PATH_SEARCH = "*";
+final OUTPUT_INTERCEPTED = "[lua_debug] ";
+final OUTPUT_INTERCEPTED_END = "[]   ";

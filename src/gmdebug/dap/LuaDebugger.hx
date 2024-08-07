@@ -5,18 +5,20 @@ import gmdebug.dap.EventIntercepter;
 import js.node.Timers;
 import gmdebug.dap.clients.ClientStorage;
 import gmdebug.dap.io.ClientStorageWithHandshake;
-import gmdebug.Util.recurseCopy;
+import gmdebug.util.FileUtil.recurseCopy;
 import js.Node;
 import sys.FileSystem;
-import gmdebug.composer.*;
+import gmdebug.protocol.composer.*;
 import js.node.Fs;
-import vscode.debugProtocol.DebugProtocol;
 import js.node.Buffer;
 import haxe.io.Path as HxPath;
 import js.node.net.Socket;
 import vscode.debugAdapter.DebugSession;
 import js.node.child_process.ChildProcess;
-import gmdebug.GmDebugMessage;
+import gmdebug.protocol.ext.messages.GmDebugMessage;
+import gmdebug.protocol.ext.messages.GmDebugLaunchRequest;
+import gmdebug.protocol.ext.messages.GMPlayerRemovedMessage;
+
 import gmdebug.dap.ResponseIntercepter;
 import gmdebug.dap.GmodClientOpener;
 import js.node.stream.Readable;
@@ -28,9 +30,10 @@ import gmdebug.dap.FileLookup;
 import gmdebug.dap.OutputFilterer;
 import gmdebug.dap.FileTracker;
 import gmdebug.dap.BreakpointRequester;
+import gmdebug.protocol.ext.messages.GmMsgType;
 
 using tink.CoreApi;
-using gmdebug.composer.ComposeTools;
+using gmdebug.protocol.composer.ComposeTools;
 using StringTools;
 using Lambda;
 
@@ -115,11 +118,11 @@ enum LineStore {
 	}
 
 	function initFromBundle(req:Request<Dynamic>, args:GmDebugLaunchRequestArguments, initBundle:InitBundle) {
+		var launchProperties:LaunchProperties = launchProcessor.createLP(initBundle);
 		var launchProcessOpt = if (Sys.systemName() == "Linux") {
-			launchProcessor.launchLinux(initBundle.programPath, initBundle.argString, initBundle.serverPort);
+			launchProcessor.launchLinux(launchProperties);
 		} else {
-			launchProcessor.launchWindows(initBundle.programPath, initBundle.argString
-				, initBundle.serverPort);
+			launchProcessor.launchWindows(launchProperties);
 		}
 		var childProcess = switch (launchProcessOpt) {
 			case Some(launchProcess):
@@ -481,7 +484,7 @@ enum LineStore {
 				switch (responseIntercepter.intercept(resp, threadId)) {
 					case NoSend:
 					case Send:
-						sendResponse(resp);
+						resp.sendResp(this);
 				}
 			case "gmdebug":
 				final cmd = (cast debugeeMessage : GmDebugMessage<Dynamic>).msg;
@@ -497,16 +500,16 @@ enum LineStore {
 			category: Stderr,
 			output: 'Shutting down gmdebug due to $reason. Further details may be below\n'
 		});
-		sendEvent(sendPreReason);
+		sendPreReason.send(this);
 		final furtherReason:Option<String> = switch (reason) {
 			case POKESERVER_TIMEOUT(OTHER_ERROR_NOT_TIMEOUT(details)):
 				Some(details.str);
 			case MESSAGE_INTERP_FAILURE(msg, details):
-				sendEvent(new ComposedEvent(output, {
+				new ComposedEvent(output, {
 					data: null,
 					category: Stderr,
 					output: '----Message----\n $msg\n ---EndMessage---\n'
-				}));
+				}).send(this);
 				Some(details.str);
 			default:
 				None;
@@ -518,7 +521,7 @@ enum LineStore {
 					category: Stderr,
 					output: '--------\n $furthererr'
 				});
-				sendEvent(sendReason);
+				sendReason.send(this);
 			default:
 		}
 		trace('SHUTDOWN $reason');
@@ -533,8 +536,8 @@ enum LineStore {
 				child.kill();
 			default:
 		}
-		sendEvent(new ComposedEvent(terminated, {}));
-		sendEvent(new ComposedEvent(exited, {exitCode: 0}));
+		new ComposedEvent(terminated, {}).send(this);
+		new ComposedEvent(exited, {exitCode: 0}).send(this);
 		clients.disconnectAll();
 		final dir = HxPath.join([initBundle.serverFolder, "addons", "debugee"]);
 		if (Fs.existsSync(dir)) {
@@ -555,7 +558,8 @@ enum LineStore {
 		callback(null);
 	}
 
-	public override function handleMessage(message:ProtocolMessage) {
+	public override function handleMessage(_message) {
+		var message:ProtocolMessage = cast _message;
 		var time = Sys.time();
 		switch (message.type) {
 			case Request:
@@ -570,7 +574,6 @@ enum LineStore {
 					final fail = (cast message : Request<Dynamic>).composeFail(DEBUGGER_UNSPECIFIED_ERROR
 						, {err: e.toString()});
 					fail.send(this);
-
 					throw e;
 				}
 			default:

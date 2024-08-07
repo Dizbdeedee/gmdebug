@@ -1,6 +1,9 @@
 package gmdebug.lua.handlers;
 
 import gmod.libs.DebugLib;
+import gmdebug.protocol.ext.VariableReference;
+import gmdebug.protocol.ext.FrameID;
+
 
 typedef InitHScopes = {
 	debugee:Debugee

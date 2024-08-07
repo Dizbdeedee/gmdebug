@@ -1,4 +1,4 @@
-package gmdebug;
+package gmdebug.util;
 
 final WORD_ARRAY = [
 	"aardvark", "abandoned", "abbreviate", "abdomen", "abhorrence", "abiding", "abnormal", "abrasion",

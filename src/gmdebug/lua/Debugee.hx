@@ -1,5 +1,6 @@
 package gmdebug.lua;
 
+import gmdebug.protocol.ext.ProtocolUtil.recvMessage;
 import gmdebug.lua.io.DataHandshake;
 import gmdebug.lua.debugcontext.DebugContext;
 import haxe.Json;
@@ -9,8 +10,6 @@ import gmdebug.lua.managers.FunctionBreakpointManager;
 import gmdebug.lua.managers.VariableManager;
 import gmdebug.lua.io.PipeSocket;
 import gmdebug.lua.handlers.IHandler.HandlerResponse;
-import gmdebug.Cross;
-import gmdebug.GmDebugMessage;
 import gmod.libs.GameLib;
 import gmdebug.lua.HandlerContainer;
 import haxe.io.Input;
@@ -23,23 +22,27 @@ import gmod.libs.PlayerLib;
 import gmod.stringtypes.Hook.GMHook;
 import gmod.libs.HookLib;
 import gmod.libs.TimerLib;
-import gmdebug.lib.lua.Protocol.TStoppedEvent;
-import gmdebug.lib.lua.Protocol.StopReason;
-import gmdebug.composer.*;
+import gmdebug.protocol.composer.*;
 import gmod.libs.DebugLib;
 import haxe.io.Path.join;
-
-using Lambda;
-using StringTools;
-using gmdebug.composer.ComposeTools;
-using tink.CoreApi;
-using Safety;
-using gmod.helpers.WeakTools;
-
+import gmdebug.protocol.ext.messages.GmDebugInitialInfo;
+import gmdebug.protocol.ext.paths.DataLocations;
+import gmdebug.protocol.ext.ProtocolUtil.MessageResult;
 #if client
 import gmod.libs.ChatLib;
 import gmod.libs.GuiLib;
 #end
+import gmdebug.protocol.ext.paths.Paths.PATH_FOLDER;
+import gmdebug.protocol.ext.paths.Paths.PATH_CLIENT_READY;
+import gmdebug.protocol.ext.paths.PathUtil.generateDataLocationsForLua;
+import gmdebug.protocol.ext.paths.PathUtil.generatePipeLocationsWithID;
+
+using Lambda;
+using StringTools;
+using gmdebug.protocol.composer.ComposeTools;
+using tink.CoreApi;
+using Safety;
+using gmod.helpers.WeakTools;
 
 enum RecursiveGuard {
 	NONE;
@@ -65,7 +68,6 @@ class Debugee {
 
 	public var dapMode:Null<DapModeStr>;
 
-	// public var baseDepth:Null<Int>;
 	public var recursiveGuard:RecursiveGuard = NONE;
 
 	public var stackHeight(get, never):Int;
@@ -80,9 +82,9 @@ class Debugee {
 		throw "No stack height";
 	}
 
-	public var tracebackActive = false;
+	public var tracebackActive:Bool = false;
 
-	var hooksActive = false;
+	var hooksActive:Bool = false;
 
 	public var socket(default, set):Null<DebugIO>;
 
@@ -191,15 +193,18 @@ class Debugee {
 	}
 
 	function freeFolder(folder:String):Bool {
-		return if (!FileLib.Exists(folder, DATA)) {
-			true;
-		} else if (!FileLib.Exists(join([folder, PATH_CLIENT_READY]), DATA)
-			&& !FileLib.Exists(join([folder, PATH_CONNECTION_AQUIRED]), DATA)
-			&& !FileLib.Exists(join([folder, PATH_CONNECTION_IN_PROGRESS]), DATA)) {
-			true;
-		} else {
-			false;
-		}
+		return true;
+		// return if (!FileLib.Exists(folder, DATA)) {
+		// 	true;
+		// } else if (
+		// 	!FileLib.Exists(join([folder, PATH_CLIENT_READY]), DATA)
+		// 	&& !FileLib.Exists(join([folder, PATH_CONNECTION_AQUIRED]), DATA)
+		// 	&& !FileLib.Exists(join([folder, PATH_CONNECTION_IN_PROGRESS]), DATA)
+		// 	) {
+		// 	true;
+		// } else {
+		// 	false;
+		// }
 	}
 
 	function checkFreeSlots():String {
@@ -296,10 +301,10 @@ class Debugee {
 			.output.writeString("\004");
 		socket.unsafe()
 			.output.flush();
-		return Cross.recvMessage(x);
+		return recvMessage(x);
 	}
 
-	function recvMessage():RecvMessageResult {
+	function _recvMessage():RecvMessageResult {
 		return try {
 			switch (parseInput(socket.unsafe()
 				.input)) {
@@ -308,7 +313,8 @@ class Debugee {
 				case MESSAGE(msg):
 					MESSAGE(msg);
 			}
-		} catch (e:String) {
+		} 
+		catch (e:String) {
 			if (e == "Error : timeout") {
 				RecvMessageResult.TIMEOUT;
 			} else {
@@ -321,7 +327,7 @@ class Debugee {
 		if (socket == null)
 			return;
 		Gmod.xpcall(() -> {
-			final msg = switch (recvMessage()) {
+			final msg = switch (_recvMessage()) {
 				case ACK | TIMEOUT:
 					return;
 				case MESSAGE(msg):
@@ -399,7 +405,7 @@ class Debugee {
 		final timeoutTime = Gmod.SysTime() + TIMEOUT_CONFIG;
 		while (Gmod.SysTime() < timeoutTime) {
 			DebugContext.markNotReport();
-			final msg = switch (recvMessage()) {
+			final msg = switch (_recvMessage()) {
 				case ACK | TIMEOUT:
 					continue;
 				case MESSAGE(msg):
@@ -434,7 +440,7 @@ class Debugee {
 	function haltLoop() {
 		while (true) {
 			DebugContext.markNotReport();
-			final msg = switch (recvMessage()) {
+			final msg = switch (_recvMessage()) {
 				case ACK | TIMEOUT:
 					continue;
 				case MESSAGE(msg):

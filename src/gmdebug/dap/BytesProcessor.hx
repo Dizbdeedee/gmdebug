@@ -4,11 +4,8 @@ import haxe.Json;
 import js.node.Buffer;
 import haxe.io.Bytes;
 import haxe.io.BytesInput;
-#if lua
-import gmdebug.lib.lua.Protocol;
-#elseif js
-import vscode.debugProtocol.DebugProtocol;
-#end
+import gmdebug.protocol.ext.ProtocolUtil.readHeader;
+
 
 class BytesProcessor {
 	public var fillRequested(default, null):Bool = false;
@@ -90,7 +87,7 @@ class BytesProcessor {
 	function recvMessage(input:BytesInput, ?remaining:Int):RecvMessageResponse {
 		// need to conjoin and parse here, lol....
 		if (remaining == null) {
-			remaining = Cross.readHeader(input);
+			remaining = readHeader(input);
 		}
 		var bufRemaining = input.length - input.position;
 		if (remaining > bufRemaining) {

@@ -2,19 +2,17 @@ package gmdebug.dap.clients;
 
 import haxe.Timer;
 import tink.core.Callback.SimpleLink;
-import gmdebug.composer.ComposedEvent;
+import gmdebug.protocol.composer.ComposedEvent;
 import gmdebug.dap.PipeSocket;
 import tink.core.Error;
 import gmdebug.dap.PipeSocket.PipeSocketLocations;
 import haxe.io.Bytes;
-import haxe.Json;
 import js.node.Fs;
 import sys.FileSystem;
 import haxe.io.Path as HxPath;
 import haxe.io.Path.join;
 import js.node.Buffer;
-import gmdebug.Cross;
-import gmdebug.PromiseUtil;
+import gmdebug.util.macro.PromiseUtil;
 
 using Lambda;
 using tink.CoreApi;

@@ -1,7 +1,7 @@
 package gmdebug.lua.io;
 
 import gmod.helpers.WeakTools;
-import gmdebug.Cross.PipeLocations;
+import gmdebug.protocol.ext.paths.PipeLocations;
 import haxe.io.Encoding;
 import lua.lib.luasocket.socket.TcpClient;
 import haxe.io.Bytes;
@@ -12,6 +12,9 @@ import haxe.io.Input;
 import haxe.io.Output;
 import sys.net.Socket;
 import haxe.io.Path.join;
+import gmdebug.protocol.ext.paths.PipeLocations;
+import gmdebug.protocol.ext.paths.DataLocations;
+
 
 enum AquireProcess {
 	WAITING_FOR_CONNECTION;

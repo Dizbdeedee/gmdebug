@@ -1,12 +1,12 @@
 package gmdebug.lua.io;
 
-import gmdebug.Cross.PATH_SEARCH;
+import gmdebug.protocol.ext.paths.Paths.PATH_SEARCH;
+import gmdebug.protocol.ext.paths.Paths.PATH_DAT_EXT;
+import gmdebug.protocol.ext.paths.DataLocations;
 import gmod.libs.FileLib;
-import gmdebug.Cross.DataLocations;
 import gmod.libs.UtilLib;
 import gmod.libs.OsLib;
 import haxe.io.Path as HxPath;
-import gmdebug.Cross.PATH_DAT_EXT;
 
 using gmod.helpers.TableTools;
 

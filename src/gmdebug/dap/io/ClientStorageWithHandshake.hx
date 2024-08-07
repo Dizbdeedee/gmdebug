@@ -1,6 +1,5 @@
 package gmdebug.dap.io;
 
-import gmdebug.Cross;
 import sys.FileSystem;
 import gmdebug.dap.clients.Client;
 import gmdebug.dap.clients.Server;
@@ -14,8 +13,12 @@ import node.Crypto;
 import haxe.io.Path as HxPath;
 import haxe.io.Path.join;
 import js.node.Buffer;
-import gmdebug.composer.ComposedEvent;
-import gmdebug.PromiseUtil;
+import gmdebug.protocol.composer.ComposedEvent;
+import gmdebug.util.macro.PromiseUtil;
+import gmdebug.protocol.ext.paths.PathUtil;
+import gmdebug.protocol.ext.paths.Paths.PATH_DAT_EXT;
+import gmdebug.protocol.ext.paths.Paths.PATH_HANDSHAKE_CLIENT;
+import gmdebug.protocol.ext.paths.DataLocations;
 
 using tink.CoreApi;
 using Lambda;
@@ -165,10 +168,10 @@ class ClientStorageWithHandshake implements ClientStorage {
 		pipeSocket.assignRead((buf) -> readFunc(buf, clID));
 		pipeSocket.beginConnection();
 		server.disconnectFuture.handle(() -> {
-			luaDebug.sendEvent(new ComposedEvent(thread, {
+			new ComposedEvent(thread, {
 				reason: Exited,
 				threadId: server.clID
-			}));
+			}).send(luaDebug);
 			server.disconnect();
 			// clients[clID] = null;
 		});
@@ -182,10 +185,11 @@ class ClientStorageWithHandshake implements ClientStorage {
 		pipeSocket.assignRead((buf) -> readFunc(buf, clID));
 		pipeSocket.beginConnection();
 		client.disconnectFuture.handle(() -> {
-			luaDebug.sendEvent(new ComposedEvent(thread, {
+			var event = new ComposedEvent(thread, {
 				reason: Exited,
 				threadId: client.clID
-			}));
+			});
+			event.send(luaDebug);
 			client.disconnect(); // mm...
 			// clients[clID] = null;
 		});
@@ -222,7 +226,7 @@ class ClientStorageWithHandshake implements ClientStorage {
 			}
 			// TODO split out
 			{
-				var file = handshakeLocations.pre_path_client_handshake + clientRealID + Cross.PATH_DAT_EXT;
+				var file = handshakeLocations.pre_path_client_handshake + clientRealID + PATH_DAT_EXT;
 				if (Fs.existsSync(file)) {
 					try {
 						Fs.unlinkSync(file);

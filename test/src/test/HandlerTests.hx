@@ -2,14 +2,13 @@ package test;
 
 
 import safety.macro.ArgumentNullCheck.NoCheck;
-import gmdebug.VariableReference;
+import gmdebug.protocol.ext.VariableReference;
 import haxe.PosInfos;
-import vscode.debugProtocol.DebugProtocol.StopReason;
 import utest.Assert;
 import utest.Async;
-import gmdebug.composer.ComposedRequest;
+import gmdebug.protocol.composer.ComposedRequest;
 import js.Node;
-import gmdebug.GmDebugMessage.GmDebugLaunchRequestArguments;
+import gmdebug.protocol.ext.messages.GmDebugMessage.GmDebugLaunchRequestArguments;
 
 using test.TestHelper;
 using Lambda;

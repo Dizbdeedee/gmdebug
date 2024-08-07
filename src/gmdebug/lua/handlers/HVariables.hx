@@ -7,7 +7,7 @@ import gmod.enums.SENSORBONE;
 import lua.NativeStringTools;
 import gmod.libs.PlayerLib;
 import gmod.libs.EntsLib;
-import gmdebug.VariableReference;
+import gmdebug.protocol.ext.VariableReference;
 import gmdebug.lua.managers.VariableManager;
 import gmod.gclass.Entity;
 import gmod.libs.DebugLib;

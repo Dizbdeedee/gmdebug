@@ -1,7 +1,7 @@
 package gmdebug.lua.managers;
 
 import gmod.libs.HookLib;
-import gmdebug.WordList.WORD_ARRAY;
+import gmdebug.util.WordList.WORD_ARRAY;
 import gmod.helpers.WeakTools;
 import gmdebug.lua.handlers.HScopes;
 import gmod.gclass.Entity;
@@ -9,7 +9,7 @@ import gmod.libs.DebugLib;
 import gmod.Gmod;
 import lua.Lua;
 import lua.NativeStringTools;
-import gmdebug.VariableReference;
+import gmdebug.protocol.ext.VariableReference;
 import gmdebug.lua.handlers.IHandler;
 
 using gmod.helpers.WeakTools;

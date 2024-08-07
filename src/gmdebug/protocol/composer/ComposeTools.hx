@@ -1,12 +1,6 @@
-package gmdebug.composer;
+package gmdebug.protocol.composer;
 
-import haxe.DynamicAccess;
-import gmdebug.GmDebugError.GMDEBUG_ERROR_STRINGS;
-#if lua
-import gmdebug.lib.lua.Protocol;
-#elseif js
-import vscode.debugProtocol.DebugProtocol;
-#end
+import gmdebug.protocol.ext.GmDebugError;
 
 class ComposeTools {
 	/**
@@ -15,7 +9,6 @@ class ComposeTools {
 	**/
 	public static function compose<X, Y>(req:Request<X>, str:RequestString<Request<X>, Response<Y>>,
 			?body:Y):ComposedResponse<Null<Y>> {
-		// return ;
 		var response = new ComposedResponse(req, body);
 		response.success = true;
 		return response;
@@ -43,4 +36,10 @@ class ComposeTools {
 		response.success = false;
 		return response;
 	}
+
+	#if js
+	public static function sendResp<X>(resp:Response<X>, luaDebug:gmdebug.dap.LuaDebugger) {
+		luaDebug.sendResponse(cast resp);
+	}
+	#end
 }

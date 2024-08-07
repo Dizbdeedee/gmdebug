@@ -1,7 +1,7 @@
 package gmdebug.lua.handlers;
 
-import gmdebug.composer.RequestString;
-import gmdebug.composer.ComposedResponse;
+import gmdebug.protocol.composer.RequestString;
+import gmdebug.protocol.composer.ComposedResponse;
 
 typedef HDummyInit = {
 	debugee:Debugee

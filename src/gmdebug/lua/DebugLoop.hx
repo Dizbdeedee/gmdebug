@@ -3,7 +3,7 @@ package gmdebug.lua;
 import gmod.libs.JitLib;
 import gmdebug.lua.managers.FunctionBreakpointManager;
 import gmdebug.lua.handlers.HEvaluate;
-import gmdebug.composer.*;
+import gmdebug.protocol.composer.*;
 import lua.Debug;
 import haxe.Constraints.Function;
 import lua.Lua;

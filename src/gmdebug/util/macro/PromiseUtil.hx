@@ -1,4 +1,4 @@
-package gmdebug;
+package gmdebug.util.macro;
 
 using tink.CoreApi;
 

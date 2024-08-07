@@ -1,6 +1,6 @@
 package gmdebug.lua;
 
-import gmdebug.Util.embedResource;
+import gmdebug.util.FileUtil.embedResource;
 import haxe.Resource;
 import gmod.libs.EffectsLib;
 import tink.core.Signal;

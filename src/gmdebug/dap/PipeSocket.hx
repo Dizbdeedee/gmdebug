@@ -2,15 +2,15 @@ package gmdebug.dap;
 
 import js.node.Fs;
 import haxe.Timer;
-import gmdebug.Cross.PipeLocations;
 import js.node.ChildProcess;
 import js.node.Net;
 import sys.FileSystem;
 import js.node.net.Socket;
 import haxe.io.Path as HxPath; // temp
+import gmdebug.protocol.ext.paths.PipeLocations;
 
 using tink.CoreApi;
-using gmdebug.dap.PromiseUtil;
+using gmdebug.dap.ExecUtil;
 using StringTools;
 
 typedef PipeSocketLocations = {

@@ -1,8 +1,9 @@
-package gmdebug.composer;
+package gmdebug.protocol.composer;
 
 #if js
 import gmdebug.dap.LuaDebugger;
 #end
+import gmdebug.protocol.DebugProtocol.Response;
 
 class ComposedResponse<T> extends ComposedProtocolMessage {
 	/**
@@ -37,7 +38,6 @@ class ComposedResponse<T> extends ComposedProtocolMessage {
 	**/
 	public var body:Null<T>;
 
-	@:allow(gmdebug.Event.Request_2)
 	public function new<X:Request<Dynamic>>(req:X, body:T) {
 		super(Response);
 		request_seq = req.seq;

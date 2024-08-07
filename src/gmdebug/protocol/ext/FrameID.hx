@@ -1,4 +1,4 @@
-package gmdebug;
+package gmdebug.protocol.ext;
 
 typedef FrameIDValues = {
 	clientID:Int,

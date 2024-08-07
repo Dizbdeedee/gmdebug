@@ -8,17 +8,11 @@ import gmod.stringtypes.Hook.GMHook;
 import gmod.libs.HookLib;
 import haxe.io.Path as HxPath;
 import gmdebug.lua.DebugLoop.SourceInfo;
-import gmdebug.composer.*;
+import gmdebug.protocol.composer.*;
 
 using gmod.helpers.WeakTools;
 using Safety;
 using Lambda;
-
-#if lua
-import gmdebug.lib.lua.Protocol;
-#elseif js
-import vscode.debugProtocol.DebugProtocol;
-#end
 
 typedef InitSourceContainer = {
 	debugee:Debugee

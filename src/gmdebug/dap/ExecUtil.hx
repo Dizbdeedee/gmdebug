@@ -9,7 +9,7 @@ using tink.CoreApi;
 
 // NO
 // ^ ominous...
-class PromiseUtil {
+class ExecUtil {
 	public static extern inline function prom_open(cl:Class<Fs>, rest:Rest<Dynamic>):Promise<Dynamic> {
 		return Promisify.promisify(Fs.open)(rest)
 			.toPromise();

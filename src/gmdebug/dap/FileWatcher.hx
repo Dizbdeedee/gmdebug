@@ -1,7 +1,7 @@
 package gmdebug.dap;
 
 import js.node.Fs;
-import gmdebug.Util.recurseCopy;
+import gmdebug.util.FileUtil.recurseCopy;
 
 interface FileWatcher {
 	function watch(initBundle:InitBundle):Void;
@@ -27,10 +27,10 @@ class FileWatcherDef implements FileWatcher {
 		if (stop)
 			return;
 		if (copy) {
-			recurseCopy(initBundle.luaAddon, initBundle.luaAddonDestination, (file -> {
-				trace(file);
-				return file.charAt(0) != ".";
-			}));
+			// recurseCopy(initBundle.luaAddon, initBundle.luaAddonDestination, (file -> {
+			// 	trace(file);
+			// 	return file.charAt(0) != ".";
+			// }));
 		}
 		copy = false;
 		haxe.Timer.delay(copyTimeout.bind(initBundle), 3000);
