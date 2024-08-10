@@ -1,6 +1,7 @@
 package gmdebug.dap;
 
 import haxe.io.Path as HxPath;
+import gmdebug.protocol.ext.paths.GMDNormalAbsPath;
 import node.Fs;
 
 using tink.CoreApi;

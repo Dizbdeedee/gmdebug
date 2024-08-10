@@ -1,4 +1,4 @@
-package gmdebug;
+package gmdebug.protocol.ext.paths;
 
 import haxe.io.Path as HxPath;
 

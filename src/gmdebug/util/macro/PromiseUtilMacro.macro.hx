@@ -1,11 +1,11 @@
-package gmdebug;
+package gmdebug.util.macro;
 
 import haxe.macro.Expr.ExprOf;
 import haxe.macro.Expr;
 
 class FutureArray_Use {
 	public static macro function add(futureArr:ExprOf<Util.FutureArray>, funcCall:Expr) {
-		return macro $futureArr._add(gmdebug.PromiseUtil.FutureArray.megaLazy(() -> $funcCall));
+		return macro $futureArr._add(gmdebug.util.macro.PromiseUtil.FutureArray.megaLazy(() -> $funcCall));
 	}
 }
 

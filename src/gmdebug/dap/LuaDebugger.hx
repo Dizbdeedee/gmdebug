@@ -2,6 +2,7 @@ package gmdebug.dap;
 
 import node.NodeCrypto;
 import gmdebug.dap.EventIntercepter;
+import gmdebug.protocol.ext.paths.GMDNormalAbsPath;
 import js.node.Timers;
 import gmdebug.dap.clients.ClientStorage;
 import gmdebug.dap.io.ClientStorageWithHandshake;

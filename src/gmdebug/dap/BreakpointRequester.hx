@@ -5,6 +5,7 @@ import haxe.Timer;
 import gmdebug.util.macro.PromiseUtil.PromiseArray;
 import gmdebug.dap.GmodPath;
 import gmdebug.dap.clients.ClientStorage;
+import gmdebug.protocol.ext.paths.GMDNormalAbsPath;
 import haxe.io.Path as HxPath;
 
 using gmdebug.protocol.composer.ComposeTools;
