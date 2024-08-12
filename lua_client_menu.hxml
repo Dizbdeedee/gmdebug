@@ -1,0 +1,4 @@
+haxe_subbuilds/lua.hxml
+-D client
+-main gmdebug.lua.debugee.menu.Menu
+-lua /dev/null

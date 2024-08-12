@@ -1,0 +1,3 @@
+haxe_subbuilds/js.hxml
+-main gmdebug.js.dap.srcds.RedirectWorker
+-js bin/monitor.js

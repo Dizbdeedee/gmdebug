@@ -1,8 +1,9 @@
 package test;
 
-import gmdebug.dap.LuaDebugger;
+import gmdebug.js.dap.LuaDebugger;
 import gmdebug.protocol.composer.ComposedRequest;
 import gmdebug.protocol.composer.RequestString;
+import gmdebug.protocol.DebugProtocol;
 import utest.Assert;
 
 class TestHelper {

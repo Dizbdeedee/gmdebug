@@ -11,13 +11,14 @@
         ],
         "name": "Launch Extension",
         "outFiles": [
-            "${workspaceFolder}/out/*.js"
+            "${workspaceFolder}/bin/*.js"
         ],
         
         // "preLaunchTask": "npm",
         "request": "launch",
         "runtimeExecutable": "${execPath}",
         "type": "extensionHost"
+       
     },
 
         {

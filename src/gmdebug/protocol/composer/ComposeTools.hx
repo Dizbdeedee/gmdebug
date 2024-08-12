@@ -38,7 +38,7 @@ class ComposeTools {
 	}
 
 	#if js
-	public static function sendResp<X>(resp:Response<X>, luaDebug:gmdebug.dap.LuaDebugger) {
+	public static function sendResp<X>(resp:Response<X>, luaDebug:gmdebug.js.dap.LuaDebugger) {
 		luaDebug.sendResponse(cast resp);
 	}
 	#end

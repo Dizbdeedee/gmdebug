@@ -1,7 +1,7 @@
 package gmdebug.protocol.composer;
 
 #if lua
-import gmdebug.lua.Debugee;
+import gmdebug.lua.debugee.Debugee;
 #end
 import haxe.Json;
 

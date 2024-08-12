@@ -1,0 +1,85 @@
+package gmdebug.lua.debugee;
+
+import haxe.Constraints.Function;
+import haxe.ds.ObjectMap;
+import gmdebug.lua.debugee.handlers.IHandler;
+import gmod.Gmod;
+import gmod.stringtypes.Hook.GMHook;
+import gmod.libs.HookLib;
+import haxe.io.Path as HxPath;
+import gmdebug.lua.debugee.DebugLoop.SourceInfo;
+import gmdebug.protocol.composer.*;
+
+using gmod.helpers.WeakTools;
+using Safety;
+using Lambda;
+
+typedef InitSourceContainer = {
+	debugee:Debugee
+}
+
+@:native("_G")
+private extern class PreLoad {
+	static var __preinclude:lua.Table.AnyTable;
+}
+
+class SourceContainer {
+	final uniqueSources:Map<String, Null<Source>> = [];
+
+	public var sources:Array<Source> = [];
+
+	public var sourceCache:ObjectMap<Function, SourceInfo>;
+
+	final debugee:Debugee;
+
+	var readSourceTime:Float = 0;
+
+	public function new(initSourceContainer:InitSourceContainer) {
+		HookLib.Add(GMHook.Think, "gmdebug-source-get", () -> {
+			if (Gmod.CurTime() > readSourceTime) {
+				readSourceTime = Gmod.CurTime() + 1;
+				readSourceInfo();
+			}
+		});
+		sourceCache = makeSourceCache();
+		debugee = initSourceContainer.debugee;
+	}
+
+	function makeSourceCache() {
+		final sc = new haxe.ds.ObjectMap<haxe.Constraints.Function, SourceInfo>();
+		sc.setWeakKeysM();
+		return sc;
+	}
+
+	function getNewSources() {}
+
+	function readSourceInfo() {
+		for (si in sourceCache) {
+			if (!uniqueSources.exists(si.source)) {
+				final result = infoToSource(si);
+				if (result != null) {
+					debugee.sendMessage(new ComposedEvent(loadedSource, {
+						reason: New,
+						source: result
+					}));
+					sources.push(result);
+				}
+				uniqueSources.set(si.source, result);
+			}
+		}
+	}
+
+	public function infoToSource(info:SourceInfo):Null<Source> {
+		return switch (info.source) {
+			case src if (Util.isCSource(src)):
+				null;
+			case src:
+				final pathStr = src; // NORMAL PATH
+				final path = new HxPath(pathStr);
+				{
+					name: path.file,
+					path: path.toString(),
+				};
+		}
+	}
+}

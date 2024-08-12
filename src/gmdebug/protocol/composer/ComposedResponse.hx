@@ -1,7 +1,7 @@
 package gmdebug.protocol.composer;
 
 #if js
-import gmdebug.dap.LuaDebugger;
+import gmdebug.js.dap.LuaDebugger;
 #end
 import gmdebug.protocol.DebugProtocol.Response;
 

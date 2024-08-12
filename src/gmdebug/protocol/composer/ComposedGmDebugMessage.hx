@@ -3,10 +3,10 @@ package gmdebug.protocol.composer;
 import gmdebug.protocol.ext.messages.GmMsgType;
 import haxe.Json;
 #if lua
-import gmdebug.lua.Debugee;
+import gmdebug.lua.debugee.Debugee;
 import gmod.Gmod;
 #elseif js
-import gmdebug.dap.LuaDebugger;
+import gmdebug.js.dap.LuaDebugger;
 #end
 
 /**

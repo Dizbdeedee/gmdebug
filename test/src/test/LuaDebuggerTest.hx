@@ -8,7 +8,7 @@ import sys.FileSystem;
 import gmdebug.protocol.composer.RequestString;
 import gmdebug.protocol.composer.EventString;
 import utest.Async;
-import gmdebug.dap.LuaDebugger;
+import gmdebug.js.dap.LuaDebugger;
 using Lambda;
 
 class LuaDebuggerTest extends LuaDebugger {

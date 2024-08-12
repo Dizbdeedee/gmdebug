@@ -1,0 +1,9 @@
+{
+    "haxe.configurations": [
+        ["lua_client.hxml"],
+        ["lua_server.hxml"],
+        ["extension.hxml"],
+        ["haxe_subbuilds/optional_fullbuilds/main.hxml"],
+        ["haxe_subbuilds/optional_fullbuilds/tests.hxml"]
+    ]
+}

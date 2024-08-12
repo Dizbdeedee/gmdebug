@@ -12,10 +12,10 @@
 -D noGenInit
 -D haxeJSON
 -D lua-ver=5.1
---resource src/gmdebug/lua/include/XPCall.lua@XPCall
---resource src/gmdebug/lua/include/Catch.lua@Catch
---resource src/gmdebug/lua/include/FakeXPCall.lua@FakeXPCall
+--resource src/gmdebug/lua/debugee/include/XPCall.lua@XPCall
+--resource src/gmdebug/lua/debugee/include/Catch.lua@Catch
+--resource src/gmdebug/lua/debugee/include/FakeXPCall.lua@FakeXPCall
 -dce full
 --macro gmod.helpers.macros.InitMacro.init()
---macro gmdebug.lua.macros.InitMacro.addDebugContext()
+--macro gmdebug.lua.debugee.macros.InitMacro.addDebugContext()
 --cmd lix -lib gmodhaxe --run gmod.helpers.macros.PostCompileMacro

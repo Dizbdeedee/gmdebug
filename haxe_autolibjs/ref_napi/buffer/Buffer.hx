@@ -1,6 +1,6 @@
 package ref_napi.buffer;
 
-typedef Buffer = gmdebug.dap.srcds.BufferCompat;
+typedef Buffer = gmdebug.js.srcds.BufferCompat;
 
 @:jsRequire("buffer", "Buffer") extern class _Buffer {
 	/**
